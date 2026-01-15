@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/TranDuBao_Music/static/css/main.84832766.css",
+    "main.js": "/TranDuBao_Music/static/js/main.9663e320.js",
+    "static/js/453.71c876a1.chunk.js": "/TranDuBao_Music/static/js/453.71c876a1.chunk.js",
+    "index.html": "/TranDuBao_Music/index.html",
+    "main.84832766.css.map": "/TranDuBao_Music/static/css/main.84832766.css.map",
+    "main.9663e320.js.map": "/TranDuBao_Music/static/js/main.9663e320.js.map",
+    "453.71c876a1.chunk.js.map": "/TranDuBao_Music/static/js/453.71c876a1.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.84832766.css",
+    "static/js/main.9663e320.js"
+  ]
+}
