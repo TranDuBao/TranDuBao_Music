@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Users, Sparkles, Music2, Heart } from 'lucide-react';
 
 interface Artist {
@@ -17,6 +18,7 @@ interface FeaturedArtistsProps {
 }
 
 export default function FeaturedArtists({ onArtistClick }: FeaturedArtistsProps) {
+  const { t, i18n } = useTranslation();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +51,7 @@ export default function FeaturedArtists({ onArtistClick }: FeaturedArtistsProps)
       <section className="pt-10 border-t border-white/5 mt-12 space-y-6">
         <div className="flex items-center gap-2 text-purple-400">
           <Sparkles className="w-4 h-4 animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-wider">Nghệ sĩ tiêu biểu</span>
+          <span className="text-xs font-bold uppercase tracking-wider">{i18n.language === 'vi' ? 'Nghệ sĩ tiêu biểu' : 'Featured Artists'}</span>
         </div>
         <div className="flex flex-col gap-6">
           {[1, 2].map((i) => (
@@ -69,11 +71,11 @@ export default function FeaturedArtists({ onArtistClick }: FeaturedArtistsProps)
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-purple-400">
             <Sparkles className="w-4 h-4 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider">Nghệ sĩ tiêu biểu</span>
+            <span className="text-xs font-bold uppercase tracking-wider">{i18n.language === 'vi' ? 'Nghệ sĩ tiêu biểu' : 'Featured Artists'}</span>
           </div>
           <h2 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <Users className="w-5 h-5 text-zinc-400" />
-            Giới Thiệu Các Siêu Sao
+            {i18n.language === 'vi' ? 'Giới Thiệu Các Siêu Sao' : 'Superstar Showcases'}
           </h2>
         </div>
       </div>
@@ -89,6 +91,7 @@ export default function FeaturedArtists({ onArtistClick }: FeaturedArtistsProps)
 }
 
 function ArtistCard({ artist, index, onClick }: { artist: Artist; index: number; onClick?: () => void }) {
+  const { i18n } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -145,7 +148,7 @@ function ArtistCard({ artist, index, onClick }: { artist: Artist; index: number;
             </span>
             <span className="text-[10px] font-medium text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
               <Heart className="w-3 h-3 fill-current" />
-              {artist.listeners} / tháng
+              {artist.listeners} {i18n.language === 'vi' ? '/ tháng' : '/ month'}
             </span>
           </div>
 
@@ -163,7 +166,7 @@ function ArtistCard({ artist, index, onClick }: { artist: Artist; index: number;
         {/* Popular Track details */}
         <div className="flex items-center gap-2 border-t border-white/5 pt-3 mt-4 text-xs text-zinc-500">
           <Music2 className="w-4 h-4 text-purple-400 animate-spin" style={{ animationDuration: '6s' }} />
-          <span>Bài hát nổi bật nhất: <strong className="text-white group-hover:text-purple-300 transition-colors duration-300">{artist.popular_track}</strong></span>
+          <span>{i18n.language === 'vi' ? 'Bài hát nổi bật nhất:' : 'Most popular track:'} <strong className="text-white group-hover:text-purple-300 transition-colors duration-300">{artist.popular_track}</strong></span>
         </div>
       </div>
     </div>

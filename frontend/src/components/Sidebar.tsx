@@ -57,7 +57,7 @@ export default function Sidebar({ view, setView, onUploadClick }: SidebarProps) 
       >
         <Logo className="w-9 h-9 flex-shrink-0" />
         <div>
-          <h1 className="font-bold text-base bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent tracking-tight">MusicStream</h1>
+          <h1 className="font-bold text-base brand-text-gradient tracking-tight">MusicStream</h1>
           <span className="text-[10px] text-zinc-600">MVC Web Audio</span>
         </div>
       </button>

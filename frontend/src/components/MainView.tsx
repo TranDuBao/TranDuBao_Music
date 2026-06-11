@@ -11,14 +11,7 @@ import AddTrackModal from './AddTrackModal';
 import AdminPanel from './AdminPanel';
 import UserProfilePage from '../pages/UserProfilePage';
 import FeaturedArtists from './FeaturedArtists';
-
-const BANNER_SLIDES = [
-  'http://localhost:5000/uploads/img/banner_slide_1.png',
-  'http://localhost:5000/uploads/img/banner_slide_2.png',
-  'http://localhost:5000/uploads/img/banner_slide_3.png',
-  'http://localhost:5000/uploads/img/banner_slide_4.png',
-  'http://localhost:5000/uploads/img/banner_slide_5.png'
-];
+import { formatCount } from '../utils/format';
 
 interface Album {
   name: string;
@@ -34,7 +27,7 @@ interface MainViewProps {
 }
 
 export default function MainView({ view, setView, onUploadClick }: MainViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { tracks, currentPlaylist, currentPlaylistTracks, searchQuery, setSearchQuery, fetchTracks, playTrack } = useMusicStore();
   const { user } = useAuthStore();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -143,7 +136,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const listTitle = selectedAlbum
     ? `Album: ${selectedAlbum.name}`
     : selectedArtist
-      ? `Bài hát của ${selectedArtist}`
+      ? (i18n.language === 'vi' ? `Bài hát của ${selectedArtist}` : `Songs by ${selectedArtist}`)
       : currentPlaylist
         ? currentPlaylist.name
         : view === 'mine'
@@ -225,7 +218,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   if (view === 'profile') {
     return (
       <main className="flex-1 flex flex-col h-full overflow-y-auto pb-32">
-        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch />
+        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} />
         <div className="p-8 max-w-5xl w-full mx-auto">
           <UserProfilePage />
         </div>
@@ -236,7 +229,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   if (view === 'admin') {
     return (
       <main className="flex-1 flex flex-col h-full overflow-y-auto pb-32">
-        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch />
+        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} />
         <div className="p-8 max-w-5xl w-full mx-auto">
           <AdminPanel />
         </div>
@@ -256,11 +249,11 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
       {/* Dark Overlay to fade background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/20 to-zinc-950 pointer-events-none" />
 
-      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} />
+      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} setView={setView} />
 
       <div className="p-8 max-w-5xl w-full mx-auto space-y-8 relative z-10">
         {/* Hero Banner with Auto-rotating 5 animated video background */}
-        <div className="relative rounded-3xl overflow-hidden bg-zinc-950 p-8 md:p-10 border border-purple-500/15 shadow-2xl">
+        <div className="theme-dark-always relative rounded-3xl overflow-hidden bg-zinc-950 p-8 md:p-10 border border-purple-500/15 shadow-2xl">
           {/* Slideshow background */}
           <div className="absolute inset-0 z-0 overflow-hidden bg-gradient-to-br from-purple-900/20 via-indigo-950/10 to-zinc-950">
             {bannerSlides.map((src, index) => (
@@ -284,12 +277,12 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                 {view === 'mine' ? t('tracks.myTracks') : 'Premium Lofi Streaming'}
               </span>
               <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                {user ? `Xin chào, ${user.name.split(' ')[0]}! 👋` : 'Your Sound, Reimagined.'}
+                {user ? (i18n.language === 'vi' ? `Xin chào, ${user.name.split(' ')[0]}! 👋` : `Hello, ${user.name.split(' ')[0]}! 👋`) : 'Your Sound, Reimagined.'}
               </h2>
               <p className="text-sm text-zinc-300 leading-relaxed">
                 {view === 'mine'
-                  ? 'Quản lý và phát lại những bài nhạc bạn đã tải lên.'
-                  : 'Khám phá kho nhạc đa dạng, tạo playlist, và upload nhạc cá nhân của bạn.'}
+                  ? (i18n.language === 'vi' ? 'Quản lý và phát lại những bài nhạc bạn đã tải lên.' : 'Manage and playback music you have uploaded.')
+                  : (i18n.language === 'vi' ? 'Khám phá kho nhạc đa dạng, tạo playlist, và upload nhạc cá nhân của bạn.' : 'Discover diverse music, create playlists, and upload your personal music.')}
               </p>
               <div className="flex items-center gap-3">
                 {view !== 'mine' && (
@@ -318,7 +311,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
         {/* Category filter bar (only show in 'all' or 'mine' view, not inside a playlist) */}
         {!currentPlaylist && categories.length > 0 && (
           <div className="space-y-2.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">Danh mục bài hát</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">{i18n.language === 'vi' ? 'Danh mục bài hát' : 'Music Categories'}</h3>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
@@ -332,7 +325,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                   }`}
               >
                 <span>🌍</span>
-                <span>Tất cả</span>
+                <span>{i18n.language === 'vi' ? 'Tất cả' : 'All'}</span>
               </button>
               {categories.map(c => {
                 const active = selectedCategoryId === c.id;
@@ -373,13 +366,13 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                     setSelectedAlbum(null);
                   }}
                   className="w-5 h-5 flex items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all cursor-pointer"
-                  title="Xóa bộ lọc"
+                  title={i18n.language === 'vi' ? 'Xóa bộ lọc' : 'Clear filter'}
                 >
                   ✕
                 </button>
               )}
             </h2>
-            <p className="text-sm text-zinc-500 mt-0.5">{displayedTracks.length} bài hát</p>
+            <p className="text-sm text-zinc-500 mt-0.5">{displayedTracks.length} {i18n.language === 'vi' ? 'bài hát' : 'songs'}</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Drag-to-reorder toggle (only in 'mine' view, not inside a playlist) */}
@@ -392,7 +385,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                   }`}
               >
                 <ArrowUpDown className="w-4 h-4" />
-                {dragMode ? 'Xong' : 'Sắp xếp'}
+                {dragMode ? (i18n.language === 'vi' ? 'Xong' : 'Done') : (i18n.language === 'vi' ? 'Sắp xếp' : 'Sort')}
               </button>
             )}
             {displayedTracks.length > 0 && (
@@ -476,8 +469,8 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
               <div className="p-1.5 bg-gradient-to-br from-orange-500 to-rose-500 rounded-lg">
                 <Flame className="w-4 h-4 text-white" />
               </div>
-              <h2 className="text-lg font-bold text-white">Top 5 bài hát tuần này</h2>
-              <span className="text-xs bg-orange-500/15 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full font-semibold">HOT 🔥</span>
+              <h2 className="text-lg font-bold text-white">{i18n.language === 'vi' ? 'Top 5 bài hát tuần này' : 'Top 5 Weekly Tracks'}</h2>
+              <span className="text-xs bg-orange-500/15 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full font-semibold">{i18n.language === 'vi' ? 'HOT 🔥' : 'TRENDING 🔥'}</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -516,7 +509,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                     <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
                     <div className="flex items-center gap-1 pt-1">
                       <TrendingUp className="w-3 h-3 text-orange-400" />
-                      <span className="text-[10px] text-orange-400 font-semibold">{track.weekly_plays} lượt / tuần</span>
+                      <span className="text-[10px] text-orange-400 font-semibold">{formatCount(track.weekly_plays || 0)} {i18n.language === 'vi' ? 'lượt / tuần' : ((track.weekly_plays || 0) === 1 ? 'play / week' : 'plays / week')}</span>
                     </div>
                   </div>
                 </button>
@@ -533,7 +526,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                 <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
                   <Music className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="text-lg font-bold text-white">Album nổi bật</h2>
+                <h2 className="text-lg font-bold text-white">{i18n.language === 'vi' ? 'Album nổi bật' : 'Featured Albums'}</h2>
               </div>
             </div>
 
@@ -574,7 +567,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                       {album.artist}
                     </p>
                     <p className="text-[10px] text-zinc-600">
-                      {album.tracks.length} bài hát
+                      {album.tracks.length} {i18n.language === 'vi' ? 'bài hát' : 'songs'}
                     </p>
                   </div>
                 </button>
@@ -605,7 +598,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 }
 
 // Reusable header subcomponent
-function Header({ searchQuery, setSearchQuery, disableSearch }: { searchQuery: string; setSearchQuery: (v: string) => void; disableSearch: boolean }) {
+function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPlaceholder }: { searchQuery: string; setSearchQuery: (v: string) => void; disableSearch: boolean; setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void; searchPlaceholder?: string }) {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -617,13 +610,13 @@ function Header({ searchQuery, setSearchQuery, disableSearch }: { searchQuery: s
   };
 
   return (
-    <header className="px-5 py-3 flex items-center justify-between border-b border-white/5 bg-zinc-950/85 backdrop-blur-md sticky top-0 z-30 shadow-md">
+    <header className="px-5 py-3 flex items-center justify-between border-b border-white/5 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30 shadow-md">
       {/* Search */}
       <div className="relative w-72">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
         <input
           type="text"
-          placeholder={disableSearch ? t('tracks.searchDisabledInPlaylist') : t('tracks.searchPlaceholder')}
+          placeholder={searchPlaceholder || (disableSearch ? t('tracks.searchDisabledInPlaylist') : t('tracks.searchPlaceholder'))}
           disabled={disableSearch}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -637,7 +630,11 @@ function Header({ searchQuery, setSearchQuery, disableSearch }: { searchQuery: s
         {/* Dark / Light mode toggle */}
         <button
           onClick={toggleTheme}
-          title={isDark ? 'Chuyển sang Light Mode' : 'Chuyển sang Dark Mode'}
+          title={
+            isDark
+              ? (i18n.language === 'vi' ? 'Chuyển sang Light Mode' : 'Switch to Light Mode')
+              : (i18n.language === 'vi' ? 'Chuyển sang Dark Mode' : 'Switch to Dark Mode')
+          }
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900/80 border border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
         >
           {isDark
@@ -683,7 +680,7 @@ function Header({ searchQuery, setSearchQuery, disableSearch }: { searchQuery: s
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-all text-left"
                   >
                     <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    Thông tin cá nhân
+                    {i18n.language === 'vi' ? 'Thông tin cá nhân' : 'Personal Profile'}
                   </button>
                   <button
                     onClick={() => { logout(); setShowUserMenu(false); navigate('/login'); }}

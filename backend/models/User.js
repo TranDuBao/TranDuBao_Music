@@ -3,7 +3,7 @@ const { query } = require('../config/db');
 class User {
   static async findById(id) {
     const rows = await query(
-      'SELECT id, name, email, role, provider, avatar_url, bio, created_at, banned_until FROM users WHERE id = ?',
+      'SELECT id, name, email, role, provider, avatar_url, bio, created_at, banned_until, last_active_at FROM users WHERE id = ?',
       [id]
     );
     if (!rows[0]) return null;
@@ -41,7 +41,7 @@ class User {
 
   static async getAll() {
     const rows = await query(
-      'SELECT id, name, email, role, provider, avatar_url, bio, created_at, banned_until FROM users ORDER BY created_at DESC'
+      'SELECT id, name, email, role, provider, avatar_url, bio, created_at, banned_until, last_active_at FROM users ORDER BY created_at DESC'
     );
     return rows.map(u => {
       if (u.avatar_url && u.avatar_url.startsWith('/uploads')) {

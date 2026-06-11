@@ -82,6 +82,7 @@ const initDb = async () => {
     try { await query("ALTER TABLE tracks ADD COLUMN album_id INTEGER"); } catch (_) { }
     try { await query("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (_) { }
     try { await query("ALTER TABLE users ADD COLUMN banned_until DATETIME DEFAULT NULL"); } catch (_) { }
+    try { await query("ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT NULL"); } catch (_) { }
 
     // ── Playlists ────────────────────────────────────────────────
     await query(`CREATE TABLE IF NOT EXISTS playlists (

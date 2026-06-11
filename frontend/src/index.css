@@ -16,17 +16,17 @@
 }
 
 html.light {
-  --bg-main:        #f4f1fb;
-  --bg-panel:       rgba(255, 255, 255, 0.92);
-  --bg-card:        rgba(0, 0, 0, 0.03);
+  --bg-main:        #f3f4f6;
+  --bg-panel:       rgba(255, 255, 255, 0.95);
+  --bg-card:        rgba(0, 0, 0, 0.02);
   --bg-input:       #ffffff;
-  --bg-hover:       rgba(0, 0, 0, 0.04);
+  --bg-hover:       rgba(0, 0, 0, 0.03);
   --text-primary:   #111827;
-  --text-secondary: #374151;
-  --text-muted:     #9ca3af;
-  --border:         rgba(0, 0, 0, 0.07);
+  --text-secondary: #4b5563;
+  --text-muted:     #6b7280;
+  --border:         rgba(0, 0, 0, 0.06);
   --border-input:   #d1d5db;
-  --shadow-glow:    rgba(168, 85, 247, 0.12);
+  --shadow-glow:    rgba(124, 58, 237, 0.08);
 }
 
 /* ── Base ────────────────────────────────────────────────────────── */
@@ -89,13 +89,13 @@ html.light {
 
 /* ── Light mode overrides for specific Tailwind hardcoded colors ─── */
 html.light .text-zinc-200 { color: var(--text-primary) !important; }
-html.light .text-zinc-300 { color: var(--text-secondary) !important; }
+html.light .text-zinc-300 { color: var(--text-primary) !important; }
 html.light .text-zinc-400 { color: var(--text-secondary) !important; }
-html.light .text-zinc-500 { color: var(--text-muted) !important; }
+html.light .text-zinc-500 { color: var(--text-secondary) !important; }
 html.light .text-zinc-600 { color: var(--text-muted) !important; }
 html.light .bg-zinc-900   { background-color: #ffffff !important; }
 html.light .bg-zinc-950   { background-color: #f9f8ff !important; }
-html.light .bg-zinc-800   { background-color: #f0edfb !important; }
+html.light .bg-zinc-800   { background-color: #f3f4f6 !important; }
 html.light .border-zinc-800 { border-color: #e5e7eb !important; }
 html.light .border-zinc-700 { border-color: #d1d5db !important; }
 html.light .border-white\/5 { border-color: rgba(0,0,0,0.07) !important; }
@@ -112,6 +112,17 @@ html.light .text-white      { color: #111827 !important; }
 html.light .placeholder-zinc-500::placeholder { color: #9ca3af !important; }
 html.light .placeholder-zinc-600::placeholder { color: #9ca3af !important; }
 
+.brand-text-gradient {
+  background: linear-gradient(to right, #ffffff, #a1a1aa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html.light .brand-text-gradient {
+  background: linear-gradient(to right, #6d28d9, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* ── Ken Burns Slideshow Effect ──────────────────────────────────── */
 @keyframes kenburns {
   0% { transform: scale(1.0); }
@@ -120,4 +131,37 @@ html.light .placeholder-zinc-600::placeholder { color: #9ca3af !important; }
 }
 .animate-kenburns {
   animation: kenburns 16s ease-in-out infinite;
+}
+
+/* ── theme-dark-always override to keep specific cards dark in light mode ── */
+html.light .theme-dark-always {
+  background-color: #0b0b0f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html.light .theme-dark-always .text-white {
+  color: #ffffff !important;
+}
+html.light .theme-dark-always .text-zinc-300 {
+  color: #d4d4d8 !important;
+}
+html.light .theme-dark-always .text-zinc-200 {
+  color: #e4e4e7 !important;
+}
+html.light .theme-dark-always .text-zinc-400 {
+  color: #a1a1aa !important;
+}
+html.light .theme-dark-always .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+html.light .theme-dark-always .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+html.light .theme-dark-always .hover\:bg-white\/15:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+html.light .theme-dark-always .from-zinc-950 {
+  --tw-gradient-from: #0b0b0f var(--tw-gradient-from-position) !important;
+}
+html.light .theme-dark-always .via-zinc-950\/85 {
+  --tw-gradient-stops: var(--tw-gradient-from), rgba(11, 11, 15, 0.85) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
 }

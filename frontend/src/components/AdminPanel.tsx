@@ -1,25 +1,28 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
 import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, RefreshCw, Plus, Edit2, Star, Heart, TrendingUp, Lock, Unlock, Disc, Calendar, Clock } from 'lucide-react';
 import axios from 'axios';
 import { useModalStore } from '../store/useModalStore';
+import { formatCount, formatPlays, formatPlaysShort, formatDateLabel } from '../utils/format';
 
 const API = 'http://localhost:5000/api';
 type AdminTab = 'users' | 'tracks' | 'categories' | 'artists' | 'albums' | 'stats' | 'settings';
 
 export default function AdminPanel() {
+  const { t, i18n } = useTranslation();
   const { token } = useAuthStore();
   const [tab, setTab] = useState<AdminTab>('users');
   const authH = { Authorization: `Bearer ${token}` };
 
   const tabs = [
-    { id: 'users' as const,      label: 'Người dùng', icon: <Users className="w-4 h-4" /> },
-    { id: 'tracks' as const,     label: 'Quản lý nhạc', icon: <Music className="w-4 h-4" /> },
-    { id: 'categories' as const, label: 'Danh mục', icon: <FolderOpen className="w-4 h-4" /> },
-    { id: 'artists' as const,    label: 'Nghệ sĩ', icon: <Star className="w-4 h-4" /> },
-    { id: 'albums' as const,     label: 'Quản lý Album', icon: <Disc className="w-4 h-4" /> },
-    { id: 'settings' as const,   label: 'Giao diện', icon: <Edit2 className="w-4 h-4" /> },
-    { id: 'stats' as const,      label: 'Thống kê', icon: <BarChart2 className="w-4 h-4" /> },
+    { id: 'users' as const,      label: i18n.language === 'vi' ? 'Người dùng' : 'Users', icon: <Users className="w-4 h-4" /> },
+    { id: 'tracks' as const,     label: i18n.language === 'vi' ? 'Quản lý nhạc' : 'Music', icon: <Music className="w-4 h-4" /> },
+    { id: 'categories' as const, label: i18n.language === 'vi' ? 'Danh mục' : 'Categories', icon: <FolderOpen className="w-4 h-4" /> },
+    { id: 'artists' as const,    label: i18n.language === 'vi' ? 'Nghệ sĩ' : 'Artists', icon: <Star className="w-4 h-4" /> },
+    { id: 'albums' as const,     label: i18n.language === 'vi' ? 'Quản lý Album' : 'Albums', icon: <Disc className="w-4 h-4" /> },
+    { id: 'settings' as const,   label: i18n.language === 'vi' ? 'Giao diện' : 'Appearance', icon: <Edit2 className="w-4 h-4" /> },
+    { id: 'stats' as const,      label: i18n.language === 'vi' ? 'Thống kê' : 'Statistics', icon: <BarChart2 className="w-4 h-4" /> },
   ];
 
   return (
@@ -31,7 +34,7 @@ export default function AdminPanel() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-white">Admin Dashboard</h2>
-          <p className="text-xs text-zinc-500">Quản lý toàn bộ hệ thống MusicStream</p>
+          <p className="text-xs text-zinc-500">{i18n.language === 'vi' ? 'Quản lý toàn bộ hệ thống MusicStream' : 'Manage the entire MusicStream system'}</p>
         </div>
       </div>
 
@@ -59,6 +62,8 @@ export default function AdminPanel() {
 
 // ── Users Tab ─────────────────────────────────────────────────────
 function UsersTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [users, setUsers]   = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [banTarget, setBanTarget] = useState<any | null>(null); // user to ban
@@ -77,15 +82,15 @@ function UsersTab({ authH }: any) {
 
   const deleteUser = async (id: number) => {
     showConfirm(
-      'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa người dùng này khỏi hệ thống?',
+      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
+      isVi ? 'Bạn có chắc chắn muốn xóa người dùng này khỏi hệ thống?' : 'Are you sure you want to delete this user from the system?',
       async () => {
         try {
           await axios.delete(`${API}/auth/users/${id}`, { headers: authH });
-          showAlert('Thành công', 'Đã xóa người dùng thành công.', 'success');
+          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa người dùng thành công.' : 'User deleted successfully.', 'success');
           fetchUsers();
         } catch (err: any) {
-          showAlert('Thất bại', err.response?.data?.message || 'Không thể xóa người dùng.', 'error');
+          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa người dùng.' : 'Failed to delete user.'), 'error');
         }
       }
     );
@@ -98,21 +103,21 @@ function UsersTab({ authH }: any) {
         ? { type: 'permanent' }
         : { type: 'days', days: banDays };
       await axios.put(`${API}/auth/users/${banTarget.id}/ban`, payload, { headers: authH });
-      showAlert('Thành công', `Đã khóa tài khoản ${banTarget.name} thành công.`, 'success');
+      showAlert(isVi ? 'Thành công' : 'Success', isVi ? `Đã khóa tài khoản ${banTarget.name} thành công.` : `Successfully banned ${banTarget.name}.`, 'success');
       setBanTarget(null);
       fetchUsers();
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Không thể khóa tài khoản.', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể khóa tài khoản.' : 'Failed to ban account.'), 'error');
     }
   };
 
   const unbanUser = async (u: any) => {
     try {
       await axios.put(`${API}/auth/users/${u.id}/ban`, { type: 'unban' }, { headers: authH });
-      showAlert('Thành công', `Đã mở khóa tài khoản ${u.name}.`, 'success');
+      showAlert(isVi ? 'Thành công' : 'Success', isVi ? `Đã mở khóa tài khoản ${u.name}.` : `Successfully unbanned ${u.name}.`, 'success');
       fetchUsers();
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Không thể mở khóa.', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể mở khóa.' : 'Failed to unban.'), 'error');
     }
   };
 
@@ -124,9 +129,22 @@ function UsersTab({ authH }: any) {
   const isPermanentBan = (u: any) => u.banned_until && new Date(u.banned_until).getFullYear() >= 9999;
   const banLabel = (u: any) => {
     if (!isBanned(u)) return null;
-    if (isPermanentBan(u)) return 'Khóa vĩnh viễn';
+    if (isPermanentBan(u)) return isVi ? 'Khóa vĩnh viễn' : 'Permanently banned';
     const d = new Date(u.banned_until);
-    return `Khóa đến ${d.toLocaleDateString('vi-VN')}`;
+    return isVi ? `Khóa đến ${d.toLocaleDateString('vi-VN')}` : `Banned until ${d.toLocaleDateString('en-US')}`;
+  };
+
+  const isOnline = (u: any) => {
+    if (!u.last_active_at) return false;
+    const lastActive = new Date(u.last_active_at);
+    const now = new Date();
+    return (now.getTime() - lastActive.getTime()) < 5 * 60 * 1000;
+  };
+
+  const lastActiveLabel = (u: any) => {
+    if (!u.last_active_at) return isVi ? 'Chưa rõ' : 'Unknown';
+    const lastActive = new Date(u.last_active_at);
+    return lastActive.toLocaleString(isVi ? 'vi-VN' : 'en-US');
   };
 
   const admins = users.filter(u => u.role === 'admin').length;
@@ -144,8 +162,8 @@ function UsersTab({ authH }: any) {
                 <Lock className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Khóa tài khoản</h3>
-                <p className="text-sm text-zinc-400 mt-0.5">Khóa tài khoản <span className="text-white font-semibold">{banTarget.name}</span></p>
+                <h3 className="text-base font-bold text-white">{isVi ? 'Khóa tài khoản' : 'Ban Account'}</h3>
+                <p className="text-sm text-zinc-400 mt-0.5">{isVi ? 'Khóa tài khoản' : 'Ban account'} <span className="text-white font-semibold">{banTarget.name}</span></p>
               </div>
             </div>
 
@@ -156,18 +174,18 @@ function UsersTab({ authH }: any) {
                   className={`py-2 rounded-xl text-sm font-semibold border transition-all ${
                     banType === 'days' ? 'bg-rose-500/15 border-rose-500/40 text-rose-400' : 'bg-zinc-900/60 border-white/5 text-zinc-500 hover:text-zinc-300'
                   }`}
-                >⏱ Theo ngày</button>
+                >{isVi ? '⏱ Theo ngày' : '⏱ By days'}</button>
                 <button
                   onClick={() => setBanType('permanent')}
                   className={`py-2 rounded-xl text-sm font-semibold border transition-all ${
                     banType === 'permanent' ? 'bg-rose-500/15 border-rose-500/40 text-rose-400' : 'bg-zinc-900/60 border-white/5 text-zinc-500 hover:text-zinc-300'
                   }`}
-                >🔒 Vĩnh viễn</button>
+                >{isVi ? '🔒 Vĩnh viễn' : '🔒 Permanent'}</button>
               </div>
 
               {banType === 'days' && (
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-zinc-400">Số ngày khóa</label>
+                  <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Số ngày khóa' : 'Days to ban'}</label>
                   <div className="flex items-center gap-2">
                     {[1, 3, 7, 14, 30].map(d => (
                       <button
@@ -180,7 +198,7 @@ function UsersTab({ authH }: any) {
                     ))}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">Hoặc nhập số ngày:</span>
+                    <span className="text-xs text-zinc-500">{isVi ? 'Hoặc nhập số ngày:' : 'Or enter days:'}</span>
                     <input
                       type="number" min={1} max={365}
                       value={banDays}
@@ -193,7 +211,7 @@ function UsersTab({ authH }: any) {
 
               {banType === 'permanent' && (
                 <p className="text-xs text-zinc-500 bg-rose-500/5 border border-rose-500/10 rounded-xl px-3 py-2">
-                  ⚠️ Người dùng sẽ không thể đăng nhập mãi mãi cho đến khi admin mở khóa.
+                  {isVi ? '⚠️ Người dùng sẽ không thể đăng nhập mãi mãi cho đến khi admin mở khóa.' : '⚠️ User will not be able to log in until they are unbanned.'}
                 </p>
               )}
             </div>
@@ -202,18 +220,18 @@ function UsersTab({ authH }: any) {
               <button
                 onClick={() => setBanTarget(null)}
                 className="px-4 py-2 border border-white/5 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-all"
-              >Hủy</button>
+              >{isVi ? 'Hủy' : 'Cancel'}</button>
               <button
                 onClick={applyBan}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition-all"
-              >Xác nhận khóa</button>
+              >{isVi ? 'Xác nhận khóa' : 'Confirm Ban'}</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-4 gap-3">
-        {[['Tổng', users.length, 'text-blue-400','bg-blue-500/10'],['Admin', admins,'text-amber-400','bg-amber-500/10'],['User', regular,'text-purple-400','bg-purple-500/10'],['Bị khóa', banned,'text-rose-400','bg-rose-500/10']].map(([l,v,tc,bg]) => (
+        {[[isVi ? 'Tổng' : 'Total', users.length, 'text-blue-400','bg-blue-500/10'],['Admin', admins,'text-amber-400','bg-amber-500/10'],[isVi ? 'Người dùng' : 'User', regular,'text-purple-400','bg-purple-500/10'],[isVi ? 'Bị khóa' : 'Banned', banned,'text-rose-400','bg-rose-500/10']].map(([l,v,tc,bg]) => (
           <div key={l as string} className={`rounded-xl border border-white/5 p-4 ${bg} flex items-center gap-3`}>
             <div>
               <p className={`text-xl font-bold ${tc}`}>{v as number}</p>
@@ -225,7 +243,7 @@ function UsersTab({ authH }: any) {
 
       <div className="rounded-xl border border-white/5 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-zinc-300">Danh sách người dùng</h3>
+          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sách người dùng' : 'User List'}</h3>
           <button onClick={fetchUsers} className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -235,10 +253,18 @@ function UsersTab({ authH }: any) {
             <div key={u.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] group ${
               isBanned(u) ? 'bg-rose-950/10' : ''
             }`}>
-              <div className={`w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center flex-shrink-0 ${
-                isBanned(u) ? 'ring-1 ring-rose-500/40 opacity-60' : ''
-              }`}>
-                {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-zinc-400">{u.name.charAt(0).toUpperCase()}</span>}
+              <div className="relative flex-shrink-0">
+                <div className={`w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center ${
+                  isBanned(u) ? 'ring-1 ring-rose-500/40 opacity-60' : ''
+                }`}>
+                  {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-zinc-400">{u.name.charAt(0).toUpperCase()}</span>}
+                </div>
+                <div 
+                  className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-zinc-950 ${
+                    isOnline(u) ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-500'
+                  }`}
+                  title={isOnline(u) ? (isVi ? 'Đang hoạt động' : 'Active') : (isVi ? `Hoạt động lần cuối: ${lastActiveLabel(u)}` : `Last active: ${lastActiveLabel(u)}`)}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -250,23 +276,23 @@ function UsersTab({ authH }: any) {
                 </div>
                 <p className="text-xs text-zinc-500 truncate">{u.email || '—'} · {u.provider}</p>
               </div>
-              <span className="text-xs text-zinc-600 hidden md:block">{new Date(u.created_at).toLocaleDateString('vi-VN')}</span>
+              <span className="text-xs text-zinc-600 hidden md:block">{new Date(u.created_at).toLocaleDateString(isVi ? 'vi-VN' : 'en-US')}</span>
               <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                 {isBanned(u) ? (
                   <button
                     onClick={() => unbanUser(u)}
-                    title="Mở khóa tài khoản"
+                    title={isVi ? 'Mở khóa tài khoản' : 'Unban account'}
                     className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
                   >
-                    <Unlock className="w-3 h-3" /> Mở khóa
+                    <Unlock className="w-3 h-3" /> {isVi ? 'Mở khóa' : 'Unban'}
                   </button>
                 ) : (
                   <button
                     onClick={() => { setBanTarget(u); setBanType('days'); setBanDays(7); }}
-                    title="Khóa tài khoản"
+                    title={isVi ? 'Khóa tài khoản' : 'Ban account'}
                     className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all"
                   >
-                    <Lock className="w-3 h-3" /> Khóa
+                    <Lock className="w-3 h-3" /> {isVi ? 'Khóa' : 'Ban'}
                   </button>
                 )}
 
@@ -284,6 +310,8 @@ function UsersTab({ authH }: any) {
 
 // ── Tracks Tab ────────────────────────────────────────────────────
 function TracksTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [tracks, setTracks]   = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch]   = useState('');
@@ -312,15 +340,15 @@ function TracksTab({ authH }: any) {
 
   const del = async (id: number) => {
     showConfirm(
-      'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa bài hát này khỏi hệ thống?',
+      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
+      isVi ? 'Bạn có chắc chắn muốn xóa bài hát này khỏi hệ thống?' : 'Are you sure you want to delete this song from the system?',
       async () => {
         try {
           await axios.delete(`${API}/tracks/${id}`, { headers: authH });
-          showAlert('Thành công', 'Đã xóa bài hát thành công.', 'success');
+          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa bài hát thành công.' : 'Song deleted successfully.', 'success');
           setTracks(t => t.filter(x => x.id !== id));
         } catch (err: any) {
-          showAlert('Thất bại', err.response?.data?.message || 'Không thể xóa bài hát.', 'error');
+          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa bài hát.' : 'Failed to delete song.'), 'error');
         }
       }
     );
@@ -338,21 +366,21 @@ function TracksTab({ authH }: any) {
         is_public: Number(editingTrack.is_public)
       }, { headers: authH });
       if (res.data.success) {
-        showAlert('Thành công', 'Đã cập nhật bài hát thành công.', 'success');
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã cập nhật bài hát thành công.' : 'Song updated successfully.', 'success');
         setEditingTrack(null);
         fetch();
       }
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Không thể cập nhật bài hát.', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể cập nhật bài hát.' : 'Failed to update song.'), 'error');
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm bài hát..."
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={isVi ? "Tìm bài hát..." : "Search songs..."}
           className="flex-1 bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2 text-sm text-white focus:outline-none placeholder-zinc-600" />
-        <span className="text-xs text-zinc-500">{tracks.length} bài</span>
+        <span className="text-xs text-zinc-500">{tracks.length} {isVi ? 'bài' : 'tracks'}</span>
       </div>
 
       <div className="rounded-xl border border-white/5 overflow-hidden">
@@ -377,22 +405,22 @@ function TracksTab({ authH }: any) {
                   )}
                 </div>
               </div>
-              <span className="text-xs text-zinc-600">{t.play_count || 0} lượt</span>
+              <span className="text-xs text-zinc-600">{formatPlaysShort(t.play_count || 0, isVi)}</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full border ${t.is_public ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
-                {t.is_public ? 'Công khai' : 'Riêng tư'}
+                {t.is_public ? (isVi ? 'Công khai' : 'Public') : (isVi ? 'Riêng tư' : 'Private')}
               </span>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                 <button
                   onClick={() => setEditingTrack({ ...t })}
                   className="p-1.5 text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all"
-                  title="Chỉnh sửa bài hát"
+                  title={isVi ? "Chỉnh sửa bài hát" : "Edit song"}
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => del(t.id)}
                   className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
-                  title="Xóa bài hát"
+                  title={isVi ? "Xóa bài hát" : "Delete song"}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -409,7 +437,7 @@ function TracksTab({ authH }: any) {
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-amber-400" />
-                Chỉnh sửa bài hát
+                {isVi ? 'Chỉnh sửa bài hát' : 'Edit Song'}
               </h3>
               <button
                 type="button"
@@ -421,7 +449,7 @@ function TracksTab({ authH }: any) {
             </div>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">Tiêu đề bài hát *</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Tiêu đề bài hát *' : 'Song Title *'}</label>
                 <input
                   type="text"
                   required
@@ -431,7 +459,7 @@ function TracksTab({ authH }: any) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">Nghệ sĩ *</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Nghệ sĩ *' : 'Artist *'}</label>
                 <input
                   type="text"
                   required
@@ -442,7 +470,7 @@ function TracksTab({ authH }: any) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Album</label>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Album' : 'Album'}</label>
                   <input
                     type="text"
                     value={editingTrack.album || ''}
@@ -451,7 +479,7 @@ function TracksTab({ authH }: any) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Danh mục nhạc</label>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Danh mục nhạc' : 'Music Category'}</label>
                   <select
                     value={editingTrack.category_id || ''}
                     onChange={e => {
@@ -465,7 +493,7 @@ function TracksTab({ authH }: any) {
                     }}
                     className="w-full bg-zinc-900 border border-zinc-800 focus:border-amber-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
                   >
-                    <option value="">-- Chọn danh mục --</option>
+                    <option value="">{isVi ? '-- Chọn danh mục --' : '-- Select Category --'}</option>
                     {categories.map(c => (
                       <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                     ))}
@@ -474,7 +502,7 @@ function TracksTab({ authH }: any) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Thể loại chi tiết</label>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Thể loại chi tiết' : 'Detailed Genre'}</label>
                   <input
                     type="text"
                     value={editingTrack.genre || ''}
@@ -483,14 +511,14 @@ function TracksTab({ authH }: any) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Hiển thị</label>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hiển thị' : 'Visibility'}</label>
                   <select
                     value={editingTrack.is_public}
                     onChange={e => setEditingTrack({ ...editingTrack, is_public: Number(e.target.value) })}
                     className="w-full bg-zinc-900 border border-zinc-800 focus:border-amber-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
                   >
-                    <option value="1">Công khai</option>
-                    <option value="0">Riêng tư</option>
+                    <option value="1">{isVi ? 'Công khai' : 'Public'}</option>
+                    <option value="0">{isVi ? 'Riêng tư' : 'Private'}</option>
                   </select>
                 </div>
               </div>
@@ -499,11 +527,11 @@ function TracksTab({ authH }: any) {
                   type="button"
                   onClick={() => setEditingTrack(null)}
                   className="px-4 py-2 border border-white/5 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-all"
-                >Hủy</button>
+                >{isVi ? 'Hủy' : 'Cancel'}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all"
-                >Lưu</button>
+                >{isVi ? 'Lưu' : 'Save'}</button>
               </div>
             </form>
           </div>
@@ -625,6 +653,8 @@ const PRESET_EMOJIS = [
 ];
 
 function CategoriesTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [cats, setCats]   = useState<any[]>([]);
   const [form, setForm]   = useState({ name:'', description:'', color:'#7c3aed', icon:'🎵' });
   const [editing, setEditing] = useState<number|null>(null);
@@ -649,15 +679,15 @@ function CategoriesTab({ authH }: any) {
 
   const del = async (id: number) => {
     showConfirm(
-      'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa danh mục này? Tất cả bài hát trong danh mục sẽ được gán lại.',
+      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
+      isVi ? 'Bạn có chắc chắn muốn xóa danh mục này? Tất cả bài hát trong danh mục sẽ được gán lại.' : 'Are you sure you want to delete this category? All songs in this category will be reassigned.',
       async () => {
         try {
           await axios.delete(`${API}/categories/${id}`, { headers: authH });
-          showAlert('Thành công', 'Đã xóa danh mục thành công.', 'success');
+          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa danh mục thành công.' : 'Category deleted successfully.', 'success');
           fetch();
         } catch (err: any) {
-          showAlert('Thất bại', err.response?.data?.message || 'Không thể xóa danh mục.', 'error');
+          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa danh mục.' : 'Failed to delete category.'), 'error');
         }
       }
     );
@@ -673,7 +703,7 @@ function CategoriesTab({ authH }: any) {
     <div className="space-y-6">
       {/* Add/Edit Form */}
       <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
-        <h3 className="text-sm font-bold text-white mb-3">{editing ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}</h3>
+        <h3 className="text-sm font-bold text-white mb-3">{editing ? (isVi ? 'Chỉnh sửa danh mục' : 'Edit Category') : (isVi ? 'Thêm danh mục mới' : 'Add New Category')}</h3>
         <form onSubmit={save} className="flex flex-wrap gap-3 items-center">
           <div className="relative">
             <input
@@ -698,13 +728,13 @@ function CategoriesTab({ authH }: any) {
                     type="text"
                     value={emojiSearch}
                     onChange={e => setEmojiSearch(e.target.value)}
-                    placeholder="Tìm biểu tượng..."
+                    placeholder={isVi ? "Tìm biểu tượng..." : "Search icon..."}
                     className="w-full bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none placeholder-zinc-500"
                     autoFocus
                   />
                   <div className="grid grid-cols-5 gap-1 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                     {filteredEmojis.length === 0 ? (
-                      <span className="col-span-5 text-[10px] text-zinc-500 text-center py-4">Không tìm thấy</span>
+                      <span className="col-span-5 text-[10px] text-zinc-500 text-center py-4">{isVi ? 'Không tìm thấy' : 'Not found'}</span>
                     ) : (
                       filteredEmojis.map(emoji => (
                         <button
@@ -727,17 +757,17 @@ function CategoriesTab({ authH }: any) {
               </>
             )}
           </div>
-          <input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Tên danh mục"
+          <input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder={isVi ? "Tên danh mục" : "Category Name"}
             className="flex-1 min-w-[120px] bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none placeholder-zinc-600" />
-          <input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Mô tả..."
+          <input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder={isVi ? "Mô tả..." : "Description..."}
             className="flex-1 min-w-[200px] bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none placeholder-zinc-600" />
           <input type="color" value={form.color} onChange={e=>setForm({...form,color:e.target.value})}
             className="w-10 h-9 rounded-lg border border-zinc-800 cursor-pointer bg-zinc-900 p-0.5" />
           <button type="submit" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-lg text-sm">
-            {editing ? 'Cập nhật' : 'Thêm'}
+            {editing ? (isVi ? 'Cập nhật' : 'Update') : (isVi ? 'Thêm' : 'Add')}
           </button>
           {editing && <button type="button" onClick={() => { setEditing(null); setForm({name:'',description:'',color:'#7c3aed',icon:'🎵'}); }}
-            className="px-3 py-2 text-zinc-400 hover:text-white bg-zinc-800 rounded-lg text-sm">Hủy</button>}
+            className="px-3 py-2 text-zinc-400 hover:text-white bg-zinc-800 rounded-lg text-sm">{isVi ? 'Hủy' : 'Cancel'}</button>}
         </form>
       </div>
 
@@ -751,7 +781,7 @@ function CategoriesTab({ authH }: any) {
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
                 <p className="text-sm font-semibold text-zinc-200">{c.name}</p>
               </div>
-              <p className="text-xs text-zinc-500">{c.track_count} bài hát</p>
+              <p className="text-xs text-zinc-500">{c.track_count} {isVi ? 'bài hát' : 'songs'}</p>
             </div>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
               <button onClick={() => startEdit(c)} className="p-1.5 text-zinc-500 hover:text-purple-400 rounded-lg hover:bg-white/5"><Edit2 className="w-3.5 h-3.5" /></button>
@@ -766,6 +796,8 @@ function CategoriesTab({ authH }: any) {
 
 // ── Stats Tab ─────────────────────────────────────────────────────
 function StatsTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -844,15 +876,15 @@ function StatsTab({ authH }: any) {
   }, [viewMode, selectedDate, startDate, endDate]);
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>;
-  if (!stats)  return <p className="text-zinc-500 text-sm">Không thể tải thống kê</p>;
+  if (!stats)  return <p className="text-zinc-500 text-sm">{isVi ? 'Không thể tải thống kê' : 'Failed to load statistics'}</p>;
 
   const statCards = [
-    { label: 'Người dùng',   value: stats.totalUsers,     icon: <Users className="w-5 h-5" />,    color: 'from-blue-600 to-blue-500' },
-    { label: 'Bài hát',      value: stats.totalTracks,    icon: <Music className="w-5 h-5" />,    color: 'from-purple-600 to-pink-500' },
-    { label: 'Tổng lượt nghe',value: stats.totalPlays,    icon: <TrendingUp className="w-5 h-5" />,color: 'from-emerald-600 to-green-500' },
-    { label: 'Yêu thích',    value: stats.totalFavorites, icon: <Heart className="w-5 h-5" />,    color: 'from-rose-600 to-pink-500' },
-    { label: 'Đánh giá',     value: stats.totalRatings,   icon: <Star className="w-5 h-5" />,     color: 'from-amber-600 to-yellow-500' },
-    { label: 'Điểm TB',      value: `${stats.avgRating}⭐`,icon: <Star className="w-5 h-5" />,    color: 'from-amber-500 to-orange-400' },
+    { label: isVi ? 'Người dùng' : 'Users',   value: stats.totalUsers,     icon: <Users className="w-5 h-5" />,    color: 'from-blue-600 to-blue-500' },
+    { label: isVi ? 'Bài hát' : 'Songs',      value: stats.totalTracks,    icon: <Music className="w-5 h-5" />,    color: 'from-purple-600 to-pink-500' },
+    { label: isVi ? 'Tổng lượt nghe' : 'Total Plays', value: stats.totalPlays,    icon: <TrendingUp className="w-5 h-5" />,color: 'from-emerald-600 to-green-500' },
+    { label: isVi ? 'Yêu thích' : 'Favorites',    value: stats.totalFavorites, icon: <Heart className="w-5 h-5" />,    color: 'from-rose-600 to-pink-500' },
+    { label: isVi ? 'Đánh giá' : 'Ratings',     value: stats.totalRatings,   icon: <Star className="w-5 h-5" />,     color: 'from-amber-600 to-yellow-500' },
+    { label: isVi ? 'Điểm TB' : 'Avg Rating',      value: `${stats.avgRating}⭐`,icon: <Star className="w-5 h-5" />,    color: 'from-amber-500 to-orange-400' },
   ];
 
   const maxPlays = Math.max(...(stats.topTracks || []).map((t: any) => t.play_count || 0), 1);
@@ -884,8 +916,8 @@ function StatsTab({ authH }: any) {
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-purple-400" />
             <div>
-              <h3 className="text-sm font-bold text-white">Thống kê lượt nghe chi tiết</h3>
-              <p className="text-xs text-zinc-500">Phân tích tần suất và số lượt phát nhạc</p>
+              <h3 className="text-sm font-bold text-white">{isVi ? 'Thống kê lượt nghe chi tiết' : 'Detailed Play Statistics'}</h3>
+              <p className="text-xs text-zinc-500">{isVi ? 'Phân tích tần suất và số lượt phát nhạc' : 'Analyze play count and frequency'}</p>
             </div>
           </div>
 
@@ -901,9 +933,9 @@ function StatsTab({ authH }: any) {
               disabled={!!selectedDate}
               className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500"
             >
-              <option value="day">Theo ngày</option>
-              <option value="month">Theo tháng</option>
-              <option value="year">Theo năm</option>
+              <option value="day">{isVi ? 'Theo ngày' : 'By Day'}</option>
+              <option value="month">{isVi ? 'Theo tháng' : 'By Month'}</option>
+              <option value="year">{isVi ? 'Theo năm' : 'By Year'}</option>
             </select>
 
             {/* Date range inputs (only when not showing specific date) */}
@@ -915,7 +947,7 @@ function StatsTab({ authH }: any) {
                   onChange={(e) => setStartDate(e.target.value)}
                   onClick={(e) => { try { e.currentTarget.showPicker(); } catch (_) {} }}
                   className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                  placeholder="Từ ngày"
+                  placeholder={isVi ? "Từ ngày" : "Start date"}
                 />
                 <span className="text-zinc-600 text-xs">-</span>
                 <input
@@ -924,14 +956,14 @@ function StatsTab({ authH }: any) {
                   onChange={(e) => setEndDate(e.target.value)}
                   onClick={(e) => { try { e.currentTarget.showPicker(); } catch (_) {} }}
                   className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                  placeholder="Đến ngày"
+                  placeholder={isVi ? "Đến ngày" : "End date"}
                 />
                 {(startDate || endDate) && (
                   <button
                     onClick={() => { setStartDate(''); setEndDate(''); }}
                     className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
                   >
-                    Xóa lọc
+                    {isVi ? 'Xóa lọc' : 'Clear filter'}
                   </button>
                 )}
               </div>
@@ -939,7 +971,7 @@ function StatsTab({ authH }: any) {
 
             {/* Specific Date selector */}
             <div className="flex items-center gap-2 border-l border-white/5 pl-3">
-              <span className="text-[11px] text-zinc-400">Chọn ngày cụ thể:</span>
+              <span className="text-[11px] text-zinc-400">{isVi ? 'Chọn ngày cụ thể:' : 'Select specific date:'}</span>
               <input
                 type="date"
                 value={selectedDate}
@@ -953,7 +985,7 @@ function StatsTab({ authH }: any) {
                 <button
                   onClick={() => setSelectedDate('')}
                   className="w-5 h-5 flex items-center justify-center rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs transition-colors"
-                  title="Quay lại thống kê chung"
+                  title={isVi ? "Quay lại thống kê chung" : "Back to general stats"}
                 >
                   ✕
                 </button>
@@ -972,17 +1004,17 @@ function StatsTab({ authH }: any) {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-purple-950/10 border border-purple-900/20 p-4 rounded-xl flex flex-col justify-center">
-                <p className="text-xs text-purple-300 font-semibold">Lượt nghe ngày {selectedDate}</p>
-                <p className="text-3xl font-extrabold text-white mt-1">{historyData.totalPlays} <span className="text-sm font-normal text-zinc-400">lượt nghe</span></p>
+                <p className="text-xs text-purple-300 font-semibold">{isVi ? `Lượt nghe ngày ${formatDateLabel(selectedDate, 'day')}` : `Plays on ${formatDateLabel(selectedDate, 'day')}`}</p>
+                <p className="text-3xl font-extrabold text-white mt-1">{formatCount(historyData.totalPlays || 0)} <span className="text-sm font-normal text-zinc-400">{(historyData.totalPlays || 0) === 1 ? (isVi ? 'lượt nghe' : 'play') : (isVi ? 'lượt nghe' : 'plays')}</span></p>
               </div>
 
               {/* Hourly Stats Chart */}
               <div className="col-span-2 bg-white/[0.01] border border-white/5 p-4 rounded-xl">
                 <h4 className="text-xs font-bold text-white mb-3 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-purple-400" /> Phân bố lượt nghe theo giờ
+                  <Clock className="w-3.5 h-3.5 text-purple-400" /> {isVi ? 'Phân bố lượt nghe theo giờ' : 'Hourly Play Distribution'}
                 </h4>
                 {historyData.hourlyStats?.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-6 text-center">Không có dữ liệu lượt nghe cho ngày này.</p>
+                  <p className="text-xs text-zinc-500 py-6 text-center">{isVi ? 'Không có dữ liệu lượt nghe cho ngày này.' : 'No play data for this day.'}</p>
                 ) : (
                   <div className="flex items-end justify-between h-28 pt-2 px-2 gap-1 overflow-x-auto">
                     {Array.from({ length: 24 }).map((_, hourNum) => {
@@ -992,15 +1024,15 @@ function StatsTab({ authH }: any) {
                       const maxHourCount = Math.max(...historyData.hourlyStats.map((h: any) => h.count), 1);
                       const pct = (count / maxHourCount) * 100;
                       return (
-                        <div key={hrStr} className="flex-1 flex flex-col items-center group">
+                         <div key={hrStr} className="flex-1 flex flex-col items-center group">
                           <div className="w-full relative flex justify-center h-20 items-end">
                             <div
                               style={{ height: `${pct}%` }}
                               className="w-full max-w-[14px] bg-gradient-to-t from-purple-600 to-pink-500 rounded-t-sm group-hover:from-purple-500 group-hover:to-pink-400 transition-all duration-300"
-                              title={`${hourNum}h: ${count} lượt`}
+                              title={`${hourNum}h: ${formatPlaysShort(count, isVi)}`}
                             />
                             <span className="absolute -top-5 bg-zinc-950 text-white text-[9px] px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                              {count} lượt
+                              {formatPlaysShort(count, isVi)}
                             </span>
                           </div>
                           <span className="text-[9px] text-zinc-500 mt-1.5">{hrStr}h</span>
@@ -1015,9 +1047,9 @@ function StatsTab({ authH }: any) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Top Tracks for the day */}
               <div className="bg-white/[0.01] border border-white/5 p-4 rounded-xl">
-                <h4 className="text-xs font-bold text-white mb-3">Top bài hát nghe nhiều nhất trong ngày</h4>
+                <h4 className="text-xs font-bold text-white mb-3">{isVi ? 'Top bài hát nghe nhiều nhất trong ngày' : 'Top played songs of the day'}</h4>
                 {historyData.topTracks?.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-6 text-center">Không có dữ liệu bài hát.</p>
+                  <p className="text-xs text-zinc-500 py-6 text-center">{isVi ? 'Không có dữ liệu bài hát.' : 'No song data.'}</p>
                 ) : (
                   <div className="space-y-2.5">
                     {historyData.topTracks.map((t: any, i: number) => (
@@ -1030,7 +1062,7 @@ function StatsTab({ authH }: any) {
                             <p className="text-zinc-500 text-[10px] truncate">{t.artist}</p>
                           </div>
                         </div>
-                        <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">{t.plays} lượt</span>
+                        <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">{formatPlaysShort(t.plays || 0, isVi)}</span>
                       </div>
                     ))}
                   </div>
@@ -1039,10 +1071,10 @@ function StatsTab({ authH }: any) {
 
               {/* Detailed logs for the day */}
               <div className="bg-white/[0.01] border border-white/5 p-4 rounded-xl">
-                <h4 className="text-xs font-bold text-white mb-3">Nhật ký phát nhạc trong ngày</h4>
+                <h4 className="text-xs font-bold text-white mb-3">{isVi ? 'Nhật ký phát nhạc trong ngày' : 'Play log of the day'}</h4>
                 <div className="max-h-60 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                   {historyData.playsList?.length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-6 text-center">Chưa phát bài nào.</p>
+                    <p className="text-xs text-zinc-500 py-6 text-center">{isVi ? 'Chưa phát bài nào.' : 'No songs played yet.'}</p>
                   ) : (
                     historyData.playsList.map((p: any, i: number) => {
                       const timeStr = p.played_at ? p.played_at.split(' ')[1]?.slice(0, 5) || '--:--' : '--:--';
@@ -1050,7 +1082,7 @@ function StatsTab({ authH }: any) {
                         <div key={i} className="flex items-center justify-between gap-2 text-[11px] p-2 rounded-lg bg-zinc-950/30 hover:bg-zinc-900/30 transition-all border border-white/[0.01]">
                           <span className="text-zinc-500 font-medium flex-shrink-0">{timeStr}</span>
                           <span className="text-zinc-300 truncate flex-1 pl-1">
-                            <span className="text-zinc-400 font-semibold">{p.user_name || 'Khách'}</span> đã nghe <span className="text-purple-300 font-bold">{p.title}</span> - {p.artist}
+                            <span className="text-zinc-400 font-semibold">{p.user_name || (isVi ? 'Khách' : 'Guest')}</span> {isVi ? 'đã nghe' : 'listened to'} <span className="text-purple-300 font-bold">{p.title}</span> - {p.artist}
                           </span>
                         </div>
                       );
@@ -1065,11 +1097,11 @@ function StatsTab({ authH }: any) {
           <div className="space-y-4">
             {aggregatedList.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-xs text-zinc-500">Không có dữ liệu thống kê trong khoảng thời gian này.</p>
+                <p className="text-xs text-zinc-500">{isVi ? 'Không có dữ liệu thống kê trong khoảng thời gian này.' : 'No statistics data for this period.'}</p>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-zinc-500">Bấm vào các cột ngày để xem chi tiết danh sách phát của ngày đó.</p>
+                <p className="text-xs text-zinc-500">{isVi ? 'Bấm vào các cột ngày để xem chi tiết danh sách phát của ngày đó.' : 'Click on date columns to see details.'}</p>
                 <div className="flex items-end justify-between h-44 pt-4 px-2 gap-2 overflow-x-auto min-w-max">
                   {aggregatedList.map((item: any) => {
                     const pct = (item.count / maxAggregatedCount) * 100;
@@ -1093,10 +1125,10 @@ function StatsTab({ authH }: any) {
                             className="w-full max-w-[20px] bg-gradient-to-t from-purple-600 to-pink-500 rounded-t group-hover:from-purple-500 group-hover:to-pink-400 transition-all duration-300 shadow-lg shadow-purple-950/40"
                           />
                           <span className="absolute -top-6 bg-zinc-950 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                            {item.count} nghe
+                            {formatPlaysShort(item.count || 0, isVi)}
                           </span>
                         </div>
-                        <span className="text-[10px] text-zinc-400 mt-2 font-bold whitespace-nowrap">{item.label}</span>
+                        <span className="text-[10px] text-purple-400 mt-2 font-bold whitespace-nowrap">{formatDateLabel(item.label, viewMode)}</span>
                       </button>
                     );
                   })}
@@ -1112,12 +1144,12 @@ function StatsTab({ authH }: any) {
         <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-purple-400" /> Top bài nghe nhiều nhất
+              <TrendingUp className="w-4 h-4 text-purple-400" /> {isVi ? 'Top bài nghe nhiều nhất' : 'Top Played Songs'}
             </h3>
             <button 
               onClick={() => fetchGeneralStats(true)} 
               className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all"
-              title="Làm mới"
+              title={isVi ? "Làm mới" : "Refresh"}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshingGeneral ? 'animate-spin' : ''}`} />
             </button>
@@ -1144,12 +1176,12 @@ function StatsTab({ authH }: any) {
         <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-amber-400" /> Thống kê theo danh mục
+              <FolderOpen className="w-4 h-4 text-amber-400" /> {isVi ? 'Thống kê theo danh mục' : 'Category Statistics'}
             </h3>
             <button 
               onClick={() => fetchGeneralStats(true)} 
               className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all"
-              title="Làm mới"
+              title={isVi ? "Làm mới" : "Refresh"}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshingGeneral ? 'animate-spin' : ''}`} />
             </button>
@@ -1178,9 +1210,9 @@ function StatsTab({ authH }: any) {
                   <span className="text-xs text-zinc-300 font-medium">{g.genre}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-500">{g.count} bài</span>
+                  <span className="text-xs text-zinc-500">{g.count} {isVi ? 'bài' : 'songs'}</span>
                   <span className="text-xs text-zinc-600">·</span>
-                  <span className="text-xs text-amber-400 font-semibold">{g.plays || 0} nghe</span>
+                  <span className="text-xs text-amber-400 font-semibold">{formatPlaysShort(g.plays || 0, isVi)}</span>
                 </div>
               </div>
             ))}
@@ -1190,14 +1222,14 @@ function StatsTab({ authH }: any) {
 
       {/* Recent activity */}
       <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
-        <h3 className="text-sm font-bold text-white mb-3">Hoạt động gần đây</h3>
+        <h3 className="text-sm font-bold text-white mb-3">{isVi ? 'Hoạt động gần đây' : 'Recent Activity'}</h3>
         <div className="space-y-2">
           {(stats.recentActivity || []).slice(0,8).map((a: any, i: number) => {
               // played_at is already stored as Vietnam time (UTC+7), parse as local
               const raw = a.played_at?.replace(' ', 'T') ?? '';
               const d = raw ? new Date(raw) : null;
               const timeLabel = d && !isNaN(d.getTime())
-                ? d.toLocaleString('vi-VN', {
+                ? d.toLocaleString(isVi ? 'vi-VN' : 'en-US', {
                     day: '2-digit', month: '2-digit',
                     hour: '2-digit', minute: '2-digit',
                     hour12: false
@@ -1207,12 +1239,12 @@ function StatsTab({ authH }: any) {
                 <div key={i} className="flex items-center gap-3 text-xs">
                   <span className="text-zinc-600 flex-shrink-0 min-w-[100px]">{timeLabel}</span>
                   <span className="text-zinc-400 truncate">
-                    <span className="text-purple-400">{a.user_name || 'Khách'}</span> nghe <span className="text-zinc-200">{a.title}</span> - {a.artist}
+                    <span className="text-purple-400">{a.user_name || (isVi ? 'Khách' : 'Guest')}</span> {isVi ? 'nghe' : 'listened to'} <span className="text-zinc-200">{a.title}</span> - {a.artist}
                   </span>
                 </div>
               );
             })}
-          {(stats.recentActivity||[]).length === 0 && <p className="text-xs text-zinc-600">Chưa có hoạt động nào</p>}
+          {(stats.recentActivity||[]).length === 0 && <p className="text-xs text-zinc-600">{isVi ? 'Chưa có hoạt động nào' : 'No activity yet'}</p>}
         </div>
       </div>
 
@@ -1228,7 +1260,7 @@ function StatsTab({ authH }: any) {
                   style={{ backgroundColor: selectedCategoryForTracks.color || '#7c3aed' }} 
                 />
                 <h3 className="text-sm font-bold text-white">
-                  Danh mục: {selectedCategoryForTracks.name}
+                  {isVi ? `Danh mục: ${selectedCategoryForTracks.name}` : `Category: ${selectedCategoryForTracks.name}`}
                 </h3>
               </div>
               <button
@@ -1242,8 +1274,8 @@ function StatsTab({ authH }: any) {
             {/* Content */}
             <div className="p-4 overflow-y-auto flex-1 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
               <div className="flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02] p-3 rounded-lg border border-white/5">
-                <span>Số lượng bài hát: <strong className="text-white">{selectedCategoryForTracks.count} bài</strong></span>
-                <span>Tổng lượt nghe: <strong className="text-amber-400">{selectedCategoryForTracks.plays} lượt</strong></span>
+                <span>{isVi ? `Số lượng bài hát: ` : `Number of songs: `}<strong className="text-white">{selectedCategoryForTracks.count} {isVi ? 'bài' : 'songs'}</strong></span>
+                <span>{isVi ? `Tổng lượt nghe: ` : `Total plays: `}<strong className="text-amber-400">{formatPlaysShort(selectedCategoryForTracks.plays || 0, isVi)}</strong></span>
               </div>
 
               {loadingCategoryTracks ? (
@@ -1251,10 +1283,10 @@ function StatsTab({ authH }: any) {
                   <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : categoryTracks.length === 0 ? (
-                <p className="text-xs text-zinc-500 py-8 text-center italic">Không có bài hát nào trong danh mục này.</p>
+                <p className="text-xs text-zinc-500 py-8 text-center italic">{isVi ? 'Không có bài hát nào trong danh mục này.' : 'No songs in this category.'}</p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">Danh sách bài hát (Xắp xếp theo lượt nghe)</p>
+                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">{isVi ? 'Danh sách bài hát (Xắp xếp theo lượt nghe)' : 'Song list (Sorted by play count)'}</p>
                   {categoryTracks.slice(0, categoryTracksLimit).map((track: any, index: number) => (
                     <div key={track.id} className="flex items-center justify-between gap-3 text-xs p-2 rounded-lg bg-zinc-900/40 hover:bg-zinc-850 border border-white/5 transition-all">
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -1266,7 +1298,7 @@ function StatsTab({ authH }: any) {
                         </div>
                       </div>
                       <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
-                        {track.plays || 0} lượt
+                        {formatPlaysShort(track.plays || 0, isVi)}
                       </span>
                     </div>
                   ))}
@@ -1276,7 +1308,7 @@ function StatsTab({ authH }: any) {
                       onClick={() => setCategoryTracksLimit(prev => prev + 10)}
                       className="w-full py-2 mt-2 text-xs font-semibold text-purple-400 hover:text-purple-300 bg-purple-500/5 hover:bg-purple-500/10 rounded-lg transition-all border border-purple-500/10"
                     >
-                      Xem thêm (Còn {categoryTracks.length - categoryTracksLimit} bài)
+                      {isVi ? `Xem thêm (Còn ${categoryTracks.length - categoryTracksLimit} bài)` : `Load more (${categoryTracks.length - categoryTracksLimit} songs left)`}
                     </button>
                   )}
                 </div>
@@ -1289,7 +1321,7 @@ function StatsTab({ authH }: any) {
                 onClick={() => setSelectedCategoryForTracks(null)}
                 className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-semibold transition-colors"
               >
-                Đóng
+                {isVi ? 'Đóng' : 'Close'}
               </button>
             </div>
           </div>
@@ -1301,6 +1333,8 @@ function StatsTab({ authH }: any) {
 
 // ── Artists Tab ───────────────────────────────────────────────────
 function ArtistsTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [artists, setArtists] = useState<any[]>([]);
   const [form, setForm] = useState({ name: '', genre: '', listeners: '', popular_track: '', bio: '' });
   const [file, setFile] = useState<File | null>(null);
@@ -1353,7 +1387,7 @@ function ArtistsTab({ authH }: any) {
         window.dispatchEvent(new CustomEvent('reload-artists'));
       }
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Có lỗi xảy ra khi thêm nghệ sĩ', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi thêm nghệ sĩ' : 'An error occurred while adding the artist'), 'error');
     }
   };
 
@@ -1361,16 +1395,16 @@ function ArtistsTab({ authH }: any) {
 
   const del = async (id: number) => {
     showConfirm(
-      'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa nghệ sĩ tiêu biểu này?',
+      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
+      isVi ? 'Bạn có chắc chắn muốn xóa nghệ sĩ tiêu biểu này?' : 'Are you sure you want to delete this featured artist?',
       async () => {
         try {
           await axios.delete(`${API}/artists/${id}`, { headers: authH });
-          showAlert('Thành công', 'Đã xóa nghệ sĩ thành công.', 'success');
+          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa nghệ sĩ thành công.' : 'Artist deleted successfully.', 'success');
           fetchArtists();
           window.dispatchEvent(new CustomEvent('reload-artists'));
         } catch (err: any) {
-          showAlert('Thất bại', err.response?.data?.message || 'Không thể xóa nghệ sĩ.', 'error');
+          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa nghệ sĩ.' : 'Failed to delete artist.'), 'error');
         }
       }
     );
@@ -1381,56 +1415,56 @@ function ArtistsTab({ authH }: any) {
       {/* Form thêm nghệ sĩ */}
       <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <Plus className="w-5 h-5 text-purple-400" /> Thêm nghệ sĩ tiêu biểu mới
+          <Plus className="w-5 h-5 text-purple-400" /> {isVi ? 'Thêm nghệ sĩ tiêu biểu mới' : 'Add New Featured Artist'}
         </h3>
         
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Tên nghệ sĩ</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Tên nghệ sĩ' : 'Artist Name'}</label>
               <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="Ví dụ: The Weeknd"
+                placeholder={isVi ? "Ví dụ: The Weeknd" : "E.g., The Weeknd"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
             
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Thể loại</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Thể loại' : 'Genre'}</label>
               <input required value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })}
-                placeholder="Ví dụ: R&B / Synthwave / Pop"
+                placeholder={isVi ? "Ví dụ: R&B / Synthwave / Pop" : "E.g., R&B / Synthwave / Pop"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Lượt nghe hàng tháng</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Lượt nghe hàng tháng' : 'Monthly Listeners'}</label>
               <input required value={form.listeners} onChange={e => setForm({ ...form, listeners: e.target.value })}
-                placeholder="Ví dụ: 115.4M"
+                placeholder={isVi ? "Ví dụ: 115.4M" : "E.g., 115.4M"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Bài hát nổi bật</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Bài hát nổi bật' : 'Popular Track'}</label>
               <input required value={form.popular_track} onChange={e => setForm({ ...form, popular_track: e.target.value })}
-                placeholder="Ví dụ: Blinding Lights"
+                placeholder={isVi ? "Ví dụ: Blinding Lights" : "E.g., Blinding Lights"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-zinc-400">Mô tả tiểu sử</label>
+            <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Mô tả tiểu sử' : 'Bio description'}</label>
             <textarea required rows={3} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })}
-              placeholder="Thông tin giới thiệu chi tiết về cuộc đời, sự nghiệp của ca sĩ..."
+              placeholder={isVi ? "Thông tin giới thiệu chi tiết về cuộc đời, sự nghiệp của ca sĩ..." : "Detailed introduction about the singer's life, career..."}
               className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 resize-none" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Ảnh chân dung nghệ sĩ (Upload file)</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Ảnh chân dung nghệ sĩ (Upload file)' : 'Artist portrait photo (Upload file)'}</label>
               <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)}
                 className="w-full text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Hoặc dán URL ảnh</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Hoặc dán URL ảnh' : 'Or paste image URL'}</label>
               <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} disabled={!!file}
                 placeholder="http://example.com/image.png"
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 disabled:opacity-40" />
@@ -1438,7 +1472,7 @@ function ArtistsTab({ authH }: any) {
           </div>
 
           <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/20">
-            Thêm nghệ sĩ
+            {isVi ? 'Thêm nghệ sĩ' : 'Add Artist'}
           </button>
         </form>
       </div>
@@ -1446,7 +1480,7 @@ function ArtistsTab({ authH }: any) {
       {/* Danh sách nghệ sĩ */}
       <div className="rounded-2xl border border-white/5 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-zinc-300">Danh sách nghệ sĩ tiêu biểu hiện có</h3>
+          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sách nghệ sĩ tiêu biểu hiện có' : 'Featured Artist List'}</h3>
           <button onClick={fetchArtists} className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -1459,9 +1493,9 @@ function ArtistsTab({ authH }: any) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-zinc-200">{artist.name}</span>
-                  <span className="text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">{artist.listeners} lượt nghe/tháng</span>
+                  <span className="text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">{artist.listeners} {isVi ? 'lượt nghe/tháng' : 'listeners/month'}</span>
                 </div>
-                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">Thể loại:</span> {artist.genre} · <span className="text-zinc-500">Bài hát nổi bật:</span> {artist.popular_track}</p>
+                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">{isVi ? 'Thể loại:' : 'Genre:'}</span> {artist.genre} · <span className="text-zinc-500">{isVi ? 'Bài hát nổi bật:' : 'Popular track:'}</span> {artist.popular_track}</p>
                 <p className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{artist.bio}</p>
               </div>
               <button onClick={() => del(artist.id)} className="opacity-0 group-hover:opacity-100 p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all flex-shrink-0">
@@ -1470,7 +1504,7 @@ function ArtistsTab({ authH }: any) {
             </div>
           ))}
           {artists.length === 0 && !loading && (
-            <div className="p-8 text-center text-zinc-600 text-sm">Chưa có nghệ sĩ nào. Vui lòng thêm bằng biểu mẫu trên.</div>
+            <div className="p-8 text-center text-zinc-600 text-sm">{isVi ? 'Chưa có nghệ sĩ nào. Vui lòng thêm bằng biểu mẫu trên.' : 'No artists yet. Please add using the form above.'}</div>
           )}
         </div>
       </div>
@@ -1480,6 +1514,8 @@ function ArtistsTab({ authH }: any) {
 
 // ── Albums Tab ───────────────────────────────────────────────────
 function AlbumsTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [albums, setAlbums] = useState<any[]>([]);
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1554,7 +1590,7 @@ function AlbumsTab({ authH }: any) {
         window.dispatchEvent(new CustomEvent('reload-settings'));
       }
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Có lỗi xảy ra khi lưu album', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi lưu album' : 'An error occurred while saving the album'), 'error');
     }
   };
 
@@ -1562,16 +1598,16 @@ function AlbumsTab({ authH }: any) {
 
   const del = async (id: number) => {
     showConfirm(
-      'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa album này? Các bài hát trong album sẽ không bị xóa nhưng sẽ không còn thuộc album này.',
+      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
+      isVi ? 'Bạn có chắc chắn muốn xóa album này? Các bài hát trong album sẽ không bị xóa nhưng sẽ không còn thuộc album này.' : 'Are you sure you want to delete this album? Songs in this album will not be deleted but will no longer belong to this album.',
       async () => {
         try {
           await axios.delete(`${API}/albums/${id}`, { headers: authH });
-          showAlert('Thành công', 'Đã xóa album thành công.', 'success');
+          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa album thành công.' : 'Album deleted successfully.', 'success');
           fetchAlbums();
           window.dispatchEvent(new CustomEvent('reload-settings'));
         } catch (err: any) {
-          showAlert('Thất bại', err.response?.data?.message || 'Không thể xóa album.', 'error');
+          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa album.' : 'Failed to delete album.'), 'error');
         }
       }
     );
@@ -1619,42 +1655,42 @@ function AlbumsTab({ authH }: any) {
       <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
           {editing ? <Edit2 className="w-5 h-5 text-amber-400" /> : <Plus className="w-5 h-5 text-purple-400" />}
-          {editing ? 'Chỉnh sửa album' : 'Tạo album mới'}
+          {editing ? (isVi ? 'Chỉnh sửa album' : 'Edit Album') : (isVi ? 'Tạo album mới' : 'Create New Album')}
         </h3>
         
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Tên album</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Tên album' : 'Album Name'}</label>
               <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="Ví dụ: Starboy"
+                placeholder={isVi ? "Ví dụ: Starboy" : "E.g., Starboy"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
             
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Tên ca sĩ</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Tên ca sĩ' : 'Artist Name'}</label>
               <input required value={form.artist} onChange={e => setForm({ ...form, artist: e.target.value })}
-                placeholder="Ví dụ: The Weeknd"
+                placeholder={isVi ? "Ví dụ: The Weeknd" : "E.g., The Weeknd"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-zinc-400">Mô tả album</label>
+            <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Mô tả album' : 'Album Description'}</label>
             <textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Thông tin giới thiệu ngắn về album..."
+              placeholder={isVi ? "Thông tin giới thiệu ngắn về album..." : "Short introduction about the album..."}
               className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 resize-none" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Ảnh bìa Album (Upload file)</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Ảnh bìa Album (Upload file)' : 'Album Cover Photo (Upload file)'}</label>
               <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)}
                 className="w-full text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">Hoặc dán URL ảnh bìa</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Hoặc dán URL ảnh bìa' : 'Or paste cover URL'}</label>
               <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} disabled={!!file}
                 placeholder="http://example.com/cover.png"
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 disabled:opacity-40" />
@@ -1664,12 +1700,12 @@ function AlbumsTab({ authH }: any) {
           {/* Chọn bài hát vào album */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-400">Danh sách bài hát thuộc album ({form.trackIds.length})</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? `Danh sách bài hát thuộc album (${form.trackIds.length})` : `Song list belonging to the album (${form.trackIds.length})`}</label>
               <input
                 type="text"
                 value={trackSearch}
                 onChange={e => setTrackSearch(e.target.value)}
-                placeholder="Tìm bài hát..."
+                placeholder={isVi ? "Tìm bài hát..." : "Search song..."}
                 className="w-48 bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none placeholder-zinc-700"
               />
             </div>
@@ -1697,18 +1733,18 @@ function AlbumsTab({ authH }: any) {
                 );
               })}
               {filteredTracks.length === 0 && (
-                <div className="col-span-full py-6 text-center text-zinc-600 text-xs">Không tìm thấy bài hát nào</div>
+                <div className="col-span-full py-6 text-center text-zinc-600 text-xs">{isVi ? 'Không tìm thấy bài hát nào' : 'No songs found'}</div>
               )}
             </div>
           </div>
 
           <div className="flex gap-3">
             <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/20">
-              {editing ? 'Cập nhật Album' : 'Tạo Album'}
+              {editing ? (isVi ? 'Cập nhật Album' : 'Update Album') : (isVi ? 'Tạo Album' : 'Create Album')}
             </button>
             {editing && (
               <button type="button" onClick={cancelEdit} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-sm transition-all">
-                Hủy
+                {isVi ? 'Hủy' : 'Cancel'}
               </button>
             )}
           </div>
@@ -1718,7 +1754,7 @@ function AlbumsTab({ authH }: any) {
       {/* Danh sách album */}
       <div className="rounded-2xl border border-white/5 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-zinc-300">Danh sách album hiện có</h3>
+          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sách album hiện có' : 'Existing Albums'}</h3>
           <button onClick={fetchAlbums} className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -1731,9 +1767,9 @@ function AlbumsTab({ authH }: any) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-zinc-200">{album.name}</span>
-                  <span className="text-xs text-zinc-500">bởi {album.artist}</span>
+                  <span className="text-xs text-zinc-500">{isVi ? `bởi ${album.artist}` : `by ${album.artist}`}</span>
                 </div>
-                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">Mô tả:</span> {album.description || 'Không có mô tả'} · <span className="text-zinc-500">Bài hát:</span> {album.tracks?.length || 0} bài</p>
+                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">{isVi ? 'Mô tả:' : 'Description:'}</span> {album.description || (isVi ? 'Không có mô tả' : 'No description')} · <span className="text-zinc-500">{isVi ? 'Bài hát:' : 'Songs:'}</span> {album.tracks?.length || 0} {isVi ? 'bài' : 'songs'}</p>
                 {album.tracks && album.tracks.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {album.tracks.slice(0, 5).map((t: any) => (
@@ -1742,7 +1778,7 @@ function AlbumsTab({ authH }: any) {
                       </span>
                     ))}
                     {album.tracks.length > 5 && (
-                      <span className="text-[10px] text-zinc-500 px-1 py-0.5">+{album.tracks.length - 5} bài khác</span>
+                      <span className="text-[10px] text-zinc-500 px-1 py-0.5">+{album.tracks.length - 5} {isVi ? 'bài khác' : 'other songs'}</span>
                     )}
                   </div>
                 )}
@@ -1758,7 +1794,7 @@ function AlbumsTab({ authH }: any) {
             </div>
           ))}
           {albums.length === 0 && !loading && (
-            <div className="p-8 text-center text-zinc-600 text-sm">Chưa có album nào. Vui lòng thêm bằng biểu mẫu trên.</div>
+            <div className="p-8 text-center text-zinc-600 text-sm">{isVi ? 'Chưa có album nào. Vui lòng thêm bằng biểu mẫu trên.' : 'No albums yet. Please add using the form above.'}</div>
           )}
         </div>
       </div>
@@ -1768,6 +1804,8 @@ function AlbumsTab({ authH }: any) {
 
 // ── Settings Tab ──────────────────────────────────────────────────
 function SettingsTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [background, setBackground] = useState('');
   const [bannerSlides, setBannerSlides] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1796,7 +1834,7 @@ function SettingsTab({ authH }: any) {
         setBannerSlides(slidesRes.data.data || []);
       }
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Lỗi khi tải cấu hình.', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi tải cấu hình.' : 'Failed to load configuration.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -1824,11 +1862,11 @@ function SettingsTab({ authH }: any) {
       if (res.data.success) {
         setBackground(res.data.value);
         setBgFile(null);
-        showAlert('Thành công', 'Cập nhật hình nền thành công!', 'success');
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Cập nhật hình nền thành công!' : 'Backdrop updated successfully!', 'success');
         window.dispatchEvent(new CustomEvent('reload-settings'));
       }
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Lỗi khi cập nhật hình nền.', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi cập nhật hình nền.' : 'Failed to update backdrop.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -1837,7 +1875,7 @@ function SettingsTab({ authH }: any) {
   const handleAddBannerSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!slideFile && !slideUrl.trim()) {
-      showAlert('Chú ý', 'Vui lòng tải lên tệp ảnh hoặc điền link ảnh.', 'warning');
+      showAlert(isVi ? 'Chú ý' : 'Warning', isVi ? 'Vui lòng tải lên tệp ảnh hoặc điền link ảnh.' : 'Please upload an image file or enter an image URL.', 'warning');
       return;
     }
 
@@ -1858,11 +1896,11 @@ function SettingsTab({ authH }: any) {
         setBannerSlides([res.data.data, ...bannerSlides]);
         setSlideFile(null);
         setSlideUrl('');
-        showAlert('Thành công', 'Thêm ảnh banner thành công!', 'success');
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Thêm ảnh banner thành công!' : 'Banner image added successfully!', 'success');
         window.dispatchEvent(new CustomEvent('reload-settings'));
       }
     } catch (err: any) {
-      showAlert('Thất bại', err.response?.data?.message || 'Lỗi khi thêm banner.', 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi thêm banner.' : 'Failed to add banner image.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -1870,19 +1908,19 @@ function SettingsTab({ authH }: any) {
 
   const handleDeleteBannerSlide = async (id: number) => {
     showConfirm(
-      'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa ảnh banner này?',
+      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
+      isVi ? 'Bạn có chắc chắn muốn xóa ảnh banner này?' : 'Are you sure you want to delete this banner image?',
       async () => {
         setLoading(true);
         try {
           const res = await axios.delete(`${API}/settings/banner-slides/${id}`, { headers: authH });
           if (res.data.success) {
             setBannerSlides(bannerSlides.filter(s => s.id !== id));
-            showAlert('Thành công', 'Xóa ảnh banner thành công!', 'success');
+            showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Xóa ảnh banner thành công!' : 'Banner image deleted successfully!', 'success');
             window.dispatchEvent(new CustomEvent('reload-settings'));
           }
         } catch (err: any) {
-          showAlert('Thất bại', err.response?.data?.message || 'Lỗi khi xóa banner.', 'error');
+          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi xóa banner.' : 'Failed to delete banner image.'), 'error');
         } finally {
           setLoading(false);
         }
@@ -1895,10 +1933,10 @@ function SettingsTab({ authH }: any) {
       {/* Background Section */}
       <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
-          🖼️ Cấu hình hình nền ca sĩ (Backdrop Background)
+          🖼️ {isVi ? 'Cấu hình hình nền ca sĩ (Backdrop Background)' : 'Artist Backdrop Configuration'}
         </h3>
         <p className="text-xs text-zinc-500">
-          Hình nền hiển thị mờ ảo phía sau giao diện nghe nhạc. Mặc định là ảnh ca sĩ The Weeknd.
+          {isVi ? 'Hình nền hiển thị mờ ảo phía sau giao diện nghe nhạc. Mặc định là ảnh ca sĩ The Weeknd.' : 'The backdrop displayed blurred behind the music player. Default is The Weeknd.'}
         </p>
 
         {background && (
@@ -1906,7 +1944,7 @@ function SettingsTab({ authH }: any) {
             <img src={background} alt="Current backdrop" className="w-full h-full object-cover opacity-70" />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
             <span className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-0.5 rounded text-zinc-400">
-              Đang hiển thị
+              {isVi ? 'Đang hiển thị' : 'Currently Displaying'}
             </span>
           </div>
         )}
@@ -1914,7 +1952,7 @@ function SettingsTab({ authH }: any) {
         <form onSubmit={handleUpdateBackground} className="space-y-3 max-w-xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">Tải file ảnh lên</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Tải file ảnh lên' : 'Upload image file'}</label>
               <input
                 type="file"
                 accept="image/*"
@@ -1928,7 +1966,7 @@ function SettingsTab({ authH }: any) {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">Hoặc đường dẫn ảnh (URL)</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoặc đường dẫn ảnh (URL)' : 'Or image URL'}</label>
               <input
                 type="text"
                 placeholder="http://localhost:5000/..."
@@ -1944,7 +1982,7 @@ function SettingsTab({ authH }: any) {
             disabled={loading}
             className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50"
           >
-            Lưu hình nền mới
+            {isVi ? 'Lưu hình nền mới' : 'Save New Backdrop'}
           </button>
         </form>
       </div>
@@ -1953,19 +1991,19 @@ function SettingsTab({ authH }: any) {
       <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-6">
         <div className="space-y-1">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            🎞️ Quản lý hình ảnh Banner Slideshow
+            🎞️ {isVi ? 'Quản lý hình ảnh Banner Slideshow' : 'Banner Slideshow Management'}
           </h3>
           <p className="text-xs text-zinc-500">
-            Thêm, xem danh sách và xóa các ảnh trình chiếu trên banner chào mừng "Xin chào, Dũ!".
+            {isVi ? 'Thêm, xem danh sách và xóa các ảnh trình chiếu trên banner chào mừng "Xin chào, Dũ!".' : 'Add, view, and delete images on the welcoming slide banner "Hello, Du!".'}
           </p>
         </div>
 
         {/* Add Banner Form */}
         <form onSubmit={handleAddBannerSlide} className="bg-zinc-900/40 border border-white/5 rounded-xl p-4 space-y-3 max-w-xl">
-          <h4 className="text-xs font-bold text-zinc-300">Thêm ảnh banner mới</h4>
+          <h4 className="text-xs font-bold text-zinc-300">{isVi ? 'Thêm ảnh banner mới' : 'Add New Banner Image'}</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">Tải file ảnh lên</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Tải file ảnh lên' : 'Upload image file'}</label>
               <input
                 type="file"
                 accept="image/*"
@@ -1979,7 +2017,7 @@ function SettingsTab({ authH }: any) {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">Hoặc đường dẫn ảnh (URL)</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoặc đường dẫn ảnh (URL)' : 'Or image URL'}</label>
               <input
                 type="text"
                 placeholder="http://localhost:5000/..."
@@ -1995,15 +2033,15 @@ function SettingsTab({ authH }: any) {
             disabled={loading}
             className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50"
           >
-            Thêm vào slideshow
+            {isVi ? 'Thêm vào slideshow' : 'Add to Slideshow'}
           </button>
         </form>
 
         {/* Banner List */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold text-zinc-300">Danh sách ảnh banner hiện tại ({bannerSlides.length})</h4>
+          <h4 className="text-xs font-bold text-zinc-300">{isVi ? `Danh sách ảnh banner hiện tại (${bannerSlides.length})` : `Current banner image list (${bannerSlides.length})`}</h4>
           {bannerSlides.length === 0 ? (
-            <p className="text-xs text-zinc-600">Chưa có ảnh banner nào. Hệ thống sẽ hiển thị các slide mặc định.</p>
+            <p className="text-xs text-zinc-600">{isVi ? 'Chưa có ảnh banner nào. Hệ thống sẽ hiển thị các slide mặc định.' : 'No banner images yet. Default slides will be shown.'}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {bannerSlides.map(slide => (

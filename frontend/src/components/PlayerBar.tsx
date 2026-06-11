@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMusicStore } from '../store/useMusicStore';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Shuffle, Repeat, Repeat1, Disc } from 'lucide-react';
 
 export default function PlayerBar() {
+  const { t } = useTranslation();
   const {
     currentTrack,
     isPlaying,
@@ -83,8 +85,8 @@ export default function PlayerBar() {
               <Disc className="w-6 h-6 text-zinc-700" />
             </div>
             <div>
-              <h4 className="text-sm font-medium text-zinc-500">No Song Selected</h4>
-              <p className="text-xs text-zinc-600 mt-0.5">Select a song to start listening</p>
+              <h4 className="text-sm font-medium text-zinc-500">{t('player.noSong')}</h4>
+              <p className="text-xs text-zinc-600 mt-0.5">{t('player.selectSong')}</p>
             </div>
           </div>
         )}

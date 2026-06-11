@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_url    TEXT          DEFAULT NULL,
     bio           TEXT          DEFAULT NULL,
     banned_until  DATETIME      DEFAULT NULL,
+    last_active_at DATETIME     DEFAULT NULL,
     created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

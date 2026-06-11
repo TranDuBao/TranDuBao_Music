@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMusicStore } from '../store/useMusicStore';
 import type { Track } from '../store/useMusicStore';
 import { Play, Trash2, Plus, Music, Disc, Heart, GripVertical } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function TrackRow({
   dragMode, isDragOver,
   onDragStart, onDragOver, onDrop, onDragEnd
 }: TrackRowProps) {
+  const { t, i18n } = useTranslation();
   const {
     currentTrack,
     isPlaying,
@@ -177,7 +179,7 @@ export default function TrackRow({
           <button
             onClick={() => toggleFavorite(track.id)}
             className={`p-2 rounded-lg hover:bg-white/5 transition-all ${isFavorited ? 'text-rose-500' : 'text-zinc-500 hover:text-rose-400'}`}
-            title={isFavorited ? 'Bỏ yêu thích' : 'Yêu thích'}
+            title={isFavorited ? (i18n.language === 'vi' ? 'Bỏ yêu thích' : 'Unfavorite') : (i18n.language === 'vi' ? 'Yêu thích' : 'Favorite')}
           >
             <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
           </button>
@@ -187,7 +189,7 @@ export default function TrackRow({
             <button
               onClick={handleRemoveFromPlaylist}
               className="text-zinc-500 hover:text-rose-400 p-2 rounded-lg hover:bg-white/5 transition-all"
-              title="Remove from playlist"
+              title={t('tracks.removeFromPlaylist')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -196,7 +198,7 @@ export default function TrackRow({
               <button
                 onClick={() => setShowPlaylists(!showPlaylists)}
                 className="text-zinc-500 hover:text-purple-400 p-2 rounded-lg hover:bg-white/5 transition-all"
-                title="Add to playlist"
+                title={t('tracks.addToPlaylist')}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -206,10 +208,10 @@ export default function TrackRow({
                   <div className="fixed inset-0 z-10" onClick={() => setShowPlaylists(false)} />
                   <div className="absolute right-0 mt-2 w-48 rounded-lg bg-zinc-900 border border-zinc-800 shadow-xl py-1 z-20">
                     <p className="px-3 py-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                      Add to playlist
+                      {t('tracks.addToPlaylist')}
                     </p>
                     {playlists.length === 0 ? (
-                      <p className="px-3 py-2 text-xs text-zinc-600 italic">No playlists</p>
+                      <p className="px-3 py-2 text-xs text-zinc-600 italic">{t('playlists.noPlaylists')}</p>
                     ) : (
                       playlists.map((pl) => (
                         <button
@@ -232,7 +234,7 @@ export default function TrackRow({
             <button
               onClick={() => deleteTrack(track.id)}
               className="text-zinc-500 hover:text-rose-500 p-2 rounded-lg hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100"
-              title="Delete Song"
+              title={t('tracks.deleteSong')}
             >
               <Trash2 className="w-4 h-4" />
             </button>

@@ -41,9 +41,11 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
       return;
     }
     setLoading(true);
+    const { category_id, ...rest } = formData;
     const success = await addTrack({
-      ...formData,
-      duration: Number(formData.duration)
+      ...rest,
+      duration: Number(formData.duration),
+      category_id: category_id ? Number(category_id) : null
     });
     setLoading(false);
     if (success) {
@@ -73,7 +75,8 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
       duration: 350 + randomNum * 20,
       cover_url: `https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3`,
       audio_url: `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${randomNum}.mp3`,
-      genre: 'Instrumental'
+      genre: 'Instrumental',
+      category_id: ''
     });
   };
 

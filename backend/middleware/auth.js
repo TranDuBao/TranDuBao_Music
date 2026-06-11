@@ -14,6 +14,22 @@ const generateToken = (user) => {
   );
 };
 
+const updateActivity = (user) => {
+  if (!user) return;
+  const now = new Date();
+  const lastActive = user.last_active_at ? new Date(user.last_active_at) : null;
+  if (lastActive && (now - lastActive) < 60 * 1000) {
+    return;
+  }
+  const { query, dbType } = require('../config/db');
+  const timeExpr = dbType === 'mysql' ? 'NOW()' : 'CURRENT_TIMESTAMP';
+  query(`UPDATE users SET last_active_at = ${timeExpr} WHERE id = ?`, [user.id])
+    .then(() => {
+      user.last_active_at = now;
+    })
+    .catch(err => console.error('Failed to update last_active_at:', err.message));
+};
+
 /**
  * Middleware: Require a valid JWT in Authorization header.
  */
@@ -46,6 +62,7 @@ const requireAuth = async (req, res, next) => {
     }
 
     req.user = user;
+    updateActivity(user);
     next();
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Unauthorized: Invalid or expired token' });
@@ -72,6 +89,9 @@ const optionalAuth = async (req, res, next) => {
       const token = header.split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
       req.user = await User.findById(decoded.id);
+      if (req.user) {
+        updateActivity(req.user);
+      }
     }
   } catch {
     // No token or invalid — that's OK for optional auth

@@ -8,7 +8,7 @@ import Logo from '../components/Logo';
 const API_BASE = 'http://localhost:5000/api';
 
 export default function LoginPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { login, register, token } = useAuthStore();
   const navigate = useNavigate();
 
@@ -34,14 +34,46 @@ export default function LoginPage() {
       .catch(() => setBackendOk(false));
   }, []);
 
+  const getLocalizedErrorMessage = (msg?: string) => {
+    if (!msg) return i18n.language === 'vi' ? 'Đã xảy ra lỗi. Vui lòng thử lại.' : 'An error occurred. Please try again.';
+    const isVi = i18n.language === 'vi';
+    const lower = msg.toLowerCase();
+    if (lower.includes('email and password are required')) {
+      return isVi ? 'Vui lòng nhập đầy đủ email và mật khẩu.' : 'Email and password are required.';
+    }
+    if (lower.includes('name, email and password are required')) {
+      return isVi ? 'Vui lòng điền đầy đủ họ tên, email và mật khẩu.' : 'Name, email and password are required.';
+    }
+    if (lower.includes('email already registered')) {
+      return isVi ? 'Email này đã được đăng ký sử dụng.' : 'This email is already registered.';
+    }
+    if (lower.includes('invalid email or password')) {
+      return isVi ? 'Tài khoản hoặc mật khẩu không chính xác.' : 'Invalid email or password.';
+    }
+    return msg;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Field validations
-    if (!isLogin && form.password !== form.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
-      return;
+    const isVi = i18n.language === 'vi';
+
+    // Field validations on client side
+    if (isLogin) {
+      if (!form.email.trim() || !form.password) {
+        setError(isVi ? 'Vui lòng nhập đầy đủ email và mật khẩu.' : 'Email and password are required.');
+        return;
+      }
+    } else {
+      if (!form.name.trim() || !form.email.trim() || !form.password || !form.confirmPassword) {
+        setError(isVi ? 'Vui lòng điền đầy đủ tất cả thông tin.' : 'All fields are required.');
+        return;
+      }
+      if (form.password !== form.confirmPassword) {
+        setError(isVi ? 'Mật khẩu xác nhận không khớp.' : 'Passwords do not match.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -53,10 +85,10 @@ export default function LoginPage() {
       if (result.success) {
         navigate('/app', { replace: true });
       } else {
-        setError(result.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
+        setError(getLocalizedErrorMessage(result.message));
       }
     } catch {
-      setError('Không thể kết nối đến máy chủ. Hãy đảm bảo backend đang chạy trên cổng 5000.');
+      setError(isVi ? 'Không thể kết nối đến máy chủ. Hãy đảm bảo backend đang chạy trên cổng 5000.' : 'Could not connect to server. Make sure backend is running on port 5000.');
     } finally {
       setLoading(false);
     }
@@ -64,7 +96,7 @@ export default function LoginPage() {
 
   const handleOAuth = (provider: 'google' | 'facebook') => {
     if (!backendOk) {
-      setError('Backend chưa kết nối. Vui lòng chạy npm run dev:backend trước.');
+      setError(i18n.language === 'vi' ? 'Backend chưa kết nối. Vui lòng chạy npm run dev:backend trước.' : 'Backend not connected. Please run npm run dev:backend first.');
       return;
     }
     window.location.href = `${API_BASE}/auth/${provider}`;
@@ -72,6 +104,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#070709] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Floating Language Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <button
+          onClick={() => i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')}
+          className="h-9 px-3 flex items-center gap-1.5 rounded-xl bg-zinc-900/80 border border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all text-sm font-medium shadow-lg"
+        >
+          <span className="text-base leading-none">{i18n.language === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
+          <span className="text-xs">{i18n.language === 'vi' ? 'VI' : 'EN'}</span>
+        </button>
+      </div>
       {/* ── Dynamic Glowing / Particle Background ── */}
       <style>{`
         @keyframes floatUp {
@@ -127,7 +169,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-4 animate-shake">
             <WifiOff className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <p className="text-xs text-amber-300 font-medium">
-              Backend không phản hồi trên cổng 5000. Hãy chạy <code className="font-mono bg-amber-500/15 px-1 rounded text-white">npm run dev:backend</code>.
+              {i18n.language === 'vi' ? 'Backend không phản hồi trên cổng 5000. Hãy chạy' : 'Backend is not responding on port 5000. Please run'} <code className="font-mono bg-amber-500/15 px-1 rounded text-white">npm run dev:backend</code>.
             </p>
           </div>
         )}
@@ -187,7 +229,7 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-white/5" />
-            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-600">hoặc</span>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-600">{i18n.language === 'vi' ? 'hoặc' : 'or'}</span>
             <div className="flex-1 h-px bg-white/5" />
           </div>
 
@@ -253,7 +295,7 @@ export default function LoginPage() {
                     onClick={() => setShowForgotPassword(true)}
                     className="text-[11px] text-purple-400 hover:text-purple-300 font-bold hover:underline transition-all"
                   >
-                    Quên mật khẩu?
+                    {i18n.language === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
                   </button>
                 </div>
               )}
@@ -262,7 +304,7 @@ export default function LoginPage() {
             {/* Confirm password in Sign Up */}
             {!isLogin && (
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Xác nhận mật khẩu</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">{i18n.language === 'vi' ? 'Xác nhận mật khẩu' : 'Confirm Password'}</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
                   <input
@@ -293,7 +335,7 @@ export default function LoginPage() {
               {loading
                 ? <span className="flex items-center justify-center gap-2">
                     <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Đang xử lý...
+                    {i18n.language === 'vi' ? 'Đang xử lý...' : 'Processing...'}
                   </span>
                 : isLogin ? t('auth.signIn') : t('auth.signUp')
               }
@@ -311,9 +353,11 @@ export default function LoginPage() {
                 <Lock className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-white">Quên mật khẩu?</h3>
+                <h3 className="text-base font-extrabold text-white">{i18n.language === 'vi' ? 'Quên mật khẩu?' : 'Forgot Password?'}</h3>
                 <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                  Để đảm bảo tính bảo mật tối đa cho tài khoản, vui lòng liên hệ trực tiếp với Ban Quản trị qua địa chỉ email dưới đây để được hỗ trợ cấp lại mật khẩu:
+                  {i18n.language === 'vi' 
+                    ? 'Để đảm bảo tính bảo mật tối đa cho tài khoản, vui lòng liên hệ trực tiếp với Ban Quản trị qua địa chỉ email dưới đây để được hỗ trợ cấp lại mật khẩu:' 
+                    : 'To ensure maximum account security, please contact the Administration directly via the email below for assistance resetting your password:'}
                 </p>
                 <div className="mt-3 bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-center shadow-inner">
                   <span className="text-xs font-bold text-purple-400 font-mono select-all">admin@musicstream.com</span>
@@ -325,7 +369,7 @@ export default function LoginPage() {
                 onClick={() => setShowForgotPassword(false)}
                 className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white font-bold rounded-xl text-xs transition-all shadow-md active:scale-95"
               >
-                Đồng ý
+                {i18n.language === 'vi' ? 'Đồng ý' : 'OK'}
               </button>
             </div>
           </div>
