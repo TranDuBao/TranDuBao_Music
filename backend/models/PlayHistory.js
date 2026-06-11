@@ -1,10 +1,11 @@
-const { query } = require('../config/db');
+const { query, dbType } = require('../config/db');
 
 class PlayHistory {
   static async record(userId, trackId) {
     // Insert history with Vietnam time (UTC+7)
+    const timeExpr = dbType === 'mysql' ? 'DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR)' : "datetime('now', '+7 hours')";
     await query(
-      "INSERT INTO play_history (user_id, track_id, played_at) VALUES (?, ?, datetime('now', '+7 hours'))",
+      `INSERT INTO play_history (user_id, track_id, played_at) VALUES (?, ?, ${timeExpr})`,
       [userId, trackId]
     );
     // Increment track play_count
@@ -27,10 +28,14 @@ class PlayHistory {
       ORDER BY ph.played_at DESC LIMIT ?`, [limit]);
   }
   static async getDailyStats(days = 7) {
+    const timeExpr = dbType === 'mysql' 
+      ? `DATE_SUB(NOW(), INTERVAL ${days} DAY)` 
+      : `datetime('now', '-${days} days')`;
+    const dayExpr = dbType === 'mysql' ? 'DATE(played_at)' : 'date(played_at)';
     return await query(`
-      SELECT date(played_at) as day, COUNT(*) as count
+      SELECT ${dayExpr} as day, COUNT(*) as count
       FROM play_history
-      WHERE played_at >= datetime('now', '-${days} days')
+      WHERE played_at >= ${timeExpr}
       GROUP BY day ORDER BY day`);
   }
 }

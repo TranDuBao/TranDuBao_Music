@@ -47,7 +47,7 @@ const deleteBannerSlide = async (req, res) => {
 
 const getBackground = async (req, res) => {
   try {
-    const row = await query("SELECT value FROM settings WHERE key = 'background_image_url'");
+    const row = await query("SELECT value FROM settings WHERE `key` = 'background_image_url'");
     const value = row.length > 0 ? row[0].value : 'http://localhost:5000/uploads/img/the_weeknd.png';
     res.json({ success: true, value });
   } catch (err) {
@@ -70,11 +70,11 @@ const updateBackground = async (req, res) => {
     }
 
     // Check if key exists
-    const exists = await query("SELECT COUNT(*) as c FROM settings WHERE key = 'background_image_url'");
+    const exists = await query("SELECT COUNT(*) as c FROM settings WHERE `key` = 'background_image_url'");
     if (exists[0].c > 0) {
-      await query("UPDATE settings SET value = ? WHERE key = 'background_image_url'", [value]);
+      await query("UPDATE settings SET value = ? WHERE `key` = 'background_image_url'", [value]);
     } else {
-      await query("INSERT INTO settings (key, value) VALUES ('background_image_url', ?)", [value]);
+      await query("INSERT INTO settings (`key`, `value`) VALUES ('background_image_url', ?)", [value]);
     }
 
     res.json({ success: true, value, message: 'Background updated successfully' });

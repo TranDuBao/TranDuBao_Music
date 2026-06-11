@@ -72,11 +72,7 @@ function UsersTab({ authH }: any) {
   };
   useEffect(() => { fetchUsers(); }, []);
 
-  const toggleRole = async (u: any) => {
-    const newRole = u.role === 'admin' ? 'user' : 'admin';
-    await axios.put(`${API}/auth/users/${u.id}/role`, { role: newRole }, { headers: authH });
-    fetchUsers();
-  };
+
   const { showConfirm, showAlert } = useModalStore();
 
   const deleteUser = async (id: number) => {
@@ -256,11 +252,6 @@ function UsersTab({ authH }: any) {
               </div>
               <span className="text-xs text-zinc-600 hidden md:block">{new Date(u.created_at).toLocaleDateString('vi-VN')}</span>
               <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
-                <button onClick={() => toggleRole(u)}
-                  className={`text-xs px-2 py-1 rounded-lg border font-medium transition-all ${u.role === 'admin' ? 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700' : 'bg-amber-500/10 border-amber-500/20 text-amber-300 hover:bg-amber-500/20'}`}>
-                  {u.role === 'admin' ? 'Thành user' : 'Thành admin'}
-                </button>
-
                 {isBanned(u) ? (
                   <button
                     onClick={() => unbanUser(u)}
@@ -786,6 +777,8 @@ function StatsTab({ authH }: any) {
   const [historyData, setHistoryData] = useState<any>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const [refreshingGeneral, setRefreshingGeneral] = useState(false);
+
   // Category tracks drilldown
   const [selectedCategoryForTracks, setSelectedCategoryForTracks] = useState<any>(null);
   const [categoryTracks, setCategoryTracks] = useState<any[]>([]);
@@ -809,11 +802,16 @@ function StatsTab({ authH }: any) {
   }, [selectedCategoryForTracks]);
 
   // Load general stats
-  const fetchGeneralStats = () => {
-    setLoading(true);
+  const fetchGeneralStats = (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshingGeneral(true);
+    
     axios.get(`${API}/stats`, { headers: authH })
       .then(r => { if (r.data.success) setStats(r.data.data); })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!isSilent) setLoading(false);
+        else setRefreshingGeneral(false);
+      });
   };
 
   useEffect(() => {
@@ -1112,9 +1110,18 @@ function StatsTab({ authH }: any) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top tracks */}
         <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
-          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-purple-400" /> Top bài nghe nhiều nhất
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-purple-400" /> Top bài nghe nhiều nhất
+            </h3>
+            <button 
+              onClick={() => fetchGeneralStats(true)} 
+              className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all"
+              title="Làm mới"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshingGeneral ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
           <div className="space-y-3">
             {(stats.topTracks || []).slice(0,7).map((t: any, i: number) => (
               <div key={t.id} className="space-y-1">
@@ -1135,9 +1142,18 @@ function StatsTab({ authH }: any) {
 
         {/* Genre stats */}
         <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
-          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-amber-400" /> Thống kê theo danh mục
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-amber-400" /> Thống kê theo danh mục
+            </h3>
+            <button 
+              onClick={() => fetchGeneralStats(true)} 
+              className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all"
+              title="Làm mới"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshingGeneral ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             {(stats.genreStats || []).map((g: any) => (
               <div 

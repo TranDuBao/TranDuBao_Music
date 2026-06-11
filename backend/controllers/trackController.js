@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
 const Track = require('../models/Track');
-const { query } = require('../config/db');
+const { query, dbType } = require('../config/db');
 
 const ytDlpPath = path.resolve(__dirname, '../bin/yt-dlp.exe');
 
@@ -226,12 +226,16 @@ const importTrack = async (req, res) => {
 const getTopWeekly = async (req, res) => {
   try {
     // played_at is stored as Vietnam time (UTC+7), compare against 7 days ago in VN time
+    const timeExpr = dbType === 'mysql'
+      ? 'DATE_SUB(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR), INTERVAL 7 DAY)'
+      : "datetime('now', '+7 hours', '-7 days')";
+
     const topTracks = await query(`
       SELECT t.id, t.title, t.artist, t.cover_url, t.audio_url, t.genre, t.duration,
              COUNT(ph.id) as weekly_plays
       FROM tracks t
       JOIN play_history ph ON ph.track_id = t.id
-      WHERE ph.played_at >= datetime('now', '+7 hours', '-7 days')
+      WHERE ph.played_at >= ${timeExpr}
       GROUP BY t.id
       ORDER BY weekly_plays DESC
       LIMIT 5

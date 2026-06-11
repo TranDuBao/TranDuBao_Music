@@ -66,4 +66,4 @@ app.get('/api/health', (req, res) =>
 
 // ── Start ─────────────────────────────────────────────────────────
 app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
-// Trigger reload to load updated .env variables for Google and Facebook Strategy
+// Trigger reload to load updated .env variables for Google and Facebook Strategy - MySQL enabled

@@ -1,9 +1,35 @@
-const { query, dbType } = require('./db');
+const { query, dbType, dbInstance } = require('./db');
 const bcrypt = require('bcryptjs');
 
 const initDb = async () => {
-  if (dbType !== 'sqlite') {
-    console.log('Skipping SQLite auto-init. Use music_db.sql for MySQL.');
+  if (dbType === 'mysql') {
+    try {
+      // Check if tables already exist (e.g. check if 'users' table exists)
+      const tables = await query("SHOW TABLES LIKE 'users'");
+      if (tables && tables.length > 0) {
+        console.log('MySQL database is already initialized.');
+        return;
+      }
+      
+      console.log('Initializing MySQL Database...');
+      const fs = require('fs');
+      const path = require('path');
+      const sqlFile = path.resolve(__dirname, '../../database/music_db.sql');
+      const sqlContent = fs.readFileSync(sqlFile, 'utf8');
+      
+      // Split by semicolon, filter empty queries
+      const queries = sqlContent
+        .split(';')
+        .map(q => q.trim())
+        .filter(q => q.length > 0);
+
+      for (const q of queries) {
+        await dbInstance.query(q);
+      }
+      console.log('MySQL Database Initialized Successfully.');
+    } catch (err) {
+      console.error('Failed to initialize MySQL Database:', err.message);
+    }
     return;
   }
 
@@ -144,10 +170,16 @@ const initDb = async () => {
     // ── Seed Admin ───────────────────────────────────────────────
     const adminCount = await query("SELECT COUNT(*) as c FROM users WHERE role='admin'");
     if (adminCount[0].c === 0) {
-      const h = await bcrypt.hash('admin123', 10);
-      await query("INSERT INTO users (name,email,password_hash,role,bio) VALUES (?,?,?,'admin','Quản trị viên hệ thống MusicStream')",
-        ['Admin', 'admin@musicstream.com', h]);
-      console.log('Admin seeded: admin@musicstream.com / admin123');
+      const existingUser = await query("SELECT id FROM users WHERE email='admin@musicstream.com'");
+      if (existingUser && existingUser.length > 0) {
+        await query("UPDATE users SET role='admin' WHERE email='admin@musicstream.com'");
+        console.log('Admin role restored for admin@musicstream.com');
+      } else {
+        const h = await bcrypt.hash('admin123', 10);
+        await query("INSERT INTO users (name,email,password_hash,role,bio) VALUES (?,?,?,'admin','Quản trị viên hệ thống MusicStream')",
+          ['Admin', 'admin@musicstream.com', h]);
+        console.log('Admin seeded: admin@musicstream.com / admin123');
+      }
     }
 
     const userCount = await query("SELECT COUNT(*) as c FROM users WHERE email='user@musicstream.com'");

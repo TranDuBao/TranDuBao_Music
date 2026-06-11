@@ -1,4 +1,4 @@
-const { query } = require('../config/db');
+const { query, dbType } = require('../config/db');
 const PlayHistory = require('../models/PlayHistory');
 const Rating = require('../models/Rating');
 const Favorite = require('../models/Favorite');
@@ -77,12 +77,18 @@ const getPlayHistoryStats = async (req, res) => {
         WHERE DATE(played_at) = DATE(?)`, [date]);
 
       // Hourly distribution
-      const hourlyStats = await query(`
-        SELECT strftime('%H', played_at) as hour, COUNT(*) as count
-        FROM play_history
-        WHERE DATE(played_at) = DATE(?)
-        GROUP BY hour
-        ORDER BY hour ASC`, [date]);
+      const hourlySql = dbType === 'mysql'
+        ? `SELECT DATE_FORMAT(played_at, '%H') as hour, COUNT(*) as count
+           FROM play_history
+           WHERE DATE(played_at) = DATE(?)
+           GROUP BY hour
+           ORDER BY hour ASC`
+        : `SELECT strftime('%H', played_at) as hour, COUNT(*) as count
+           FROM play_history
+           WHERE DATE(played_at) = DATE(?)
+           GROUP BY hour
+           ORDER BY hour ASC`;
+      const hourlyStats = await query(hourlySql, [date]);
 
       // Top tracks for that day
       const topTracks = await query(`
@@ -127,9 +133,9 @@ const getPlayHistoryStats = async (req, res) => {
     }
 
     if (view === 'month') {
-      selectExpr = "strftime('%Y-%m', played_at)";
+      selectExpr = dbType === 'mysql' ? "DATE_FORMAT(played_at, '%Y-%m')" : "strftime('%Y-%m', played_at)";
     } else if (view === 'year') {
-      selectExpr = "strftime('%Y', played_at)";
+      selectExpr = dbType === 'mysql' ? "DATE_FORMAT(played_at, '%Y')" : "strftime('%Y', played_at)";
     }
 
     const aggregated = await query(`
