@@ -157,6 +157,36 @@ const deleteTrack = async (req, res) => {
   }
 };
 
+const cleanNetscapeCookies = (rawCookies) => {
+  if (!rawCookies) return '';
+  const lines = rawCookies.split(/\r?\n/);
+  const cleaned = [];
+  for (let line of lines) {
+    if (line.trim().startsWith('#')) {
+      cleaned.push(line);
+      continue;
+    }
+    const parts = line.split(/\s+/).filter(Boolean);
+    const isNewCookieLine = parts.length >= 4 && 
+      (parts[1] === 'TRUE' || parts[1] === 'FALSE') &&
+      (parts[3] === 'TRUE' || parts[3] === 'FALSE');
+      
+    if (isNewCookieLine) {
+      cleaned.push(line.trim());
+    } else {
+      if (cleaned.length > 0) {
+        cleaned[cleaned.length - 1] = (cleaned[cleaned.length - 1] + ' ' + line.trim());
+      } else {
+        cleaned.push(line.trim());
+      }
+    }
+  }
+  return cleaned.map(l => {
+    if (l.trim().startsWith('#')) return l;
+    return l.split(/\s+/).join('\t');
+  }).join('\n');
+};
+
 // ── Player clients to try in order ────────────────────────────────────────────
 // Render datacenter IPs are often blocked by web client but less so by mobile/TV clients.
 const PLAYER_CLIENTS = ['android_vr', 'tv', 'ios', 'mweb', 'web_music', 'web'];
@@ -183,8 +213,9 @@ const importTrack = async (req, res) => {
         const tempDir = path.resolve(__dirname, '../../temp');
         if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
         cookieFilePath = path.join(tempDir, `yt_cookies_${Date.now()}.txt`);
-        fs.writeFileSync(cookieFilePath, rows[0].value.trim(), 'utf8');
-        console.log('[Import] YouTube cookies loaded from DB.');
+        const cleanedCookies = cleanNetscapeCookies(rows[0].value.trim());
+        fs.writeFileSync(cookieFilePath, cleanedCookies, 'utf8');
+        console.log('[Import] YouTube cookies loaded and cleaned from DB.');
       }
     } catch (e) {
       console.warn('[Import] Could not load cookies from DB:', e.message);
