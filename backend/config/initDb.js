@@ -30,6 +30,27 @@ const initDb = async () => {
       const tables = await query("SHOW TABLES LIKE 'users'");
       if (tables && tables.length > 0) {
         console.log('MySQL database is already initialized.');
+        
+        // Auto-fix PHP $2y$ password hashes for seeded users if they exist in DB
+        try {
+          const phpUsers = await query("SELECT id, email FROM users WHERE password_hash LIKE '$2y$%'");
+          if (phpUsers && phpUsers.length > 0) {
+            for (const u of phpUsers) {
+              let plain = '';
+              if (u.email === 'admin@musicstream.com') plain = 'admin123';
+              else if (u.email === 'user@musicstream.com') plain = 'user123';
+              
+              if (plain) {
+                const validHash = await bcrypt.hash(plain, 10);
+                await query("UPDATE users SET password_hash = ? WHERE id = ?", [validHash, u.id]);
+                console.log(`Auto-fixed PHP password hash for ${u.email} to standard Node.js bcrypt hash.`);
+              }
+            }
+          }
+        } catch (dbErr) {
+          console.warn('Failed to auto-fix PHP password hashes:', dbErr.message);
+        }
+
         return;
       }
 

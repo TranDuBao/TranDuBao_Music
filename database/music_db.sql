@@ -143,8 +143,8 @@ CREATE TABLE IF NOT EXISTS settings (
 -- ── Seed: Users ──────────────────────
 -- bcrypt hashes for admin123 and user123
 INSERT IGNORE INTO users (id, name, email, password_hash, role, bio) VALUES
-(1, 'Admin', 'admin@musicstream.com', '$2y$10$wQJl3XhWLdBZBq5A0.nzGuNjkmFkmwkVeJMc2jc5/TFx1tJGj/0/C', 'admin', 'Quản trị viên hệ thống MusicStream'),
-(2, 'Demo User', 'user@musicstream.com', '$2y$10$bNsV3pBSuSw9dSbKBc3Rp.Tc7bIKHLIl5P8yVw.S8bJGk4x5OHs9K', 'user', 'Người yêu nhạc');
+(1, 'Admin', 'admin@musicstream.com', '$2b$10$r5Bv5JOHBflWryjEsoHPwOx2zjaYUXbjBE7rb71SH/kS18FOC4pvG', 'admin', 'Quản trị viên hệ thống MusicStream'),
+(2, 'Demo User', 'user@musicstream.com', '$2b$10$sjD8PcH0YjZfIa0BkWPEj.RM6khI8kxCLPJT3tUWksxQ6lGw83nt.', 'user', 'Người yêu nhạc');
 
 -- ── Seed: Categories ──────────────────────────────────────────
 INSERT IGNORE INTO categories (id, name, description, color, icon) VALUES
