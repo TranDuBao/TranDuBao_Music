@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { useModalStore } from '../store/useModalStore';
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, WifiOff } from 'lucide-react';
 import Logo from '../components/Logo';
 import { API_BASE } from '../config';
@@ -9,6 +10,7 @@ import { API_BASE } from '../config';
 export default function LoginPage() {
   const { t, i18n } = useTranslation();
   const { login, register, token } = useAuthStore();
+  const { showAlert } = useModalStore();
   const navigate = useNavigate();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -51,16 +53,22 @@ export default function LoginPage() {
     // Field validations on client side
     if (isLogin) {
       if (!form.email.trim() || !form.password) {
-        setError(isVi ? 'Vui lòng nhập đầy đủ email và mật khẩu.' : 'Email and password are required.');
+        const msg = isVi ? 'Vui lòng nhập đầy đủ email và mật khẩu.' : 'Email and password are required.';
+        setError(msg);
+        showAlert(isVi ? 'Thiếu thông tin' : 'Validation Error', msg, 'warning');
         return;
       }
     } else {
       if (!form.name.trim() || !form.email.trim() || !form.password || !form.confirmPassword) {
-        setError(isVi ? 'Vui lòng điền đầy đủ tất cả thông tin.' : 'All fields are required.');
+        const msg = isVi ? 'Vui lòng điền đầy đủ tất cả thông tin.' : 'All fields are required.';
+        setError(msg);
+        showAlert(isVi ? 'Thiếu thông tin' : 'Validation Error', msg, 'warning');
         return;
       }
       if (form.password !== form.confirmPassword) {
-        setError(isVi ? 'Mật khẩu xác nhận không khớp.' : 'Passwords do not match.');
+        const msg = isVi ? 'Mật khẩu xác nhận không khớp.' : 'Passwords do not match.';
+        setError(msg);
+        showAlert(isVi ? 'Mật khẩu không khớp' : 'Password Mismatch', msg, 'warning');
         return;
       }
     }
@@ -74,14 +82,20 @@ export default function LoginPage() {
       if (result.success) {
         navigate('/app', { replace: true });
       } else {
-        setError(getLocalizedErrorMessage(result.message));
+        const msg = getLocalizedErrorMessage(result.message);
+        setError(msg);
+        showAlert(
+          isLogin ? (isVi ? 'Đăng nhập thất bại' : 'Login Failed') : (isVi ? 'Đăng ký thất bại' : 'Registration Failed'),
+          msg,
+          'error'
+        );
       }
     } catch {
-      setError(
-        import.meta.env.DEV
-          ? (isVi ? 'Không thể kết nối đến máy chủ. Hãy đảm bảo backend đang chạy trên cổng 5000.' : 'Could not connect to server. Make sure backend is running on port 5000.')
-          : (isVi ? 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' : 'Could not connect to server. Please try again later.')
-      );
+      const msg = import.meta.env.DEV
+        ? (isVi ? 'Không thể kết nối đến máy chủ. Hãy đảm bảo backend đang chạy trên cổng 5000.' : 'Could not connect to server. Make sure backend is running on port 5000.')
+        : (isVi ? 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' : 'Could not connect to server. Please try again later.');
+      setError(msg);
+      showAlert(isVi ? 'Lỗi kết nối' : 'Connection Error', msg, 'error');
     } finally {
       setLoading(false);
     }
