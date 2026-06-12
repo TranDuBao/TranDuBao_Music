@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMusicStore } from '../store/useMusicStore';
+import { useModalStore } from '../store/useModalStore';
 import { X, Music2 } from 'lucide-react';
 import { API_BASE } from '../config';
 
@@ -10,6 +11,7 @@ interface AddTrackModalProps {
 
 export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
   const { addTrack } = useMusicStore();
+  const { showAlert } = useModalStore();
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
@@ -38,7 +40,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.artist || !formData.audio_url) {
-      alert('Title, Artist and Audio URL are required!');
+      showAlert('Thông tin thiếu', 'Vui lòng điền đầy đủ Tên bài hát, Nghệ sĩ và Đường dẫn nhạc!', 'warning');
       return;
     }
     setLoading(true);
@@ -62,7 +64,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
         category_id: ''
       });
     } else {
-      alert('Failed to add track. Make sure the backend is running.');
+      showAlert('Thêm bài hát thất bại', 'Vui lòng kiểm tra lại kết nối API của server.', 'error');
     }
   };
 

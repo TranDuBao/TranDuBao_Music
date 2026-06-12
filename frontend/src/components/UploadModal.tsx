@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMusicStore } from '../store/useMusicStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useModalStore } from '../store/useModalStore';
 import { X, Upload, Music2, Image, CheckCircle2, AlertCircle, Link2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -16,6 +17,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const { t } = useTranslation();
   const { fetchTracks } = useMusicStore();
   const { token } = useAuthStore();
+  const { showAlert } = useModalStore();
 
   const audioRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -92,12 +94,16 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           }, 1500);
         } else {
           setStatus('error');
-          setErrorMessage(res.data.message || 'Lỗi không xác định khi tải lên');
+          const msg = res.data.message || 'Lỗi không xác định khi tải lên';
+          setErrorMessage(msg);
+          showAlert('Tải lên thất bại', msg, 'error');
         }
       } else {
         if (!importUrl) {
           setStatus('error');
-          setErrorMessage('Vui lòng nhập đường dẫn liên kết');
+          const msg = 'Vui lòng nhập đường dẫn liên kết';
+          setErrorMessage(msg);
+          showAlert('Yêu cầu nhập link', msg, 'warning');
           setLoading(false);
           return;
         }
@@ -124,12 +130,16 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           }, 1500);
         } else {
           setStatus('error');
-          setErrorMessage(res.data.message || 'Lỗi không thể nhập nhạc từ liên kết');
+          const msg = res.data.message || 'Lỗi không thể nhập nhạc từ liên kết';
+          setErrorMessage(msg);
+          showAlert('Nhập nhạc thất bại', msg, 'error');
         }
       }
     } catch (err: any) {
       setStatus('error');
-      setErrorMessage(err.response?.data?.message || 'Có lỗi xảy ra khi thực hiện');
+      const msg = err.response?.data?.message || 'Có lỗi xảy ra khi thực hiện';
+      setErrorMessage(msg);
+      showAlert('Lỗi hệ thống', msg, 'error');
     } finally {
       setLoading(false);
     }
