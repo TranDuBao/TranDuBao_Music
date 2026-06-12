@@ -8,6 +8,7 @@ interface TrackRowProps {
   track: Track;
   index: number;
   showDelete?: boolean;
+  tracksContext?: Track[];
   // Drag-and-drop props (optional — only passed when dragMode is enabled)
   dragMode?: boolean;
   isDragOver?: boolean;
@@ -18,7 +19,7 @@ interface TrackRowProps {
 }
 
 export default function TrackRow({
-  track, index, showDelete,
+  track, index, showDelete, tracksContext,
   dragMode, isDragOver,
   onDragStart, onDragOver, onDrop, onDragEnd
 }: TrackRowProps) {
@@ -46,7 +47,7 @@ export default function TrackRow({
     if (isActive) {
       togglePlay();
     } else {
-      playTrack(track);
+      playTrack(track, tracksContext);
     }
   };
 

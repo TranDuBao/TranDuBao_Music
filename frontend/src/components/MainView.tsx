@@ -477,6 +477,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onDragEnd={handleDragEnd}
+                  tracksContext={displayedTracks}
                 />
               );
             })
