@@ -1,20 +1,20 @@
 require('dotenv').config();
 const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
-const fs      = require('fs');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const session = require('express-session');
 
-const helmet  = require('helmet');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { passport } = require('./controllers/authController');
-const initDb  = require('./config/initDb');
+const initDb = require('./config/initDb');
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── Ensure upload directories exist ──────────────────────────────
-['../uploads/audio','../uploads/img'].forEach(d => {
+['../uploads/audio', '../uploads/img'].forEach(d => {
   const p = path.join(__dirname, d);
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 });
@@ -35,7 +35,7 @@ app.use(cors({
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // limit each IP to 1000 requests per windowMs
+  max: 150, // limit each IP to 150 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' }
@@ -59,14 +59,14 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 initDb().catch(err => console.error('Database init failed:', err));
 
 // ── Routes ────────────────────────────────────────────────────────
-app.use('/api/auth',        require('./routes/authRoutes'));
-app.use('/api/tracks',      require('./routes/trackRoutes'));
-app.use('/api/playlists',   require('./routes/playlistRoutes'));
-app.use('/api/categories',  require('./routes/categoryRoutes'));
-app.use('/api/artists',     require('./routes/artistRoutes'));
-app.use('/api/albums',      require('./routes/albumRoutes'));
-app.use('/api/settings',    require('./routes/settingsRoutes'));
-app.use('/api',             require('./routes/interactionRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/tracks', require('./routes/trackRoutes'));
+app.use('/api/playlists', require('./routes/playlistRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/artists', require('./routes/artistRoutes'));
+app.use('/api/albums', require('./routes/albumRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
+app.use('/api', require('./routes/interactionRoutes'));
 
 // Admin stats
 const { requireAuth, requireAdmin } = require('./middleware/auth');
@@ -77,7 +77,7 @@ app.get('/api/stats/category-tracks', requireAuth, requireAdmin, getCategoryTrac
 
 // Health check
 app.get('/api/health', (req, res) =>
-  res.json({ status: 'OK', dbType: process.env.DB_TYPE || 'sqlite', version: 'v4-limit-fix' }));
+  res.json({ status: 'OK', dbType: process.env.DB_TYPE || 'sqlite' }));
 
 // ── Start ─────────────────────────────────────────────────────────
 app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));

@@ -157,7 +157,7 @@ const importTrack = async (req, res) => {
       console.log(`[Import] Fetching metadata for URL: ${url}`);
       const metaJson = await runYtDlp([
         '--js-runtimes', 'node',
-        '--extractor-args', 'youtube:player_client=default,-android_sdkless',
+        '--extractor-args', 'youtube:player_client=android_vr',
         '--no-warnings',
         '--no-playlist',
         '--dump-json',
@@ -183,7 +183,7 @@ const importTrack = async (req, res) => {
       await runYtDlp([
         '-f', 'bestaudio',
         '--js-runtimes', 'node',
-        '--extractor-args', 'youtube:player_client=default,-android_sdkless',
+        '--extractor-args', 'youtube:player_client=android_vr',
         '--no-warnings',
         '--no-playlist',
         '-o', outputPathPattern,
