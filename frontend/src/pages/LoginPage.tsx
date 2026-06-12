@@ -17,22 +17,12 @@ export default function LoginPage() {
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [backendOk, setBackendOk] = useState<boolean | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // If already logged in, redirect immediately
   useEffect(() => {
     if (token) navigate('/app', { replace: true });
   }, [token]);
-
-  // Check backend health on mount
-  useEffect(() => {
-    fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(4000) })
-      .then(r => r.json())
-      .then(() => setBackendOk(true))
-      .catch(() => setBackendOk(false));
-  }, []);
-
   const getLocalizedErrorMessage = (msg?: string) => {
     if (!msg) return i18n.language === 'vi' ? 'Đã xảy ra lỗi. Vui lòng thử lại.' : 'An error occurred. Please try again.';
     const isVi = i18n.language === 'vi';
@@ -98,10 +88,6 @@ export default function LoginPage() {
   };
 
   const handleOAuth = (provider: 'google' | 'facebook') => {
-    if (!backendOk && import.meta.env.DEV) {
-      setError(i18n.language === 'vi' ? 'Backend chưa kết nối. Vui lòng chạy npm run dev:backend trước.' : 'Backend not connected. Please run npm run dev:backend first.');
-      return;
-    }
     window.location.href = `${API_BASE}/auth/${provider}`;
   };
 
@@ -324,7 +310,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || (backendOk === false && import.meta.env.DEV)}
+              disabled={loading}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white font-extrabold rounded-xl transition-all shadow-lg shadow-purple-500/15 hover:shadow-purple-500/25 text-xs uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed mt-2 active:scale-[0.99]"
             >
               {loading
