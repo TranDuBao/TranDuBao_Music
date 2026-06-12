@@ -22,7 +22,7 @@ if (!isWindows) {
 
 const runYtDlp = (args) => {
   return new Promise((resolve, reject) => {
-    execFile(ytDlpPath, args, { timeout: 60000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    execFile(ytDlpPath, args, { timeout: 90000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(stderr || error.message));
       } else {
@@ -44,8 +44,11 @@ const isBotBlocked = (msg) => {
     lower.includes('bot detection') ||
     lower.includes('verify you') ||
     lower.includes('confirm your') ||
-    lower.includes('429') ||
-    lower.includes('too many requests')
+    lower.includes('too many requests') ||
+    lower.includes('http error 429') ||
+    lower.includes('preconditionrequired') ||
+    lower.includes('this video is unavailable') ||
+    lower.includes('video unavailable')
   );
 };
 
@@ -154,174 +157,167 @@ const deleteTrack = async (req, res) => {
   }
 };
 
+// ── Player clients to try in order ────────────────────────────────────────────
+// Render datacenter IPs are often blocked by web client but less so by mobile/TV clients.
+const PLAYER_CLIENTS = ['android_vr', 'tv_embed', 'ios', 'mweb', 'web_creator'];
+
 const importTrack = async (req, res) => {
   let cookieFilePath = null;
   try {
     const { url, genre = 'Lofi', is_public = 1, category_id = null } = req.body;
     if (!url) {
-      return res.status(400).json({ success: false, message: 'URL is required' });
+      return res.status(400).json({ success: false, message: 'URL là bắt buộc' });
     }
 
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
-    const audioDir  = path.resolve(__dirname, '../../uploads/audio');
-    const imgDir    = path.resolve(__dirname, '../../uploads/img');
+    const audioDir   = path.resolve(__dirname, '../../uploads/audio');
+    const imgDir     = path.resolve(__dirname, '../../uploads/img');
 
-    // Create directories if they do not exist
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
-    if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
+    if (!fs.existsSync(imgDir))   fs.mkdirSync(imgDir,   { recursive: true });
 
-    // Read YouTube cookies from the database if they exist
+    // ── Load cookies from DB (optional) ───────────────────────────────
     try {
-      const cookieSetting = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
-      if (cookieSetting && cookieSetting.length > 0 && cookieSetting[0].value.trim()) {
-        const tempCookieFilename = `cookies_${Date.now()}.txt`;
+      const rows = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
+      if (rows && rows.length > 0 && rows[0].value && rows[0].value.trim()) {
         const tempDir = path.resolve(__dirname, '../../temp');
         if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-        cookieFilePath = path.join(tempDir, tempCookieFilename);
-        fs.writeFileSync(cookieFilePath, cookieSetting[0].value.trim(), 'utf8');
-        console.log(`[Import] Loaded YouTube cookies from settings, saved to: ${cookieFilePath}`);
+        cookieFilePath = path.join(tempDir, `yt_cookies_${Date.now()}.txt`);
+        fs.writeFileSync(cookieFilePath, rows[0].value.trim(), 'utf8');
+        console.log('[Import] YouTube cookies loaded from DB.');
       }
-    } catch (dbErr) {
-      console.warn('[Import] Failed to load cookies from DB settings:', dbErr.message);
+    } catch (e) {
+      console.warn('[Import] Could not load cookies from DB:', e.message);
     }
 
-    // Try yt-dlp first
-    try {
-      console.log(`[Import] Fetching metadata for URL: ${url}`);
-      const ytDlpArgs = [
-        '--js-runtimes', 'node',
-        '--extractor-args', 'youtube:player_client=android_vr',
-        '--no-warnings',
-        '--no-playlist',
-        '--dump-json',
-      ];
-      if (cookieFilePath) {
-        ytDlpArgs.push('--cookies', cookieFilePath);
-      }
-      ytDlpArgs.push(url);
-
-      const metaJson = await runYtDlp(ytDlpArgs);
-      const meta = JSON.parse(metaJson);
-
-      const title = meta.title || 'Imported Audio';
-      const artist = meta.uploader || meta.artist || meta.channel || 'Unknown Artist';
-
-      // Check duplicate track: title and artist (case-insensitive)
-      const existing = await query('SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)', [title.trim(), artist.trim()]);
-      if (existing && existing.length > 0) {
-        return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn' });
-      }
-
-      const duration = parseInt(meta.duration) || 180;
-      
-      const outputFilenameBase = `${Date.now()}_ytdl`;
-      const outputPathPattern = path.join(audioDir, `${outputFilenameBase}.%(ext)s`);
-      
-      console.log(`[Import] Downloading audio via yt-dlp...`);
-      const dlArgs = [
-        '-f', 'bestaudio',
-        '--js-runtimes', 'node',
-        '--extractor-args', 'youtube:player_client=android_vr',
-        '--no-warnings',
-        '--no-playlist',
-        '-o', outputPathPattern,
-      ];
-      if (cookieFilePath) {
-        dlArgs.push('--cookies', cookieFilePath);
-      }
-      dlArgs.push(url);
-
-      await runYtDlp(dlArgs);
-      
-      // Find the exact filename that yt-dlp wrote
-      const files = fs.readdirSync(audioDir);
-      const downloadedFile = files.find(f => f.startsWith(outputFilenameBase));
-      if (!downloadedFile) {
-        throw new Error('Downloaded audio file not found');
-      }
-
-      // Handle Cover image from thumbnail
-      let cover_url = '';
-      const thumbnailUrl = meta.thumbnail;
-      if (thumbnailUrl) {
-        const coverFilename = `${Date.now()}_ytdl.jpg`;
-        const coverLocalPath = path.join(imgDir, coverFilename);
-        try {
-          await downloadFile(thumbnailUrl, coverLocalPath);
-          cover_url = `${backendUrl}/uploads/img/${coverFilename}`;
-        } catch (err) {
-          console.error('[Import] Failed to download thumbnail:', err.message);
-        }
-      }
-
-      const audio_url = `${backendUrl}/uploads/audio/${downloadedFile}`;
-
-      const newTrack = await Track.create({
-        title,
-        artist,
-        album: meta.extractor_key || 'Imported',
-        duration,
-        cover_url,
-        audio_url,
-        genre,
-        is_public: Number(is_public),
-        user_id: req.user?.id || null,
-        category_id: category_id ? Number(category_id) : null
-      });
-
-      return res.status(201).json({ success: true, data: newTrack });
-    } catch (ytDlpError) {
-      console.warn('[Import] yt-dlp failed, falling back to direct URL download:', ytDlpError.message);
-      
-      // Direct file import fallback
-      if (url.match(/\.(mp3|wav|m4a|ogg|flac|aac)(\?.*)?$/i)) {
-        const audioFilename = `${Date.now()}_direct.mp3`;
-        const audioLocalPath = path.join(audioDir, audioFilename);
-        
-        await downloadFile(url, audioLocalPath);
-        
-        const audio_url = `${backendUrl}/uploads/audio/${audioFilename}`;
-        const newTrack = await Track.create({
-          title: 'Imported Song',
-          artist: 'Unknown Artist',
-          album: 'Web Import',
-          duration: 180,
-          cover_url: '',
-          audio_url,
-          genre,
-          is_public: Number(is_public),
-          user_id: req.user?.id || null,
-          category_id: category_id ? Number(category_id) : null
-        });
-        
-        return res.status(201).json({ success: true, data: newTrack });
-      } else {
-        const rawMsg = ytDlpError.message || '';
-        console.error('[Import] yt-dlp error raw:', rawMsg);
-        const errMsg = isBotBlocked(rawMsg)
-          ? 'YouTube đã chặn tải nhạc từ server. Vui lòng cung cấp YouTube Cookies trong phần Admin → Cấu hình → "YouTube Cookies" để tiếp tục.'
-          : `Không thể tải nhạc từ liên kết này. Lỗi: ${rawMsg}`;
-        return res.status(400).json({ 
-          success: false, 
-          message: errMsg
-        });
-      }
+    // Shared base flags
+    const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass'];
+    if (cookieFilePath) {
+      baseFlags.push('--cookies', cookieFilePath);
     }
-  } catch (err) {
-    const rawMsg = err.message || '';
-    console.error('[Import] Outer error:', rawMsg);
-    const errMsg = isBotBlocked(rawMsg)
-      ? 'YouTube đã chặn tải nhạc từ server. Vui lòng cung cấp YouTube Cookies trong phần Admin → Cấu hình → "YouTube Cookies" để tiếp tục.'
-      : rawMsg;
-    res.status(500).json({ success: false, message: errMsg });
-  } finally {
-    if (cookieFilePath && fs.existsSync(cookieFilePath)) {
+
+    // ── STEP 1: Fetch metadata — try each client ───────────────────────
+    let meta         = null;
+    let lastMetaErr  = null;
+
+    for (const client of PLAYER_CLIENTS) {
       try {
-        fs.unlinkSync(cookieFilePath);
-        console.log('[Import] Deleted temporary cookies file');
+        console.log(`[Import] Metadata attempt with client="${client}"`);
+        const args = [
+          ...baseFlags,
+          '--extractor-args', `youtube:player_client=${client}`,
+          '--dump-json',
+          url,
+        ];
+        const raw = await runYtDlp(args);
+        meta = JSON.parse(raw);
+        console.log(`[Import] Metadata OK  (client="${client}", title="${meta.title}")`);
+        break;
       } catch (err) {
-        console.error('[Import] Failed to delete temporary cookies file:', err.message);
+        lastMetaErr = err;
+        console.warn(`[Import] Metadata FAIL (client="${client}"): ${(err.message || '').slice(0, 150)}`);
       }
+    }
+
+    if (!meta) {
+      const raw = lastMetaErr?.message || '';
+      console.error('[Import] All clients failed for metadata.');
+      const msg = isBotBlocked(raw)
+        ? 'YouTube đang chặn server của ứng dụng. Hãy nhờ admin dán YouTube Cookies vào phần "Admin Panel → Cấu hình → YouTube Cookies" để tiếp tục.'
+        : `Không thể lấy thông tin bài hát từ URL này. Lỗi: ${raw.slice(0, 300)}`;
+      return res.status(400).json({ success: false, message: msg });
+    }
+
+    const title  = meta.title                                             || 'Imported Audio';
+    const artist = meta.uploader || meta.artist || meta.channel           || 'Unknown Artist';
+
+    // ── STEP 2: Duplicate check ────────────────────────────────────────
+    const dup = await query(
+      'SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)',
+      [title.trim(), artist.trim()]
+    );
+    if (dup && dup.length > 0) {
+      return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
+    }
+
+    // ── STEP 3: Download audio — try each client ────────────────────────
+    const fileBase   = `${Date.now()}_ytdl`;
+    const outPattern = path.join(audioDir, `${fileBase}.%(ext)s`);
+    let   audioFile  = null;
+    let   lastDlErr  = null;
+
+    for (const client of PLAYER_CLIENTS) {
+      try {
+        console.log(`[Import] Download attempt with client="${client}"`);
+        const args = [
+          ...baseFlags,
+          '-f', 'bestaudio/best',
+          '--extractor-args', `youtube:player_client=${client}`,
+          '-o', outPattern,
+          url,
+        ];
+        await runYtDlp(args);
+        const found = fs.readdirSync(audioDir).find(f => f.startsWith(fileBase));
+        if (found) {
+          audioFile = found;
+          console.log(`[Import] Download OK   (client="${client}", file="${found}")`);
+          break;
+        }
+      } catch (err) {
+        lastDlErr = err;
+        console.warn(`[Import] Download FAIL (client="${client}"): ${(err.message || '').slice(0, 150)}`);
+      }
+    }
+
+    if (!audioFile) {
+      const raw = lastDlErr?.message || '';
+      console.error('[Import] All clients failed for audio download.');
+      const msg = isBotBlocked(raw)
+        ? 'YouTube đang chặn server của ứng dụng. Hãy nhờ admin dán YouTube Cookies vào phần "Admin Panel → Cấu hình → YouTube Cookies" để tiếp tục.'
+        : `Không thể tải âm thanh. Lỗi: ${raw.slice(0, 300)}`;
+      return res.status(400).json({ success: false, message: msg });
+    }
+
+    // ── STEP 4: Download thumbnail ─────────────────────────────────────
+    let cover_url = '';
+    try {
+      if (meta.thumbnail) {
+        const thumbFile = `${Date.now()}_ytdl.jpg`;
+        const thumbPath = path.join(imgDir, thumbFile);
+        await downloadFile(meta.thumbnail, thumbPath);
+        cover_url = `${backendUrl}/uploads/img/${thumbFile}`;
+      }
+    } catch (e) {
+      console.warn('[Import] Thumbnail download skipped:', e.message);
+    }
+
+    // ── STEP 5: Persist track ──────────────────────────────────────────
+    const audio_url = `${backendUrl}/uploads/audio/${audioFile}`;
+    const newTrack  = await Track.create({
+      title,
+      artist,
+      album:       meta.extractor_key || 'Imported',
+      duration:    parseInt(meta.duration) || 180,
+      cover_url,
+      audio_url,
+      genre,
+      is_public:   Number(is_public),
+      user_id:     req.user?.id || null,
+      category_id: category_id ? Number(category_id) : null,
+    });
+
+    return res.status(201).json({ success: true, data: newTrack });
+
+  } catch (err) {
+    const raw = err.message || '';
+    console.error('[Import] Unhandled error:', raw);
+    const msg = isBotBlocked(raw)
+      ? 'YouTube đang chặn server của ứng dụng. Hãy nhờ admin dán YouTube Cookies vào phần "Admin Panel → Cấu hình → YouTube Cookies" để tiếp tục.'
+      : raw;
+    res.status(500).json({ success: false, message: msg });
+  } finally {
+    if (cookieFilePath) {
+      try { fs.unlinkSync(cookieFilePath); } catch (_) {}
     }
   }
 };
