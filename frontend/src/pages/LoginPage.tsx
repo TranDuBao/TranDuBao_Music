@@ -5,20 +5,20 @@ import { useAuthStore } from '../store/useAuthStore';
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, WifiOff } from 'lucide-react';
 import Logo from '../components/Logo';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:1005/api';
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation();
   const { login, register, token } = useAuthStore();
   const navigate = useNavigate();
 
-  const [isLogin, setIsLogin]       = useState(true);
-  const [form, setForm]             = useState({ name: '', email: '', password: '', confirmPassword: '' });
-  const [showPass, setShowPass]     = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
-  const [error, setError]           = useState('');
-  const [loading, setLoading]       = useState(false);
-  const [backendOk, setBackendOk]   = useState<boolean | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [backendOk, setBackendOk] = useState<boolean | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // If already logged in, redirect immediately
@@ -208,10 +208,10 @@ export default function LoginPage() {
               className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-xl py-2.5 text-xs font-semibold text-zinc-200 transition-all active:scale-95"
             >
               <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
               Google
             </button>
@@ -220,7 +220,7 @@ export default function LoginPage() {
               className="flex items-center justify-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/10 hover:border-blue-600/20 rounded-xl py-2.5 text-xs font-semibold text-blue-300 transition-all active:scale-95"
             >
               <svg className="w-4.5 h-4.5" fill="#1877F2" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
               Facebook
             </button>
@@ -334,9 +334,9 @@ export default function LoginPage() {
             >
               {loading
                 ? <span className="flex items-center justify-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    {i18n.language === 'vi' ? 'Đang xử lý...' : 'Processing...'}
-                  </span>
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  {i18n.language === 'vi' ? 'Đang xử lý...' : 'Processing...'}
+                </span>
                 : isLogin ? t('auth.signIn') : t('auth.signUp')
               }
             </button>
@@ -355,8 +355,8 @@ export default function LoginPage() {
               <div>
                 <h3 className="text-base font-extrabold text-white">{i18n.language === 'vi' ? 'Quên mật khẩu?' : 'Forgot Password?'}</h3>
                 <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                  {i18n.language === 'vi' 
-                    ? 'Để đảm bảo tính bảo mật tối đa cho tài khoản, vui lòng liên hệ trực tiếp với Ban Quản trị qua địa chỉ email dưới đây để được hỗ trợ cấp lại mật khẩu:' 
+                  {i18n.language === 'vi'
+                    ? 'Để đảm bảo tính bảo mật tối đa cho tài khoản, vui lòng liên hệ trực tiếp với Ban Quản trị qua địa chỉ email dưới đây để được hỗ trợ cấp lại mật khẩu:'
                     : 'To ensure maximum account security, please contact the Administration directly via the email below for assistance resetting your password:'}
                 </p>
                 <div className="mt-3 bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-center shadow-inner">

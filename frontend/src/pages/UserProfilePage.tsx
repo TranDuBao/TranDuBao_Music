@@ -9,7 +9,7 @@ import {
   CheckCircle2, AlertCircle, Trash2, Play, Heart, ChevronRight, Eye, EyeOff
 } from 'lucide-react';
 
-const API = 'http://localhost:5000/api';
+const API = 'http://localhost:1005/api';
 
 type Tab = 'info' | 'security' | 'history' | 'uploads' | 'playlists';
 

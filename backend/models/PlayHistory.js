@@ -2,8 +2,9 @@ const { query, dbType } = require('../config/db');
 
 class PlayHistory {
   static async record(userId, trackId) {
-    // Insert history with Vietnam time (UTC+7)
-    const timeExpr = dbType === 'mysql' ? 'DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR)' : "datetime('now', '+7 hours')";
+    // Insert history — timezone is handled at the pool level ('+07:00')
+    // so NOW() already returns Vietnam local time correctly
+    const timeExpr = dbType === 'mysql' ? 'NOW()' : "datetime('now', '+7 hours')";
     await query(
       `INSERT INTO play_history (user_id, track_id, played_at) VALUES (?, ?, ${timeExpr})`,
       [userId, trackId]
@@ -29,13 +30,13 @@ class PlayHistory {
   }
   static async getDailyStats(days = 7) {
     const timeExpr = dbType === 'mysql' 
-      ? `DATE_SUB(NOW(), INTERVAL ${days} DAY)` 
-      : `datetime('now', '-${days} days')`;
+      ? `DATE_SUB(CURDATE(), INTERVAL ${days} DAY)` 
+      : `date('now', '-${days} days')`;
     const dayExpr = dbType === 'mysql' ? 'DATE(played_at)' : 'date(played_at)';
     return await query(`
       SELECT ${dayExpr} as day, COUNT(*) as count
       FROM play_history
-      WHERE played_at >= ${timeExpr}
+      WHERE DATE(played_at) >= ${timeExpr}
       GROUP BY day ORDER BY day`);
   }
 }

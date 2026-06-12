@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useModalStore } from '../store/useModalStore';
 import { formatCount, formatPlays, formatPlaysShort, formatDateLabel } from '../utils/format';
 
-const API = 'http://localhost:5000/api';
+const API = 'http://localhost:1005/api';
 type AdminTab = 'users' | 'tracks' | 'categories' | 'artists' | 'albums' | 'stats' | 'settings';
 
 export default function AdminPanel() {
@@ -317,12 +317,23 @@ function TracksTab({ authH }: any) {
   const [search, setSearch]   = useState('');
   const [loading, setLoading] = useState(false);
   const [editingTrack, setEditingTrack] = useState<any | null>(null);
+  const [onlyRecent, setOnlyRecent] = useState(false);
 
   const fetch = async () => {
     setLoading(true);
     try { const { data } = await axios.get(`${API}/tracks?search=${search}`, { headers: authH }); if (data.success) setTracks(data.data); }
     finally { setLoading(false); }
   };
+
+  const displayedTracks = tracks.filter(t => {
+    if (onlyRecent) {
+      if (!t.created_at) return false;
+      const created = new Date(t.created_at);
+      const now = new Date();
+      return (now.getTime() - created.getTime()) < 24 * 60 * 60 * 1000;
+    }
+    return true;
+  });
   
   const fetchCategories = async () => {
     try {
@@ -380,12 +391,26 @@ function TracksTab({ authH }: any) {
       <div className="flex items-center gap-3">
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder={isVi ? "Tìm bài hát..." : "Search songs..."}
           className="flex-1 bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2 text-sm text-white focus:outline-none placeholder-zinc-600" />
-        <span className="text-xs text-zinc-500">{tracks.length} {isVi ? 'bài' : 'tracks'}</span>
+        
+        <button
+          type="button"
+          onClick={() => setOnlyRecent(prev => !prev)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${
+            onlyRecent 
+              ? 'bg-purple-500/25 border-purple-500/40 text-purple-400 shadow-md shadow-purple-500/10'
+              : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          {isVi ? 'Bài mới (24h)' : 'New (24h)'}
+        </button>
+
+        <span className="text-xs text-zinc-500">{displayedTracks.length} / {tracks.length} {isVi ? 'bài' : 'tracks'}</span>
       </div>
 
       <div className="rounded-xl border border-white/5 overflow-hidden">
         <div className="divide-y divide-white/[0.03]">
-          {tracks.map((t, i) => (
+          {displayedTracks.map((t, i) => (
             <div key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] group">
               <span className="text-xs text-zinc-600 w-6 text-center">{i+1}</span>
               <img src={t.cover_url || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-lg object-cover" />
@@ -401,6 +426,12 @@ function TracksTab({ authH }: any) {
                   {t.genre && t.genre !== t.category_name && (
                     <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-full border border-white/5 font-semibold">
                       {t.genre}
+                    </span>
+                  )}
+                  {t.created_at && (
+                    <span className="text-[9px] text-zinc-600 flex items-center gap-0.5">
+                      <Clock className="w-2.5 h-2.5" />
+                      {new Date(t.created_at).toLocaleDateString(isVi ? 'vi-VN' : 'en-US')}
                     </span>
                   )}
                 </div>
@@ -427,6 +458,11 @@ function TracksTab({ authH }: any) {
               </div>
             </div>
           ))}
+          {displayedTracks.length === 0 && (
+            <div className="p-8 text-center text-zinc-600 text-sm">
+              {isVi ? 'Không tìm thấy bài hát nào.' : 'No tracks found.'}
+            </div>
+          )}
         </div>
       </div>
 
@@ -855,7 +891,8 @@ function StatsTab({ authH }: any) {
     setLoadingHistory(true);
     let url = `${API}/stats/history?view=${viewMode}`;
     if (selectedDate) {
-      url += `&date=${selectedDate}`;
+      const cleanDate = selectedDate.includes('T') ? selectedDate.split('T')[0] : (selectedDate.includes(' ') ? selectedDate.split(' ')[0] : selectedDate);
+      url += `&date=${cleanDate}`;
     } else {
       if (startDate) url += `&startDate=${startDate}`;
       if (endDate) url += `&endDate=${endDate}`;
@@ -1072,7 +1109,7 @@ function StatsTab({ authH }: any) {
               {/* Detailed logs for the day */}
               <div className="bg-white/[0.01] border border-white/5 p-4 rounded-xl">
                 <h4 className="text-xs font-bold text-white mb-3">{isVi ? 'Nhật ký phát nhạc trong ngày' : 'Play log of the day'}</h4>
-                <div className="max-h-60 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                <div className="max-h-[420px] overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                   {historyData.playsList?.length === 0 ? (
                     <p className="text-xs text-zinc-500 py-6 text-center">{isVi ? 'Chưa phát bài nào.' : 'No songs played yet.'}</p>
                   ) : (
@@ -1112,7 +1149,8 @@ function StatsTab({ authH }: any) {
                         onClick={() => {
                           // If viewMode is day, allow drilling down into specific date
                           if (viewMode === 'day') {
-                            setSelectedDate(item.label);
+                            const cleanDate = item.label.includes('T') ? item.label.split('T')[0] : (item.label.includes(' ') ? item.label.split(' ')[0] : item.label);
+                            setSelectedDate(cleanDate);
                           }
                         }}
                         className={`flex-1 flex flex-col items-center group focus:outline-none transition-all ${
@@ -1969,7 +2007,7 @@ function SettingsTab({ authH }: any) {
               <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoặc đường dẫn ảnh (URL)' : 'Or image URL'}</label>
               <input
                 type="text"
-                placeholder="http://localhost:5000/..."
+                placeholder="http://localhost:1005/..."
                 value={bgUrl}
                 disabled={!!bgFile}
                 onChange={e => setBgUrl(e.target.value)}
@@ -2020,7 +2058,7 @@ function SettingsTab({ authH }: any) {
               <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoặc đường dẫn ảnh (URL)' : 'Or image URL'}</label>
               <input
                 type="text"
-                placeholder="http://localhost:5000/..."
+                placeholder="http://localhost:1005/..."
                 value={slideUrl}
                 disabled={!!slideFile}
                 onChange={e => setSlideUrl(e.target.value)}

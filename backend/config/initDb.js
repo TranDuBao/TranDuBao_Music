@@ -1,22 +1,33 @@
 const { query, dbType, dbInstance } = require('./db');
 const bcrypt = require('bcryptjs');
-
 const initDb = async () => {
   if (dbType === 'mysql') {
     try {
+      // Create database if it doesn't exist
+      const mysql = require('mysql2/promise');
+      const connection = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        port: process.env.DB_PORT || 3306,
+      });
+      const dbName = process.env.DB_NAME || 'music_stream_db';
+      await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
+      await connection.end();
+
       // Check if tables already exist (e.g. check if 'users' table exists)
       const tables = await query("SHOW TABLES LIKE 'users'");
       if (tables && tables.length > 0) {
         console.log('MySQL database is already initialized.');
         return;
       }
-      
+
       console.log('Initializing MySQL Database...');
       const fs = require('fs');
       const path = require('path');
       const sqlFile = path.resolve(__dirname, '../../database/music_db.sql');
       const sqlContent = fs.readFileSync(sqlFile, 'utf8');
-      
+
       // Split by semicolon, filter empty queries
       const queries = sqlContent
         .split(';')
@@ -219,7 +230,7 @@ const initDb = async () => {
           'R&B / Synthwave / Pop',
           '115.4M',
           'Abel Makkonen Tesfaye, nghệ danh The Weeknd, là nam ca sĩ kiêm nhạc sĩ và nhà sản xuất âm nhạc người Canada. Anh nổi tiếng với những ca khúc nhạc điện tử mang phong cách tăm tối, u uất kết hợp cùng âm hưởng R&B đương đại, tiêu biểu là các siêu phẩm toàn cầu như "Blinding Lights", "Starboy" và "Save Your Tears".',
-          'http://localhost:5000/uploads/img/the_weeknd.png',
+          'http://localhost:1005/uploads/img/the_weeknd.png',
           'group-hover:shadow-[0_0_30px_rgba(168,85,247,0.35)] group-hover:border-purple-500/30',
           'Blinding Lights'
         ],
@@ -228,7 +239,7 @@ const initDb = async () => {
           'Pop / R&B',
           '84.2M',
           'Ariana Grande-Butera là nữ ca sĩ, nhạc sĩ kiêm diễn viên người Mỹ. Sở hữu quãng giọng soprano bốn quãng tám cùng kỹ thuật giả thanh đỉnh cao, cô là một trong những nghệ sĩ nhạc pop thành công nhất thế kỷ 21 với hàng loạt album đạt vị trí quán quân như "Thank U, Next" và "Positions".',
-          'http://localhost:5000/uploads/img/ariana_grande.png',
+          'http://localhost:1005/uploads/img/ariana_grande.png',
           'group-hover:shadow-[0_0_30px_rgba(236,72,153,0.35)] group-hover:border-pink-500/30',
           'Thank U, Next'
         ],
@@ -237,7 +248,7 @@ const initDb = async () => {
           'Pop / R&B / Dance',
           '78.9M',
           'Justin Drew Bieber là nam ca sĩ kiêm nhạc sĩ người Canada. Được phát hiện qua YouTube từ năm 13 tuổi, anh nhanh chóng trở thành hiện tượng nhạc Pop toàn cầu. Với phong cách đa dạng từ Teen Pop đến R&B trưởng thành, anh gặt hái thành công lớn qua các ca khúc "Stay", "Peaches" và "Sorry".',
-          'http://localhost:5000/uploads/img/justin_bieber.png',
+          'http://localhost:1005/uploads/img/justin_bieber.png',
           'group-hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] group-hover:border-blue-500/30',
           'Stay'
         ]
@@ -255,11 +266,11 @@ const initDb = async () => {
     const bannerCount = await query("SELECT COUNT(*) as c FROM banner_slides");
     if (bannerCount[0].c === 0) {
       const defaultSlides = [
-        'http://localhost:5000/uploads/img/banner_slide_1.png',
-        'http://localhost:5000/uploads/img/banner_slide_2.png',
-        'http://localhost:5000/uploads/img/banner_slide_3.png',
-        'http://localhost:5000/uploads/img/banner_slide_4.png',
-        'http://localhost:5000/uploads/img/banner_slide_5.png'
+        'http://localhost:1005/uploads/img/banner_slide_1.png',
+        'http://localhost:1005/uploads/img/banner_slide_2.png',
+        'http://localhost:1005/uploads/img/banner_slide_3.png',
+        'http://localhost:1005/uploads/img/banner_slide_4.png',
+        'http://localhost:1005/uploads/img/banner_slide_5.png'
       ];
       for (const url of defaultSlides) {
         await query("INSERT INTO banner_slides (image_url) VALUES (?)", [url]);
@@ -270,7 +281,7 @@ const initDb = async () => {
     // ── Seed Settings ─────────────────────────────────────────────
     const bgSettingCount = await query("SELECT COUNT(*) as c FROM settings WHERE key='background_image_url'");
     if (bgSettingCount[0].c === 0) {
-      await query("INSERT INTO settings (key, value) VALUES (?, ?)", ['background_image_url', 'http://localhost:5000/uploads/img/the_weeknd.png']);
+      await query("INSERT INTO settings (key, value) VALUES (?, ?)", ['background_image_url', 'http://localhost:1005/uploads/img/the_weeknd.png']);
       console.log('Background setting seeded.');
     }
 

@@ -93,6 +93,24 @@ class Track {
     return await query('DELETE FROM tracks WHERE id = ?', [id]);
   }
 
+  static async getRecentUploads(userId = null) {
+    const { dbType } = require('../config/db');
+    const timeExpr = dbType === 'mysql'
+      ? 'NOW() - INTERVAL 1 DAY'
+      : "datetime('now', '-1 day')";
+
+    let sql = `
+      SELECT t.*, u.name as uploader_name, c.name as category_name, c.color as category_color, c.icon as category_icon
+      FROM tracks t
+      LEFT JOIN users u ON t.user_id = u.id
+      LEFT JOIN categories c ON t.category_id = c.id
+      WHERE t.created_at >= ${timeExpr}
+      AND (t.is_public = 1 OR t.user_id = ?)
+      ORDER BY t.created_at DESC
+    `;
+    return await query(sql, [userId || -1]);
+  }
+
   static async isOwner(trackId, userId) {
     const rows = await query('SELECT user_id FROM tracks WHERE id = ?', [trackId]);
     if (!rows[0]) return false;

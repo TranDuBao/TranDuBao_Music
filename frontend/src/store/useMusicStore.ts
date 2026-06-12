@@ -77,7 +77,7 @@ interface MusicStore {
   resetPlayer: () => void;
 }
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:1005/api';
 
 export const useMusicStore = create<MusicStore>((set, get) => ({
   tracks: [],

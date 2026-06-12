@@ -24,7 +24,7 @@ export default function FeaturedArtists({ onArtistClick }: FeaturedArtistsProps)
 
   const fetchArtists = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/artists');
+      const res = await fetch('http://localhost:1005/api/artists');
       const json = await res.json();
       if (json.success) {
         setArtists(json.data);

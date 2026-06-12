@@ -7,6 +7,7 @@ import { Play, Trash2, Plus, Music, Disc, Heart, GripVertical } from 'lucide-rea
 interface TrackRowProps {
   track: Track;
   index: number;
+  showDelete?: boolean;
   // Drag-and-drop props (optional — only passed when dragMode is enabled)
   dragMode?: boolean;
   isDragOver?: boolean;
@@ -17,7 +18,7 @@ interface TrackRowProps {
 }
 
 export default function TrackRow({
-  track, index,
+  track, index, showDelete,
   dragMode, isDragOver,
   onDragStart, onDragOver, onDrop, onDragEnd
 }: TrackRowProps) {
@@ -229,8 +230,8 @@ export default function TrackRow({
             </div>
           )}
 
-          {/* Delete track entirely if in default view */}
-          {!currentPlaylist && (
+          {/* Delete track entirely if permitted */}
+          {showDelete && !currentPlaylist && (
             <button
               onClick={() => deleteTrack(track.id)}
               className="text-zinc-500 hover:text-rose-500 p-2 rounded-lg hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100"

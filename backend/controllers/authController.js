@@ -248,7 +248,8 @@ const updateAvatar = async (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
     const avatarUrl = `/uploads/img/${req.file.filename}`;
     await require('../config/db').query('UPDATE users SET avatar_url=? WHERE id=?', [avatarUrl, req.user.id]);
-    res.json({ success: true, avatar_url: `http://localhost:5000${avatarUrl}` });
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
+    res.json({ success: true, avatar_url: `${backendUrl}${avatarUrl}` });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 

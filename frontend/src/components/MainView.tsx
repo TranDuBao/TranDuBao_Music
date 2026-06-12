@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMusicStore } from '../store/useMusicStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
-import { Search, Plus, Music, Play, ChevronLeft, ChevronRight, Flame, TrendingUp, ArrowUpDown } from 'lucide-react';
+import { Search, Plus, Music, Play, ChevronLeft, ChevronRight, Flame, TrendingUp, ArrowUpDown, Shuffle } from 'lucide-react';
 import Avatar from './Avatar';
 import TrackRow from './TrackRow';
 import AddTrackModal from './AddTrackModal';
@@ -32,24 +32,32 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const { user } = useAuthStore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState('http://localhost:5000/uploads/img/the_weeknd.png');
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState('http://localhost:1005/uploads/img/the_weeknd.png');
   const [bannerSlides, setBannerSlides] = useState<string[]>([
-    'http://localhost:5000/uploads/img/banner_slide_1.png',
-    'http://localhost:5000/uploads/img/banner_slide_2.png',
-    'http://localhost:5000/uploads/img/banner_slide_3.png',
-    'http://localhost:5000/uploads/img/banner_slide_4.png',
-    'http://localhost:5000/uploads/img/banner_slide_5.png'
+    'http://localhost:1005/uploads/img/banner_slide_1.png',
+    'http://localhost:1005/uploads/img/banner_slide_2.png',
+    'http://localhost:1005/uploads/img/banner_slide_3.png',
+    'http://localhost:1005/uploads/img/banner_slide_4.png',
+    'http://localhost:1005/uploads/img/banner_slide_5.png'
   ]);
   const [topWeekly, setTopWeekly] = useState<any[]>([]);
+  const [recentUploads, setRecentUploads] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
 
+  useEffect(() => {
+    fetch('http://localhost:1005/api/tracks/recent-uploads')
+      .then(r => r.json())
+      .then(json => { if (json.success) setRecentUploads(json.data); })
+      .catch(() => { });
+  }, [tracks]);
+
   const fetchAlbums = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/albums');
+      const res = await fetch('http://localhost:1005/api/albums');
       const data = await res.json();
       if (data.success) {
         setAlbums(data.data);
@@ -61,13 +69,13 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 
   const fetchSettings = async () => {
     try {
-      const bgRes = await fetch('http://localhost:5000/api/settings/background');
+      const bgRes = await fetch('http://localhost:1005/api/settings/background');
       const bgData = await bgRes.json();
       if (bgData.success && bgData.value) {
         setBackgroundImageUrl(bgData.value);
       }
 
-      const slidesRes = await fetch('http://localhost:5000/api/settings/banner-slides');
+      const slidesRes = await fetch('http://localhost:1005/api/settings/banner-slides');
       const slidesData = await slidesRes.json();
       if (slidesData.success && slidesData.data) {
         const urls = slidesData.data.map((item: any) => item.image_url);
@@ -94,14 +102,14 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/tracks/top-weekly')
+    fetch('http://localhost:1005/api/tracks/top-weekly')
       .then(r => r.json())
       .then(json => { if (json.success) setTopWeekly(json.data); })
       .catch(() => { });
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/categories')
+    fetch('http://localhost:1005/api/categories')
       .then(r => r.json())
       .then(json => { if (json.success) setCategories(json.data); })
       .catch(() => { });
@@ -178,7 +186,43 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
     return list;
   }, [activeTracks, selectedArtist, selectedAlbum]);
 
-  const displayedTracks = (view === 'mine' && !currentPlaylist) ? orderedMineTracks : filteredByArtist;
+  // Shuffle logic: each user gets a uniquely shuffled list by default.
+  // Clicking "Shuffle" reshuffles the list to another random permutation.
+  const [shuffleSeed, setShuffleSeed] = useState<number>(() => {
+    const seed = user ? `${user.id || ''}_${user.name || ''}` : 'guest';
+    let seedNum = 0;
+    for (let i = 0; i < seed.length; i++) {
+      seedNum += seed.charCodeAt(i);
+    }
+    return seedNum;
+  });
+
+  const handleShuffleClick = () => {
+    setShuffleSeed(Math.random() * 10000000);
+  };
+
+  const shuffledTracks = React.useMemo(() => {
+    const arr = [...filteredByArtist];
+    let seedNum = shuffleSeed;
+    
+    // Linear Congruential Generator (LCG) for deterministic pseudo-random sequence per seed
+    const lcg = () => {
+      seedNum = (seedNum * 1664525 + 1013904223) % 4294967296;
+      return seedNum / 4294967296;
+    };
+
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(lcg() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [filteredByArtist, shuffleSeed]);
+
+  const displayedTracks = (view === 'mine' && !currentPlaylist)
+    ? orderedMineTracks
+    : (!currentPlaylist)
+      ? shuffledTracks
+      : filteredByArtist;
 
   const handleDragStart = (_e: React.DragEvent, idx: number) => {
     dragSourceIdx.current = idx;
@@ -388,10 +432,20 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                 {dragMode ? (i18n.language === 'vi' ? 'Xong' : 'Done') : (i18n.language === 'vi' ? 'Sắp xếp' : 'Sort')}
               </button>
             )}
+            {/* Shuffle button (only outside playlist/mine views) */}
+            {!currentPlaylist && view !== 'mine' && (
+              <button
+                onClick={handleShuffleClick}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-purple-500/25 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all cursor-pointer shadow-lg shadow-purple-500/10"
+              >
+                <Shuffle className="w-4 h-4" />
+                {i18n.language === 'vi' ? 'Xáo trộn bài hát' : 'Shuffle Songs'}
+              </button>
+            )}
             {displayedTracks.length > 0 && (
               <button
                 onClick={() => playTrack(displayedTracks[0], displayedTracks)}
-                className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-full text-sm transition-all self-start sm:self-auto"
+                className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-full text-sm transition-all self-start sm:self-auto cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-current" />
                 {t('tracks.playAll')}
@@ -416,6 +470,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                   key={track.id}
                   track={track}
                   index={absoluteIdx}
+                  showDelete={view === 'mine'}
                   dragMode={dragMode && view === 'mine' && !currentPlaylist}
                   isDragOver={dragOverIdx === absoluteIdx}
                   onDragStart={handleDragStart}
@@ -511,6 +566,50 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                       <TrendingUp className="w-3 h-3 text-orange-400" />
                       <span className="text-[10px] text-orange-400 font-semibold">{formatCount(track.weekly_plays || 0)} {i18n.language === 'vi' ? 'lượt / tuần' : ((track.weekly_plays || 0) === 1 ? 'play / week' : 'plays / week')}</span>
                     </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Uploads (last 24h) - only on home 'all' view, not playlist/mine */}
+        {view === 'all' && !currentPlaylist && recentUploads.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                <Music className="w-4 h-4 text-white animate-pulse" />
+              </div>
+              <h2 className="text-lg font-bold text-white">{i18n.language === 'vi' ? 'Nhạc mới tải lên (24h qua)' : 'Newly Uploaded (Last 24h)'}</h2>
+              <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-semibold">{i18n.language === 'vi' ? 'MỚI ⚡' : 'NEW ⚡'}</span>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              {recentUploads.map((track) => (
+                <button
+                  key={track.id}
+                  onClick={() => playTrack(track, recentUploads)}
+                  className="group relative flex flex-col rounded-2xl overflow-hidden bg-zinc-900/60 border border-white/5 hover:border-green-500/30 hover:bg-zinc-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/10 text-left w-[170px] sm:w-[190px] flex-shrink-0"
+                >
+                  {/* Cover art */}
+                  <div className="relative w-full aspect-square overflow-hidden bg-zinc-800">
+                    {track.cover_url
+                      ? <img src={track.cover_url} alt={track.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      : <div className="w-full h-full flex items-center justify-center"><Music className="w-10 h-10 text-zinc-600" /></div>
+                    }
+                    {/* Play overlay */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-11 h-11 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/40">
+                        <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="p-3 space-y-0.5 min-w-0 w-full">
+                    <p className="text-sm font-bold text-white truncate group-hover:text-green-400 transition-colors">{track.title}</p>
+                    <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+                    <p className="text-[10px] text-zinc-500 mt-1 truncate">{i18n.language === 'vi' ? `Tải lên bởi: ${track.uploader_name || 'Hệ thống'}` : `Uploaded by: ${track.uploader_name || 'System'}`}</p>
                   </div>
                 </button>
               ))}

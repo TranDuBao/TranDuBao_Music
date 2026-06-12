@@ -25,7 +25,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
 
   React.useEffect(() => {
     if (isOpen) {
-      fetch('http://localhost:5000/api/categories')
+      fetch('http://localhost:1005/api/categories')
         .then(r => r.json())
         .then(json => { if (json.success) setCategories(json.data); })
         .catch(() => { });

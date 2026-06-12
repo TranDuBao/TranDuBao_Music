@@ -10,7 +10,7 @@ interface UploadModalProps {
   onClose: () => void;
 }
 
-const API = 'http://localhost:5000/api';
+const API = 'http://localhost:1005/api';
 
 export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const { t } = useTranslation();

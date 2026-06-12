@@ -5,6 +5,8 @@ const path    = require('path');
 const fs      = require('fs');
 const session = require('express-session');
 
+const helmet  = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { passport } = require('./controllers/authController');
 const initDb  = require('./config/initDb');
 
@@ -18,6 +20,19 @@ const PORT = process.env.PORT || 5000;
 });
 
 // ── Middleware ────────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 150, // limit each IP to 150 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' }
+});
+app.use('/api', limiter);
+
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:5173',

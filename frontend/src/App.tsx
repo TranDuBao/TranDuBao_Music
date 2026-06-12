@@ -38,7 +38,7 @@ function OAuthCallback() {
 // ── Protected App Shell ────────────────────────────────────────────
 // ── Protected App Shell ────────────────────────────────────────────
 function AppShell() {
-  const { fetchTracks, fetchPlaylists, fetchFavorites, initAudio } = useMusicStore();
+  const { fetchTracks, fetchPlaylists, fetchFavorites, initAudio, currentTrack, isPlaying } = useMusicStore();
   const { user } = useAuthStore();
   const [view, setView] = useState<'all' | 'mine' | 'admin' | 'profile'>('all');
   const [showUpload, setShowUpload] = useState(false);
@@ -49,6 +49,14 @@ function AppShell() {
     fetchFavorites();
     initAudio();
   }, []);
+
+  useEffect(() => {
+    if (currentTrack) {
+      document.title = `${currentTrack.title} - ${currentTrack.artist} | Music Stream`;
+    } else {
+      document.title = 'Music Stream';
+    }
+  }, [currentTrack]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--bg-main)] text-[var(--text-primary)] relative transition-colors duration-300">

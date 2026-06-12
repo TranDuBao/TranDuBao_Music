@@ -61,11 +61,11 @@ const createTrack = async (req, res) => {
 
     // Handle file uploads
     if (req.files?.audio?.[0]) {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
       audio_url = `${backendUrl}/uploads/audio/${req.files.audio[0].filename}`;
     }
     if (req.files?.cover?.[0]) {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
       cover_url = `${backendUrl}/uploads/img/${req.files.cover[0].filename}`;
     }
 
@@ -124,7 +124,7 @@ const importTrack = async (req, res) => {
       return res.status(400).json({ success: false, message: 'URL is required' });
     }
 
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
     const audioDir  = path.resolve(__dirname, '../../uploads/audio');
     const imgDir    = path.resolve(__dirname, '../../uploads/img');
 
@@ -246,4 +246,14 @@ const getTopWeekly = async (req, res) => {
   }
 };
 
-module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, getTopWeekly };
+const getRecentUploads = async (req, res) => {
+  try {
+    const userId = req.user?.id || null;
+    const tracks = await Track.getRecentUploads(userId);
+    res.json({ success: true, data: tracks });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, getTopWeekly, getRecentUploads };

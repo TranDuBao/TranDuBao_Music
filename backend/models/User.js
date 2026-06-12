@@ -9,7 +9,8 @@ class User {
     if (!rows[0]) return null;
     const user = rows[0];
     if (user.avatar_url && user.avatar_url.startsWith('/uploads')) {
-      user.avatar_url = `http://localhost:5000${user.avatar_url}`;
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
+      user.avatar_url = `${backendUrl}${user.avatar_url}`;
     }
     return user;
   }
@@ -34,7 +35,8 @@ class User {
     );
     let finalAvatar = avatarUrl;
     if (finalAvatar && finalAvatar.startsWith('/uploads')) {
-      finalAvatar = `http://localhost:5000${finalAvatar}`;
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
+      finalAvatar = `${backendUrl}${finalAvatar}`;
     }
     return { id: result.insertId, name, email, role, provider, avatarUrl: finalAvatar };
   }
@@ -45,7 +47,8 @@ class User {
     );
     return rows.map(u => {
       if (u.avatar_url && u.avatar_url.startsWith('/uploads')) {
-        u.avatar_url = `http://localhost:5000${u.avatar_url}`;
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
+        u.avatar_url = `${backendUrl}${u.avatar_url}`;
       }
       return u;
     });

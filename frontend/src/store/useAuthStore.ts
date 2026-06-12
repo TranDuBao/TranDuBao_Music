@@ -25,7 +25,7 @@ interface AuthStore {
   isAdmin: () => boolean;
 }
 
-const API = 'http://localhost:5000/api';
+const API = 'http://localhost:1005/api';
 
 // Persist token in localStorage
 const getStoredToken = () => localStorage.getItem('ms_token');

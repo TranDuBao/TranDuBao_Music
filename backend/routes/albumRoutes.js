@@ -17,7 +17,8 @@ router.post(
   (req, res, next) => {
     // If a file is uploaded, set cover_url to its server path
     if (req.file) {
-      req.body.cover_url = `http://localhost:5000/uploads/img/${req.file.filename}`;
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
+      req.body.cover_url = `${backendUrl}/uploads/img/${req.file.filename}`;
     }
     next();
   },
@@ -32,7 +33,8 @@ router.put(
   (req, res, next) => {
     // If a file is uploaded, set cover_url to its server path
     if (req.file) {
-      req.body.cover_url = `http://localhost:5000/uploads/img/${req.file.filename}`;
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
+      req.body.cover_url = `${backendUrl}/uploads/img/${req.file.filename}`;
     }
     next();
   },

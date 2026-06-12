@@ -17,7 +17,10 @@ if (dbType === 'mysql') {
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    // Return DATE/DATETIME columns as strings, not JS Date objects.
+    // JS Date objects serialize to UTC in JSON, which shifts VN dates back by 7h → wrong day.
+    dateStrings: true
   });
 
   query = async (sql, params = []) => {

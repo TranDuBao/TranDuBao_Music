@@ -70,11 +70,14 @@ const getPlayHistoryStats = async (req, res) => {
     const { view = 'day', date, startDate, endDate } = req.query;
 
     if (date) {
+      // Clean date string to avoid timezone parsing issues in SQL
+      const cleanDate = date.includes('T') ? date.split('T')[0] : (date.includes(' ') ? date.split(' ')[0] : date);
+
       // 1. Detailed statistics for a specific selected date
       const [totalCount] = await query(`
         SELECT COUNT(*) as count 
         FROM play_history 
-        WHERE DATE(played_at) = DATE(?)`, [date]);
+        WHERE DATE(played_at) = DATE(?)`, [cleanDate]);
 
       // Hourly distribution
       const hourlySql = dbType === 'mysql'
@@ -88,7 +91,7 @@ const getPlayHistoryStats = async (req, res) => {
            WHERE DATE(played_at) = DATE(?)
            GROUP BY hour
            ORDER BY hour ASC`;
-      const hourlyStats = await query(hourlySql, [date]);
+      const hourlyStats = await query(hourlySql, [cleanDate]);
 
       // Top tracks for that day
       const topTracks = await query(`
@@ -98,7 +101,7 @@ const getPlayHistoryStats = async (req, res) => {
         WHERE DATE(ph.played_at) = DATE(?)
         GROUP BY t.id
         ORDER BY plays DESC
-        LIMIT 10`, [date]);
+        LIMIT 10`, [cleanDate]);
 
       // Activity list on that day
       const playsList = await query(`
@@ -107,7 +110,7 @@ const getPlayHistoryStats = async (req, res) => {
         JOIN tracks t ON ph.track_id = t.id
         LEFT JOIN users u ON ph.user_id = u.id
         WHERE DATE(ph.played_at) = DATE(?)
-        ORDER BY ph.played_at DESC`, [date]);
+        ORDER BY ph.played_at DESC`, [cleanDate]);
 
       return res.json({
         success: true,
