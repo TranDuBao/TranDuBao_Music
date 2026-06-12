@@ -9,7 +9,7 @@ let dbInstance = null;
 if (dbType === 'mysql') {
   const mysql = require('mysql2/promise');
   
-  const pool = mysql.createPool({
+  const poolConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
@@ -21,7 +21,17 @@ if (dbType === 'mysql') {
     // Return DATE/DATETIME columns as strings, not JS Date objects.
     // JS Date objects serialize to UTC in JSON, which shifts VN dates back by 7h → wrong day.
     dateStrings: true
-  });
+  };
+
+  // Enable SSL automatically for remote cloud databases (like TiDB Serverless or Aiven)
+  if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1') {
+    poolConfig.ssl = {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: true
+    };
+  }
+
+  const pool = mysql.createPool(poolConfig);
 
   query = async (sql, params = []) => {
     try {
