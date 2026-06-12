@@ -324,7 +324,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || backendOk === false}
+              disabled={loading || (backendOk === false && import.meta.env.DEV)}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white font-extrabold rounded-xl transition-all shadow-lg shadow-purple-500/15 hover:shadow-purple-500/25 text-xs uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed mt-2 active:scale-[0.99]"
             >
               {loading
