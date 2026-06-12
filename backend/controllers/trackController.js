@@ -159,7 +159,7 @@ const deleteTrack = async (req, res) => {
 
 // ── Player clients to try in order ────────────────────────────────────────────
 // Render datacenter IPs are often blocked by web client but less so by mobile/TV clients.
-const PLAYER_CLIENTS = ['android_vr', 'tv_embed', 'ios', 'mweb', 'web_creator'];
+const PLAYER_CLIENTS = ['android_vr', 'tv', 'ios', 'mweb', 'web_music', 'web'];
 
 const importTrack = async (req, res) => {
   let cookieFilePath = null;
@@ -256,7 +256,23 @@ const importTrack = async (req, res) => {
           '-o', outPattern,
           url,
         ];
-        await runYtDlp(args);
+        try {
+          await runYtDlp(args);
+        } catch (dlErr) {
+          const errMsg = dlErr.message || '';
+          if (errMsg.includes('format is not available') || errMsg.includes('Requested format')) {
+            console.log(`[Import] Format bestaudio/best not available for client="${client}". Retrying without format filter...`);
+            const fallbackArgs = [
+              ...baseFlags,
+              '--extractor-args', `youtube:player_client=${client}`,
+              '-o', outPattern,
+              url,
+            ];
+            await runYtDlp(fallbackArgs);
+          } else {
+            throw dlErr;
+          }
+        }
         const found = fs.readdirSync(audioDir).find(f => f.startsWith(fileBase));
         if (found) {
           audioFile = found;
