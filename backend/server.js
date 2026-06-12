@@ -77,7 +77,7 @@ app.get('/api/stats/category-tracks', requireAuth, requireAdmin, getCategoryTrac
 
 // Health check
 app.get('/api/health', (req, res) =>
-  res.json({ status: 'OK', dbType: process.env.DB_TYPE || 'sqlite' }));
+  res.json({ status: 'OK', dbType: process.env.DB_TYPE || 'sqlite', version: 'v4-limit-fix' }));
 
 // ── Start ─────────────────────────────────────────────────────────
 app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
