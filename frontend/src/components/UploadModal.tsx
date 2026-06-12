@@ -84,6 +84,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
         if (res.data.success) {
           setStatus('success');
+          showAlert('Thành công', 'Upload bài hát thành công', 'success');
           await fetchTracks();
           setTimeout(() => {
             onClose();
@@ -121,6 +122,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
         if (res.data.success) {
           setStatus('success');
+          showAlert('Thành công', 'Upload bài hát thành công', 'success');
           await fetchTracks();
           setTimeout(() => {
             onClose();

@@ -70,6 +70,12 @@ const createTrack = async (req, res) => {
     if (!title || !artist)
       return res.status(400).json({ success: false, message: 'Title and artist are required' });
 
+    // Check duplicate track: title and artist (case-insensitive)
+    const existing = await query('SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)', [title.trim(), artist.trim()]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn' });
+    }
+
     let audio_url = req.body.audio_url;
     let cover_url = req.body.cover_url || '';
 
@@ -161,6 +167,13 @@ const importTrack = async (req, res) => {
 
       const title = meta.title || 'Imported Audio';
       const artist = meta.uploader || meta.artist || meta.channel || 'Unknown Artist';
+
+      // Check duplicate track: title and artist (case-insensitive)
+      const existing = await query('SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)', [title.trim(), artist.trim()]);
+      if (existing && existing.length > 0) {
+        return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn' });
+      }
+
       const duration = parseInt(meta.duration) || 180;
       
       const outputFilenameBase = `${Date.now()}_ytdl`;
