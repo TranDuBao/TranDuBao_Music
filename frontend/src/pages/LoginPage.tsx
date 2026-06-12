@@ -36,10 +36,10 @@ export default function LoginPage() {
       return isVi ? 'Vui lòng điền đầy đủ họ tên, email và mật khẩu.' : 'Name, email and password are required.';
     }
     if (lower.includes('email already registered')) {
-      return isVi ? 'Email này đã được đăng ký sử dụng.' : 'This email is already registered.';
+      return isVi ? 'Gmail đã tồn tại' : 'This email is already registered.';
     }
     if (lower.includes('invalid email or password')) {
-      return isVi ? 'Tài khoản hoặc mật khẩu không chính xác.' : 'Invalid email or password.';
+      return isVi ? 'Thông tin đăng nhập không chính xác' : 'Invalid email or password.';
     }
     return msg;
   };
@@ -49,6 +49,7 @@ export default function LoginPage() {
     setError('');
 
     const isVi = i18n.language === 'vi';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     // Field validations on client side
     if (isLogin) {
@@ -58,6 +59,12 @@ export default function LoginPage() {
         showAlert(isVi ? 'Thiếu thông tin' : 'Validation Error', msg, 'warning');
         return;
       }
+      if (!emailRegex.test(form.email.trim())) {
+        const msg = isVi ? 'Gmail không hợp lệ' : 'Gmail không hợp lệ';
+        setError(msg);
+        showAlert(isVi ? 'Gmail không hợp lệ' : 'Invalid Email', msg, 'warning');
+        return;
+      }
     } else {
       if (!form.name.trim() || !form.email.trim() || !form.password || !form.confirmPassword) {
         const msg = isVi ? 'Vui lòng điền đầy đủ tất cả thông tin.' : 'All fields are required.';
@@ -65,8 +72,14 @@ export default function LoginPage() {
         showAlert(isVi ? 'Thiếu thông tin' : 'Validation Error', msg, 'warning');
         return;
       }
+      if (!emailRegex.test(form.email.trim())) {
+        const msg = isVi ? 'Gmail không hợp lệ' : 'Gmail không hợp lệ';
+        setError(msg);
+        showAlert(isVi ? 'Gmail không hợp lệ' : 'Invalid Email', msg, 'warning');
+        return;
+      }
       if (form.password !== form.confirmPassword) {
-        const msg = isVi ? 'Mật khẩu xác nhận không khớp.' : 'Passwords do not match.';
+        const msg = isVi ? 'Mật khẩu không khớp' : 'Passwords do not match.';
         setError(msg);
         showAlert(isVi ? 'Mật khẩu không khớp' : 'Password Mismatch', msg, 'warning');
         return;
