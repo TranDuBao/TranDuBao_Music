@@ -149,7 +149,14 @@ const importTrack = async (req, res) => {
     // Try yt-dlp first
     try {
       console.log(`[Import] Fetching metadata for URL: ${url}`);
-      const metaJson = await runYtDlp(['--js-runtimes', 'node', '--no-warnings', '--no-playlist', '--dump-json', url]);
+      const metaJson = await runYtDlp([
+        '--js-runtimes', 'node',
+        '--extractor-args', 'youtube:player_client=default,-android_sdkless',
+        '--no-warnings',
+        '--no-playlist',
+        '--dump-json',
+        url
+      ]);
       const meta = JSON.parse(metaJson);
 
       const title = meta.title || 'Imported Audio';
@@ -160,7 +167,15 @@ const importTrack = async (req, res) => {
       const outputPathPattern = path.join(audioDir, `${outputFilenameBase}.%(ext)s`);
       
       console.log(`[Import] Downloading audio via yt-dlp...`);
-      await runYtDlp(['-f', 'bestaudio', '--js-runtimes', 'node', '--no-warnings', '--no-playlist', '-o', outputPathPattern, url]);
+      await runYtDlp([
+        '-f', 'bestaudio',
+        '--js-runtimes', 'node',
+        '--extractor-args', 'youtube:player_client=default,-android_sdkless',
+        '--no-warnings',
+        '--no-playlist',
+        '-o', outputPathPattern,
+        url
+      ]);
       
       // Find the exact filename that yt-dlp wrote
       const files = fs.readdirSync(audioDir);
