@@ -30,6 +30,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isYouTubeBlocked, setIsYouTubeBlocked] = useState(false);
   const [form, setForm] = useState({
     title: '', artist: '', album: '', genre: 'Lofi', duration: '', is_public: '1', category_id: '',
   });
@@ -60,11 +61,18 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     }
   };
 
+  const isBlockedMsg = (msg: string) => {
+    const l = msg.toLowerCase();
+    return l.includes('chặn') || l.includes('cookies') || l.includes('not a bot') ||
+           l.includes('bot') || l.includes('sign in') || l.includes('verify');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setStatus('idle');
     setErrorMessage('');
+    setIsYouTubeBlocked(false);
 
     try {
       if (uploadMode === 'file') {
@@ -134,14 +142,22 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           setStatus('error');
           const msg = res.data.message || 'Lỗi không thể nhập nhạc từ liên kết';
           setErrorMessage(msg);
-          showAlert('Nhập nhạc thất bại', msg, 'error');
+          if (isBlockedMsg(msg)) {
+            setIsYouTubeBlocked(true);
+          } else {
+            showAlert('Nhập nhạc thất bại', msg, 'error');
+          }
         }
       }
     } catch (err: any) {
       setStatus('error');
       const msg = err.response?.data?.message || 'Có lỗi xảy ra khi thực hiện';
       setErrorMessage(msg);
-      showAlert('Lỗi hệ thống', msg, 'error');
+      if (isBlockedMsg(msg)) {
+        setIsYouTubeBlocked(true);
+      } else {
+        showAlert('Lỗi hệ thống', msg, 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -363,6 +379,11 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <p className="text-[10px] text-zinc-500 mt-1.5">
                     Nhập liên kết video YouTube hoặc link file nhạc trực tiếp (.mp3, .wav, .m4a). Hệ thống sẽ tự động tải về và trích xuất thông tin bài hát.
                   </p>
+                  {loading && (
+                    <p className="text-[10px] text-amber-400/80 mt-1 animate-pulse">
+                      ⏳ Đang thử nhiều phương thức tải về… Quá trình này có thể mất 30-90 giây.
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -420,7 +441,19 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 </p>
               </div>
             )}
-            {status === 'error' && (
+            {status === 'error' && isYouTubeBlocked && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 space-y-2">
+                <p className="text-xs font-bold text-amber-300 flex items-center gap-1.5">🚫 YouTube đang chặn server</p>
+                <p className="text-[11px] text-zinc-400">Server triển khai bị YouTube nhận dạng là bot. Để khắc phục:</p>
+                <ol className="text-[11px] text-zinc-400 list-decimal pl-4 space-y-1">
+                  <li>Cài Chrome extension <span className="text-amber-300 font-semibold">"Get cookies.txt LOCALLY"</span></li>
+                  <li>Mở <span className="text-amber-300">youtube.com</span> (đã đăng nhập) → click extension → Export</li>
+                  <li>Vào <span className="text-amber-300">Admin Panel → Cấu hình → 🔑 YouTube Cookies</span> → dán vào → Lưu</li>
+                  <li>Thử import lại</li>
+                </ol>
+              </div>
+            )}
+            {status === 'error' && !isYouTubeBlocked && (
               <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">
                 <AlertCircle className="w-4 h-4 text-rose-400" />
                 <p className="text-xs text-rose-300">{errorMessage || t('upload.error')}</p>
