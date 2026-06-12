@@ -5,12 +5,21 @@ const initDb = async () => {
     try {
       // Create database if it doesn't exist
       const mysql = require('mysql2/promise');
-      const connection = await mysql.createConnection({
+      const connConfig = {
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
         port: process.env.DB_PORT || 3306,
-      });
+      };
+
+      if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1') {
+        connConfig.ssl = {
+          minVersion: 'TLSv1.2',
+          rejectUnauthorized: true
+        };
+      }
+
+      const connection = await mysql.createConnection(connConfig);
       const dbName = process.env.DB_NAME || 'music_stream_db';
       await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
       await connection.end();
