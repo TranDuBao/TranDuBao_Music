@@ -87,14 +87,18 @@ export default function LoginPage() {
         setError(getLocalizedErrorMessage(result.message));
       }
     } catch {
-      setError(isVi ? 'Không thể kết nối đến máy chủ. Hãy đảm bảo backend đang chạy trên cổng 5000.' : 'Could not connect to server. Make sure backend is running on port 5000.');
+      setError(
+        import.meta.env.DEV
+          ? (isVi ? 'Không thể kết nối đến máy chủ. Hãy đảm bảo backend đang chạy trên cổng 5000.' : 'Could not connect to server. Make sure backend is running on port 5000.')
+          : (isVi ? 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' : 'Could not connect to server. Please try again later.')
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleOAuth = (provider: 'google' | 'facebook') => {
-    if (!backendOk) {
+    if (!backendOk && import.meta.env.DEV) {
       setError(i18n.language === 'vi' ? 'Backend chưa kết nối. Vui lòng chạy npm run dev:backend trước.' : 'Backend not connected. Please run npm run dev:backend first.');
       return;
     }
@@ -163,15 +167,7 @@ export default function LoginPage() {
           <p className="text-xs text-zinc-500 mt-1.5 font-medium">{t('auth.loginDesc')}</p>
         </div>
 
-        {/* Backend health alert - only shown if backend is disconnected */}
-        {backendOk === false && (
-          <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-4 animate-shake">
-            <WifiOff className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <p className="text-xs text-amber-300 font-medium">
-              {i18n.language === 'vi' ? 'Backend không phản hồi trên cổng 5000. Hãy chạy' : 'Backend is not responding on port 5000. Please run'} <code className="font-mono bg-amber-500/15 px-1 rounded text-white">npm run dev:backend</code>.
-            </p>
-          </div>
-        )}
+
 
         {/* Card */}
         <div className="bg-zinc-950/80 border border-white/5 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
