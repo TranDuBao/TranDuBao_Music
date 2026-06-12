@@ -25,7 +25,8 @@ interface AuthStore {
   isAdmin: () => boolean;
 }
 
-const API = 'http://localhost:1005/api';
+import { API_BASE } from '../config';
+const API = API_BASE;
 
 // Persist token in localStorage
 const getStoredToken = () => localStorage.getItem('ms_token');

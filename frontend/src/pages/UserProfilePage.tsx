@@ -8,8 +8,8 @@ import {
   User, Lock, Clock, Music, ListMusic, Camera, Save,
   CheckCircle2, AlertCircle, Trash2, Play, Heart, ChevronRight, Eye, EyeOff
 } from 'lucide-react';
-
-const API = 'http://localhost:1005/api';
+import { API_BASE } from '../config';
+const API = API_BASE;
 
 type Tab = 'info' | 'security' | 'history' | 'uploads' | 'playlists';
 

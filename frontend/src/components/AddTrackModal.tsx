@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMusicStore } from '../store/useMusicStore';
 import { X, Music2 } from 'lucide-react';
+import { API_BASE } from '../config';
 
 interface AddTrackModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
 
   React.useEffect(() => {
     if (isOpen) {
-      fetch('http://localhost:1005/api/categories')
+      fetch(`${API_BASE}/categories`)
         .then(r => r.json())
         .then(json => { if (json.success) setCategories(json.data); })
         .catch(() => { });

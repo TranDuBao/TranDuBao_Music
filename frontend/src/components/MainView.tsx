@@ -12,6 +12,7 @@ import AdminPanel from './AdminPanel';
 import UserProfilePage from '../pages/UserProfilePage';
 import FeaturedArtists from './FeaturedArtists';
 import { formatCount } from '../utils/format';
+import { BACKEND_URL, API_BASE } from '../config';
 
 interface Album {
   name: string;
@@ -32,13 +33,13 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const { user } = useAuthStore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState('http://localhost:1005/uploads/img/the_weeknd.png');
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(`${BACKEND_URL}/uploads/img/the_weeknd.png`);
   const [bannerSlides, setBannerSlides] = useState<string[]>([
-    'http://localhost:1005/uploads/img/banner_slide_1.png',
-    'http://localhost:1005/uploads/img/banner_slide_2.png',
-    'http://localhost:1005/uploads/img/banner_slide_3.png',
-    'http://localhost:1005/uploads/img/banner_slide_4.png',
-    'http://localhost:1005/uploads/img/banner_slide_5.png'
+    `${BACKEND_URL}/uploads/img/banner_slide_1.png`,
+    `${BACKEND_URL}/uploads/img/banner_slide_2.png`,
+    `${BACKEND_URL}/uploads/img/banner_slide_3.png`,
+    `${BACKEND_URL}/uploads/img/banner_slide_4.png`,
+    `${BACKEND_URL}/uploads/img/banner_slide_5.png`
   ]);
   const [topWeekly, setTopWeekly] = useState<any[]>([]);
   const [recentUploads, setRecentUploads] = useState<any[]>([]);
@@ -49,7 +50,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const [albums, setAlbums] = useState<Album[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:1005/api/tracks/recent-uploads')
+    fetch(`${API_BASE}/tracks/recent-uploads`)
       .then(r => r.json())
       .then(json => { if (json.success) setRecentUploads(json.data); })
       .catch(() => { });
@@ -57,7 +58,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 
   const fetchAlbums = async () => {
     try {
-      const res = await fetch('http://localhost:1005/api/albums');
+      const res = await fetch(`${API_BASE}/albums`);
       const data = await res.json();
       if (data.success) {
         setAlbums(data.data);
@@ -69,13 +70,13 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 
   const fetchSettings = async () => {
     try {
-      const bgRes = await fetch('http://localhost:1005/api/settings/background');
+      const bgRes = await fetch(`${API_BASE}/settings/background`);
       const bgData = await bgRes.json();
       if (bgData.success && bgData.value) {
         setBackgroundImageUrl(bgData.value);
       }
 
-      const slidesRes = await fetch('http://localhost:1005/api/settings/banner-slides');
+      const slidesRes = await fetch(`${API_BASE}/settings/banner-slides`);
       const slidesData = await slidesRes.json();
       if (slidesData.success && slidesData.data) {
         const urls = slidesData.data.map((item: any) => item.image_url);
@@ -102,14 +103,14 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:1005/api/tracks/top-weekly')
+    fetch(`${API_BASE}/tracks/top-weekly`)
       .then(r => r.json())
       .then(json => { if (json.success) setTopWeekly(json.data); })
       .catch(() => { });
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:1005/api/categories')
+    fetch(`${API_BASE}/categories`)
       .then(r => r.json())
       .then(json => { if (json.success) setCategories(json.data); })
       .catch(() => { });

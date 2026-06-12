@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users, Sparkles, Music2, Heart } from 'lucide-react';
+import { API_BASE } from '../config';
 
 interface Artist {
   id: number;
@@ -24,7 +25,7 @@ export default function FeaturedArtists({ onArtistClick }: FeaturedArtistsProps)
 
   const fetchArtists = async () => {
     try {
-      const res = await fetch('http://localhost:1005/api/artists');
+      const res = await fetch(`${API_BASE}/artists`);
       const json = await res.json();
       if (json.success) {
         setArtists(json.data);

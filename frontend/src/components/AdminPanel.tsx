@@ -5,8 +5,8 @@ import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, R
 import axios from 'axios';
 import { useModalStore } from '../store/useModalStore';
 import { formatCount, formatPlays, formatPlaysShort, formatDateLabel } from '../utils/format';
-
-const API = 'http://localhost:1005/api';
+import { API_BASE } from '../config';
+const API = API_BASE;
 type AdminTab = 'users' | 'tracks' | 'categories' | 'artists' | 'albums' | 'stats' | 'settings';
 
 export default function AdminPanel() {

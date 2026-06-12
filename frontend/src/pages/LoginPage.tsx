@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, WifiOff } from 'lucide-react';
 import Logo from '../components/Logo';
-
-const API_BASE = 'http://localhost:1005/api';
+import { API_BASE } from '../config';
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation();
