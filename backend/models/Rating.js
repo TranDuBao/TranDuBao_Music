@@ -25,7 +25,7 @@ class Rating {
       SELECT t.id, t.title, t.artist, t.cover_url,
              AVG(r.rating) as avg_rating, COUNT(r.user_id) as rating_count
       FROM tracks t JOIN ratings r ON r.track_id = t.id
-      GROUP BY t.id HAVING rating_count >= 1
+      GROUP BY t.id, t.title, t.artist, t.cover_url HAVING rating_count >= 1
       ORDER BY avg_rating DESC, rating_count DESC LIMIT 10`);
   }
 }

@@ -99,7 +99,7 @@ const getPlayHistoryStats = async (req, res) => {
         FROM play_history ph
         JOIN tracks t ON ph.track_id = t.id
         WHERE DATE(ph.played_at) = DATE(?)
-        GROUP BY t.id
+        GROUP BY t.id, t.title, t.artist, t.cover_url
         ORDER BY plays DESC
         LIMIT 10`, [cleanDate]);
 

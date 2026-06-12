@@ -28,7 +28,7 @@ class Favorite {
     return await query(`
       SELECT t.id, t.title, t.artist, COUNT(f.user_id) as favorite_count
       FROM tracks t LEFT JOIN favorites f ON f.track_id = t.id
-      GROUP BY t.id ORDER BY favorite_count DESC LIMIT 10`);
+      GROUP BY t.id, t.title, t.artist ORDER BY favorite_count DESC LIMIT 10`);
   }
 }
 module.exports = Favorite;
