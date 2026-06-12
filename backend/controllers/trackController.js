@@ -162,29 +162,28 @@ const cleanNetscapeCookies = (rawCookies) => {
   const lines = rawCookies.split(/\r?\n/);
   const cleaned = [];
   for (let line of lines) {
-    if (line.trim().startsWith('#')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith('#')) {
       cleaned.push(line);
       continue;
     }
-    const parts = line.split(/\s+/).filter(Boolean);
-    const isNewCookieLine = parts.length >= 4 && 
+    const parts = trimmed.split(/\s+/);
+    const isNew = parts.length >= 4 && 
       (parts[1] === 'TRUE' || parts[1] === 'FALSE') &&
       (parts[3] === 'TRUE' || parts[3] === 'FALSE');
       
-    if (isNewCookieLine) {
-      cleaned.push(line.trim());
+    if (isNew) {
+      cleaned.push(line);
     } else {
       if (cleaned.length > 0) {
-        cleaned[cleaned.length - 1] = (cleaned[cleaned.length - 1] + ' ' + line.trim());
+        cleaned[cleaned.length - 1] = cleaned[cleaned.length - 1] + line;
       } else {
-        cleaned.push(line.trim());
+        cleaned.push(line);
       }
     }
   }
-  return cleaned.map(l => {
-    if (l.trim().startsWith('#')) return l;
-    return l.split(/\s+/).join('\t');
-  }).join('\n');
+  return cleaned.join('\n');
 };
 
 // ── Player clients to try in order ────────────────────────────────────────────
@@ -222,7 +221,7 @@ const importTrack = async (req, res) => {
     }
 
     // Shared base flags
-    const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass'];
+    const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass', '--ignore-config'];
     if (cookieFilePath) {
       baseFlags.push('--cookies', cookieFilePath);
     }
