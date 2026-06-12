@@ -32,4 +32,18 @@ router.post(
   settingsController.updateBackground
 );
 
+router.get(
+  '/youtube-cookies',
+  requireAuth,
+  requireAdmin,
+  settingsController.getYoutubeCookies
+);
+
+router.post(
+  '/youtube-cookies',
+  requireAuth,
+  requireAdmin,
+  settingsController.updateYoutubeCookies
+);
+
 module.exports = router;

@@ -22,7 +22,7 @@ if (!isWindows) {
 
 const runYtDlp = (args) => {
   return new Promise((resolve, reject) => {
-    execFile(ytDlpPath, args, { timeout: 30000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    execFile(ytDlpPath, args, { timeout: 60000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(stderr || error.message));
       } else {
@@ -30,6 +30,23 @@ const runYtDlp = (args) => {
       }
     });
   });
+};
+
+// Helper: detect YouTube bot/login block errors regardless of apostrophe encoding
+const isBotBlocked = (msg) => {
+  if (!msg) return false;
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('not a bot') ||
+    lower.includes('sign in to confirm') ||
+    lower.includes('cookies-from-browser') ||
+    lower.includes('use --cookies') ||
+    lower.includes('bot detection') ||
+    lower.includes('verify you') ||
+    lower.includes('confirm your') ||
+    lower.includes('429') ||
+    lower.includes('too many requests')
+  );
 };
 
 // Helper to download files (like covers or direct links)
@@ -138,6 +155,7 @@ const deleteTrack = async (req, res) => {
 };
 
 const importTrack = async (req, res) => {
+  let cookieFilePath = null;
   try {
     const { url, genre = 'Lofi', is_public = 1, category_id = null } = req.body;
     if (!url) {
@@ -152,17 +170,37 @@ const importTrack = async (req, res) => {
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
     if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
 
+    // Read YouTube cookies from the database if they exist
+    try {
+      const cookieSetting = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
+      if (cookieSetting && cookieSetting.length > 0 && cookieSetting[0].value.trim()) {
+        const tempCookieFilename = `cookies_${Date.now()}.txt`;
+        const tempDir = path.resolve(__dirname, '../../temp');
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+        cookieFilePath = path.join(tempDir, tempCookieFilename);
+        fs.writeFileSync(cookieFilePath, cookieSetting[0].value.trim(), 'utf8');
+        console.log(`[Import] Loaded YouTube cookies from settings, saved to: ${cookieFilePath}`);
+      }
+    } catch (dbErr) {
+      console.warn('[Import] Failed to load cookies from DB settings:', dbErr.message);
+    }
+
     // Try yt-dlp first
     try {
       console.log(`[Import] Fetching metadata for URL: ${url}`);
-      const metaJson = await runYtDlp([
+      const ytDlpArgs = [
         '--js-runtimes', 'node',
         '--extractor-args', 'youtube:player_client=android_vr',
         '--no-warnings',
         '--no-playlist',
         '--dump-json',
-        url
-      ]);
+      ];
+      if (cookieFilePath) {
+        ytDlpArgs.push('--cookies', cookieFilePath);
+      }
+      ytDlpArgs.push(url);
+
+      const metaJson = await runYtDlp(ytDlpArgs);
       const meta = JSON.parse(metaJson);
 
       const title = meta.title || 'Imported Audio';
@@ -180,15 +218,20 @@ const importTrack = async (req, res) => {
       const outputPathPattern = path.join(audioDir, `${outputFilenameBase}.%(ext)s`);
       
       console.log(`[Import] Downloading audio via yt-dlp...`);
-      await runYtDlp([
+      const dlArgs = [
         '-f', 'bestaudio',
         '--js-runtimes', 'node',
         '--extractor-args', 'youtube:player_client=android_vr',
         '--no-warnings',
         '--no-playlist',
         '-o', outputPathPattern,
-        url
-      ]);
+      ];
+      if (cookieFilePath) {
+        dlArgs.push('--cookies', cookieFilePath);
+      }
+      dlArgs.push(url);
+
+      await runYtDlp(dlArgs);
       
       // Find the exact filename that yt-dlp wrote
       const files = fs.readdirSync(audioDir);
@@ -253,15 +296,33 @@ const importTrack = async (req, res) => {
         
         return res.status(201).json({ success: true, data: newTrack });
       } else {
+        const rawMsg = ytDlpError.message || '';
+        console.error('[Import] yt-dlp error raw:', rawMsg);
+        const errMsg = isBotBlocked(rawMsg)
+          ? 'YouTube đã chặn tải nhạc từ server. Vui lòng cung cấp YouTube Cookies trong phần Admin → Cấu hình → "YouTube Cookies" để tiếp tục.'
+          : `Không thể tải nhạc từ liên kết này. Lỗi: ${rawMsg}`;
         return res.status(400).json({ 
           success: false, 
-          message: `Không thể tải nhạc từ liên kết này. Lỗi: ${ytDlpError.message}` 
+          message: errMsg
         });
       }
     }
   } catch (err) {
-    console.error('Import Error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    const rawMsg = err.message || '';
+    console.error('[Import] Outer error:', rawMsg);
+    const errMsg = isBotBlocked(rawMsg)
+      ? 'YouTube đã chặn tải nhạc từ server. Vui lòng cung cấp YouTube Cookies trong phần Admin → Cấu hình → "YouTube Cookies" để tiếp tục.'
+      : rawMsg;
+    res.status(500).json({ success: false, message: errMsg });
+  } finally {
+    if (cookieFilePath && fs.existsSync(cookieFilePath)) {
+      try {
+        fs.unlinkSync(cookieFilePath);
+        console.log('[Import] Deleted temporary cookies file');
+      } catch (err) {
+        console.error('[Import] Failed to delete temporary cookies file:', err.message);
+      }
+    }
   }
 };
 

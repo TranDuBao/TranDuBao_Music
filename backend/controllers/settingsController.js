@@ -83,10 +83,43 @@ const updateBackground = async (req, res) => {
   }
 };
 
+const getYoutubeCookies = async (req, res) => {
+  try {
+    const row = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
+    const value = row.length > 0 ? row[0].value : '';
+    res.json({ success: true, value });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const updateYoutubeCookies = async (req, res) => {
+  try {
+    const { value } = req.body;
+    if (value === undefined) {
+      return res.status(400).json({ success: false, message: 'Please provide cookies value.' });
+    }
+
+    // Check if key exists
+    const exists = await query("SELECT COUNT(*) as c FROM settings WHERE `key` = 'youtube_cookies'");
+    if (exists[0].c > 0) {
+      await query("UPDATE settings SET value = ? WHERE `key` = 'youtube_cookies'", [value]);
+    } else {
+      await query("INSERT INTO settings (`key`, `value`) VALUES ('youtube_cookies', ?)", [value]);
+    }
+
+    res.json({ success: true, value, message: 'YouTube Cookies updated successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getBannerSlides,
   createBannerSlide,
   deleteBannerSlide,
   getBackground,
-  updateBackground
+  updateBackground,
+  getYoutubeCookies,
+  updateYoutubeCookies
 };
