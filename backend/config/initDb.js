@@ -3,26 +3,28 @@ const bcrypt = require('bcryptjs');
 const initDb = async () => {
   if (dbType === 'mysql') {
     try {
-      // Create database if it doesn't exist
-      const mysql = require('mysql2/promise');
-      const connConfig = {
-        host: process.env.DB_HOST || 'localhost',
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || '',
-        port: process.env.DB_PORT || 3306,
-      };
+      const isRemoteHost = process.env.DB_HOST && 
+                           process.env.DB_HOST !== 'localhost' && 
+                           process.env.DB_HOST !== '127.0.0.1';
 
-      if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1') {
-        connConfig.ssl = {
-          minVersion: 'TLSv1.2',
-          rejectUnauthorized: true
-        };
+      // Only try to CREATE DATABASE on local MySQL installs.
+      // Cloud databases like TiDB Serverless pre-create the database
+      // and deny CREATE DATABASE commands from regular users.
+      if (!isRemoteHost) {
+        const mysql = require('mysql2/promise');
+        const connection = await mysql.createConnection({
+          host: process.env.DB_HOST || 'localhost',
+          user: process.env.DB_USER || 'root',
+          password: process.env.DB_PASSWORD || '',
+          port: process.env.DB_PORT || 3306,
+        });
+        const dbName = process.env.DB_NAME || 'music_stream_db';
+        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
+        await connection.end();
+        console.log(`Local MySQL: Ensured database '${dbName}' exists.`);
+      } else {
+        console.log('Remote cloud DB detected — skipping CREATE DATABASE step.');
       }
-
-      const connection = await mysql.createConnection(connConfig);
-      const dbName = process.env.DB_NAME || 'music_stream_db';
-      await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
-      await connection.end();
 
       // Check if tables already exist (e.g. check if 'users' table exists)
       const tables = await query("SHOW TABLES LIKE 'users'");
@@ -31,7 +33,9 @@ const initDb = async () => {
         return;
       }
 
-      console.log('Initializing MySQL Database...');
+      console.log('Initializing MySQL Database tables...');
+
+      // Create all tables using the pool (which already has SSL configured)
       const fs = require('fs');
       const path = require('path');
       const sqlFile = path.resolve(__dirname, '../../database/music_db.sql');

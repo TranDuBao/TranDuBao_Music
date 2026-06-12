@@ -31,6 +31,14 @@ if (dbType === 'mysql') {
     };
   }
 
+  console.log('Using MySQL Database Connection config:', {
+    host: poolConfig.host,
+    port: poolConfig.port,
+    database: poolConfig.database,
+    user: poolConfig.user,
+    hasSsl: !!poolConfig.ssl
+  });
+
   const pool = mysql.createPool(poolConfig);
 
   query = async (sql, params = []) => {
@@ -47,7 +55,6 @@ if (dbType === 'mysql') {
   };
   
   dbInstance = pool;
-  console.log('Using MySQL Database Connection.');
 } else {
   // SQLite implementation
   const sqlite3 = require('sqlite3').verbose();
