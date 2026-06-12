@@ -4,7 +4,21 @@ const { execFile } = require('child_process');
 const Track = require('../models/Track');
 const { query, dbType } = require('../config/db');
 
-const ytDlpPath = path.resolve(__dirname, '../bin/yt-dlp.exe');
+const isWindows = process.platform === 'win32';
+const ytDlpPath = isWindows
+  ? path.resolve(__dirname, '../bin/yt-dlp.exe')
+  : path.resolve(__dirname, '../bin/yt-dlp');
+
+// Ensure executable permissions on Linux/macOS
+if (!isWindows) {
+  try {
+    if (fs.existsSync(ytDlpPath)) {
+      fs.chmodSync(ytDlpPath, '755');
+    }
+  } catch (err) {
+    console.error('Failed to set executable permission on yt-dlp binary:', err.message);
+  }
+}
 
 const runYtDlp = (args) => {
   return new Promise((resolve, reject) => {
