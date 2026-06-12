@@ -149,7 +149,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-xl bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10">
+      <div className="relative w-full max-w-xl max-h-[90vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-y-auto z-10">
         {/* Decorative glows */}
         <div className="absolute -top-20 -left-20 w-40 h-40 bg-purple-600/15 rounded-full blur-3xl" />
         <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-pink-500/10 rounded-full blur-3xl" />
@@ -238,7 +238,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 </div>
 
                 {/* Form Fields */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-zinc-400 mb-1">{t('tracks.title')} *</label>
                     <input
@@ -261,7 +261,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-zinc-400 mb-1">{t('tracks.album')}</label>
                     <input
@@ -363,7 +363,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-zinc-400 mb-1">Danh mục nhạc</label>
                     <select

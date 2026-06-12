@@ -89,7 +89,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-lg bg-zinc-950 border border-white/10 rounded-2xl p-6 shadow-2xl z-10 neon-glow-purple overflow-hidden">
+      <div className="relative w-full max-w-lg max-h-[90vh] bg-zinc-950 border border-white/10 rounded-2xl p-6 shadow-2xl z-10 neon-glow-purple overflow-y-auto">
         <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl"></div>
 
@@ -104,7 +104,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 relative">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-zinc-400 mb-1">Song Title *</label>
               <input
@@ -129,7 +129,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-zinc-400 mb-1">Album</label>
               <input
@@ -161,7 +161,7 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
                 ))}
               </select>
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className="block text-xs font-semibold text-zinc-400 mb-1">Genre / Thể loại chi tiết</label>
               <input
                 type="text"
@@ -173,8 +173,8 @@ export default function AddTrackModal({ isOpen, onClose }: AddTrackModalProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="col-span-1 sm:col-span-2">
               <label className="block text-xs font-semibold text-zinc-400 mb-1">Audio Stream URL *</label>
               <input
                 type="url"
