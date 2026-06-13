@@ -24,7 +24,12 @@ const runYtDlp = (args, timeoutMs = 30000) => {
   return new Promise((resolve, reject) => {
     execFile(ytDlpPath, args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
-        reject(new Error(stderr || error.message));
+        const err = new Error(stderr.trim() || error.message);
+        err.stderr = stderr;
+        err.stdout = stdout;
+        err.killed = error.killed;
+        err.signal = error.signal;
+        reject(err);
       } else {
         resolve(stdout);
       }
@@ -586,7 +591,7 @@ const debugYtDlp = async (req, res) => {
         args.push(sampleUrl);
 
         try {
-          const stdoutText = await runYtDlp(args, 15000);
+          const stdoutText = await runYtDlp(args, 50000);
           results.push({
             client,
             useCookies,
@@ -598,7 +603,11 @@ const debugYtDlp = async (req, res) => {
             client,
             useCookies,
             success: false,
-            error: err.message.trim()
+            error: err.message.trim(),
+            stderr: err.stderr ? err.stderr.trim() : null,
+            stdout: err.stdout ? err.stdout.trim() : null,
+            killed: err.killed || false,
+            signal: err.signal || null
           });
         }
       }
