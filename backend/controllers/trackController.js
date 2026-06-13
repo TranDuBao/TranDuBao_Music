@@ -591,21 +591,25 @@ const debugYtDlp = async (req, res) => {
     const useCookies = req.query.useCookies !== 'false' && hasCookies;
     const timeoutVal = parseInt(req.query.timeout) || 40000;
 
+    const listFormats = req.query.listFormats === 'true';
     const args = [
       '--no-warnings',
       '--no-playlist',
       '--geo-bypass',
       '--ignore-config',
       '--js-runtimes', 'node',
-      '--extractor-args', `youtube:player_client=${client}`,
-      '-f', 'ba/18/22/best',
-      '-g'
+      '--extractor-args', `youtube:player_client=${client}`
     ];
     if (client === 'web') {
       args.push('--user-agent', userAgent);
     }
     if (useCookies && cookieFilePath) {
       args.push('--cookies', cookieFilePath);
+    }
+    if (listFormats) {
+      args.push('--list-formats');
+    } else {
+      args.push('-f', 'ba/18/22/best', '-g');
     }
     args.push(sampleUrl);
 
