@@ -20,9 +20,9 @@ if (!isWindows) {
   }
 }
 
-const runYtDlp = (args) => {
+const runYtDlp = (args, timeoutMs = 30000) => {
   return new Promise((resolve, reject) => {
-    execFile(ytDlpPath, args, { timeout: 90000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    execFile(ytDlpPath, args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(stderr || error.message));
       } else {
@@ -364,14 +364,17 @@ const streamTrack = async (req, res) => {
       let streamUrl = null;
       let lastErr = null;
 
+      // Limit streaming player clients to only the most reliable for streaming
+      const STREAM_CLIENTS = ['android_vr', 'web'];
+
       const attempts = [];
       // Prioritize cookies if available to bypass datacenter IP block immediately
       if (hasCookies) {
-        for (const client of PLAYER_CLIENTS) {
+        for (const client of STREAM_CLIENTS) {
           attempts.push({ client, useCookies: true });
         }
       }
-      for (const client of PLAYER_CLIENTS) {
+      for (const client of STREAM_CLIENTS) {
         attempts.push({ client, useCookies: false });
       }
 
@@ -388,7 +391,8 @@ const streamTrack = async (req, res) => {
           }
           args.push(url);
 
-          const output = await runYtDlp(args);
+          // Use strict 6000ms timeout per attempt for fast fallback/failure response
+          const output = await runYtDlp(args, 6000);
           if (output && output.trim()) {
             streamUrl = output.trim().split('\n')[0];
             break;
@@ -418,7 +422,7 @@ const streamTrack = async (req, res) => {
         return res.redirect(302, streamUrl);
       } else {
         console.error('[Stream] Failed to get YouTube stream URL:', lastErr?.message);
-        return res.status(400).json({ success: false, message: 'Could not extract stream URL' });
+        return res.status(400).json({ success: false, message: 'Could not extract stream URL. YouTube cookies may be expired.' });
       }
     } else {
       const filename = path.basename(url);
