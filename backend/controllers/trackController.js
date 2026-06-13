@@ -235,6 +235,7 @@ const importTrack = async (req, res) => {
         console.log(`[Import] Metadata attempt with client="${client}"`);
         const args = [
           ...baseFlags,
+          '-f', 'b',
           '--extractor-args', `youtube:player_client=${client}`,
           '--dump-json',
           url,
@@ -290,18 +291,17 @@ const importTrack = async (req, res) => {
           await runYtDlp(args);
         } catch (dlErr) {
           const errMsg = dlErr.message || '';
-          if (errMsg.includes('format is not available') || errMsg.includes('Requested format')) {
-            console.log(`[Import] Format bestaudio/best not available for client="${client}". Retrying without format filter...`);
-            const fallbackArgs = [
-              ...baseFlags,
-              '--extractor-args', `youtube:player_client=${client}`,
-              '-o', outPattern,
-              url,
-            ];
-            await runYtDlp(fallbackArgs);
-          } else {
+          if (isBotBlocked(errMsg)) {
             throw dlErr;
           }
+          console.log(`[Import] Download failed for client="${client}". Retrying without format filter...`);
+          const fallbackArgs = [
+            ...baseFlags,
+            '--extractor-args', `youtube:player_client=${client}`,
+            '-o', outPattern,
+            url,
+          ];
+          await runYtDlp(fallbackArgs);
         }
         const found = fs.readdirSync(audioDir).find(f => f.startsWith(fileBase));
         if (found) {
