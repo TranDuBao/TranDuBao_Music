@@ -20,9 +20,13 @@ if (!isWindows) {
   }
 }
 
-const runYtDlp = (args, timeoutMs = 30000) => {
+const runYtDlp = (args, timeoutMs = 30000, signal = null) => {
   return new Promise((resolve, reject) => {
-    execFile(ytDlpPath, args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    const options = { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 };
+    if (signal) {
+      options.signal = signal;
+    }
+    execFile(ytDlpPath, args, options, (error, stdout, stderr) => {
       if (error) {
         const err = new Error(stderr.trim() || error.message);
         err.stderr = stderr;
@@ -410,47 +414,62 @@ const streamTrack = async (req, res) => {
       ];
       let streamUrl = null;
       let lastErr = null;
-
-      // Limit streaming player clients to only the most reliable for streaming
       const STREAM_CLIENTS = ['android_vr', 'web', 'ios'];
+      const configs = [];
 
-      const attempts = [];
-      // Prioritize cookies if available to bypass datacenter IP block immediately
-      if (hasCookies) {
-        attempts.push({ client: 'default', useCookies: true });
+      if (hasCookies && cookieFilePath) {
+        configs.push({ client: 'default', useCookies: true });
         for (const client of STREAM_CLIENTS) {
-          attempts.push({ client, useCookies: true });
+          configs.push({ client, useCookies: true });
+        }
+      } else {
+        configs.push({ client: 'default', useCookies: false });
+        for (const client of STREAM_CLIENTS) {
+          configs.push({ client, useCookies: false });
         }
       }
-      attempts.push({ client: 'default', useCookies: false });
-      for (const client of STREAM_CLIENTS) {
-        attempts.push({ client, useCookies: false });
-      }
 
-      for (const attempt of attempts) {
-        try {
+      const controller = new AbortController();
+      const { signal } = controller;
+
+      const tasks = configs.map(config => {
+        return (async () => {
           const args = [...baseFlags];
-          if (attempt.client !== 'default') {
-            args.push('--extractor-args', `youtube:player_client=${attempt.client}`);
+          if (config.client !== 'default') {
+            args.push('--extractor-args', `youtube:player_client=${config.client}`);
           }
-          if (attempt.client === 'web' || attempt.client === 'default') {
+          if (config.client === 'web' || config.client === 'default') {
             args.push('--user-agent', userAgent);
           }
           args.push('-f', 'ba/18/22/best', '-g');
 
-          if (attempt.useCookies && cookieFilePath) {
+          if (config.useCookies && cookieFilePath) {
             args.push('--cookies', cookieFilePath);
           }
           args.push(url);
 
-          // Use 20000ms timeout per attempt to accommodate Render's CPU constraints
-          const output = await runYtDlp(args, 20000);
+          const output = await runYtDlp(args, 25000, signal);
           if (output && output.trim()) {
-            streamUrl = output.trim().split('\n')[0];
-            break;
+            const resolvedUrl = output.trim().split('\n')[0];
+            if (resolvedUrl && resolvedUrl.startsWith('http')) {
+              return resolvedUrl;
+            }
           }
-        } catch (err) {
-          lastErr = err;
+          throw new Error(`Invalid output from client ${config.client}`);
+        })();
+      });
+
+      try {
+        streamUrl = await Promise.any(tasks);
+        controller.abort();
+      } catch (aggregateError) {
+        controller.abort();
+        lastErr = aggregateError;
+        console.error('[Stream] All parallel stream extraction attempts failed.');
+        if (aggregateError.errors) {
+          aggregateError.errors.forEach((err, idx) => {
+            console.error(`  - Config ${configs[idx].client} (cookies: ${configs[idx].useCookies}) failed:`, err.message || err);
+          });
         }
       }
 
@@ -567,51 +586,55 @@ const debugYtDlp = async (req, res) => {
     }
     const sampleUrl = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
     const testClients = ['android_vr', 'web'];
-    const results = [];
+    const tasks = [];
 
     for (const client of testClients) {
       for (const useCookies of [true, false]) {
         if (useCookies && !hasCookies) continue;
 
-        const args = [
-          '--no-warnings',
-          '--no-playlist',
-          '--geo-bypass',
-          '--ignore-config',
-          '--extractor-args', `youtube:player_client=${client}`,
-          '-f', 'ba/18/22/best',
-          '-g'
-        ];
-        if (client === 'web') {
-          args.push('--user-agent', userAgent);
-        }
-        if (useCookies && cookieFilePath) {
-          args.push('--cookies', cookieFilePath);
-        }
-        args.push(sampleUrl);
+        tasks.push((async () => {
+          const args = [
+            '--no-warnings',
+            '--no-playlist',
+            '--geo-bypass',
+            '--ignore-config',
+            '--extractor-args', `youtube:player_client=${client}`,
+            '-f', 'ba/18/22/best',
+            '-g'
+          ];
+          if (client === 'web') {
+            args.push('--user-agent', userAgent);
+          }
+          if (useCookies && cookieFilePath) {
+            args.push('--cookies', cookieFilePath);
+          }
+          args.push(sampleUrl);
 
-        try {
-          const stdoutText = await runYtDlp(args, 50000);
-          results.push({
-            client,
-            useCookies,
-            success: true,
-            output: stdoutText.trim().split('\n')[0]
-          });
-        } catch (err) {
-          results.push({
-            client,
-            useCookies,
-            success: false,
-            error: err.message.trim(),
-            stderr: err.stderr ? err.stderr.trim() : null,
-            stdout: err.stdout ? err.stdout.trim() : null,
-            killed: err.killed || false,
-            signal: err.signal || null
-          });
-        }
+          try {
+            const stdoutText = await runYtDlp(args, 25000);
+            return {
+              client,
+              useCookies,
+              success: true,
+              output: stdoutText.trim().split('\n')[0]
+            };
+          } catch (err) {
+            return {
+              client,
+              useCookies,
+              success: false,
+              error: err.message.trim(),
+              stderr: err.stderr ? err.stderr.trim() : null,
+              stdout: err.stdout ? err.stdout.trim() : null,
+              killed: err.killed || false,
+              signal: err.signal || null
+            };
+          }
+        })());
       }
     }
+
+    const results = await Promise.all(tasks);
 
     if (cookieFilePath) {
       try { fs.unlinkSync(cookieFilePath); } catch (_) {}
