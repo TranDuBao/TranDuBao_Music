@@ -559,7 +559,7 @@ const debugYtDlp = async (req, res) => {
       console.warn('[Debug] Could not load User-Agent from DB:', e.message);
     }
     const sampleUrl = 'https://www.youtube.com/watch?v=HsMFcQlxwKs';
-    const testClients = ['android_vr', 'tvhtml5', 'android', 'ios', 'web', 'mweb'];
+    const testClients = ['android_vr', 'tvhtml5', 'web'];
     const results = [];
 
     for (const client of testClients) {
@@ -582,7 +582,7 @@ const debugYtDlp = async (req, res) => {
         args.push(sampleUrl);
 
         try {
-          const stdoutText = await runYtDlp(args, 8000);
+          const stdoutText = await runYtDlp(args, 4500);
           results.push({
             client,
             useCookies,
