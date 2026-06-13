@@ -562,9 +562,9 @@ const debugYtDlp = async (req, res) => {
       '--no-playlist',
       '--geo-bypass',
       '--ignore-config',
+      '--extractor-args', 'youtube:player_client=android_vr',
       '--user-agent', userAgent,
-      '-f', 'ba',
-      '-g'
+      '-F'
     ];
 
     if (cookieFilePath) {
