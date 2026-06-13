@@ -627,15 +627,16 @@ const debugYtDlp = async (req, res) => {
         stderr: stderr
       };
     } catch (err) {
+      const errMsg = err && err.message ? err.message : 'Unknown error';
       testResult = {
         client,
         useCookies,
         success: false,
-        error: err.message.trim(),
-        stderr: err.stderr ? err.stderr.trim() : null,
-        stdout: err.stdout ? err.stdout.trim() : null,
-        killed: err.killed || false,
-        signal: err.signal || null
+        error: errMsg.trim(),
+        stderr: err && err.stderr ? err.stderr.trim() : null,
+        stdout: err && err.stdout ? err.stdout.trim() : null,
+        killed: err && err.killed || false,
+        signal: err && err.signal || null
       };
     }
 
