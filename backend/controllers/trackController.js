@@ -163,20 +163,53 @@ const cleanNetscapeCookies = (rawCookies) => {
   let clean = rawCookies.replace(/```(?:txt|cookies)?/g, '').trim();
   
   const lines = clean.split(/\r?\n/);
-  const resultLines = [];
-  
-  // Ensure the header is present
-  resultLines.push('# Netscape HTTP Cookie File');
+  const mergedLines = [];
   
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    if (trimmed.startsWith('#')) continue; // Skip comments
     
-    // Split by tabs or spaces
+    // If it starts with #, treat it as a comment but preserve it in the intermediate list
+    if (trimmed.startsWith('#')) {
+      mergedLines.push(trimmed);
+      continue;
+    }
+    
+    // Check if this looks like a new cookie line starting with a domain and TRUE/FALSE
     const parts = trimmed.split(/\s+/);
+    const isNewCookie = parts.length >= 2 && 
+      (parts[0].includes('.') || parts[0] === 'localhost') &&
+      (parts[1] === 'TRUE' || parts[1] === 'FALSE');
+      
+    if (isNewCookie) {
+      mergedLines.push(trimmed);
+    } else {
+      // It's a continuation of the previous cookie value!
+      if (mergedLines.length > 0) {
+        // Find the last non-comment line to append to
+        let lastIdx = mergedLines.length - 1;
+        while (lastIdx >= 0 && mergedLines[lastIdx].startsWith('#')) {
+          lastIdx--;
+        }
+        if (lastIdx >= 0) {
+          mergedLines[lastIdx] = mergedLines[lastIdx] + trimmed;
+        } else {
+          mergedLines.push(trimmed);
+        }
+      } else {
+        mergedLines.push(trimmed);
+      }
+    }
+  }
+
+  const resultLines = [];
+  // Ensure the Netscape header is always at the very top
+  resultLines.push('# Netscape HTTP Cookie File');
+  
+  for (const line of mergedLines) {
+    if (line.startsWith('#')) continue; // Skip comments
+    const parts = line.split(/\s+/);
     if (parts.length >= 6) {
-      // Netscape format: domain, include_subdomains, path, is_secure, expiry, name, value
       const domain = parts[0];
       const subdomains = parts[1];
       const path = parts[2];
