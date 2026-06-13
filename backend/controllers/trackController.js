@@ -189,9 +189,9 @@ const cleanNetscapeCookies = (rawCookies) => {
 
   const resultLines = ['# Netscape HTTP Cookie File'];
   for (const block of cookieBlocks) {
-    const match = block.match(/^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$/);
+    const match = block.match(/^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)(?:\s+(.*))?$/);
     if (match) {
-      const [, domain, subdomains, path, secure, expiry, name, value] = match;
+      const [, domain, subdomains, path, secure, expiry, name, value = ''] = match;
       resultLines.push([domain, subdomains, path, secure, expiry, name, value].join('\t'));
     }
   }
