@@ -20,6 +20,42 @@ const PORT = process.env.PORT || 5000;
 });
 
 // ── Middleware ────────────────────────────────────────────────────
+app.enable('trust proxy');
+
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  res.json = function (body) {
+    if (body && typeof body === 'object') {
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const currentBackendUrl = process.env.BACKEND_URL || `${protocol}://${req.get('host')}`;
+      
+      const replaceUrls = (obj) => {
+        if (typeof obj === 'string') {
+          if (obj.includes('localhost:1005') || obj.includes('localhost:5000')) {
+            return obj.replace(/https?:\/\/localhost:\d+/, currentBackendUrl);
+          }
+          return obj;
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(replaceUrls);
+        }
+        if (obj !== null && typeof obj === 'object') {
+          const newObj = {};
+          for (const key in obj) {
+            newObj[key] = replaceUrls(obj[key]);
+          }
+          return newObj;
+        }
+        return obj;
+      };
+      
+      body = replaceUrls(body);
+    }
+    return originalJson.call(this, body);
+  };
+  next();
+});
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
