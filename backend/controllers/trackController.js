@@ -563,7 +563,7 @@ const debugYtDlp = async (req, res) => {
       '--geo-bypass',
       '--ignore-config',
       '--js-runtimes', 'node',
-      '--extractor-args', 'youtube:player_client=android_vr',
+      '--extractor-args', 'youtube:player_client=web',
       '--user-agent', userAgent,
       '-f', 'ba',
       '-g'
