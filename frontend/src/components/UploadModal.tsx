@@ -451,6 +451,11 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <li>Vào <span className="text-amber-300">Admin Panel → Cấu hình → 🔑 YouTube Cookies</span> → dán vào → Lưu</li>
                   <li>Thử import lại</li>
                 </ol>
+                {errorMessage && (
+                  <p className="text-[11px] text-rose-300/95 border-t border-amber-500/10 pt-2 font-mono break-words">
+                    Chi tiết lỗi: {errorMessage}
+                  </p>
+                )}
               </div>
             )}
             {status === 'error' && !isYouTubeBlocked && (
