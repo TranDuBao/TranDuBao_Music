@@ -386,7 +386,15 @@ const streamTrack = async (req, res) => {
         console.warn('[Stream] Could not load cookies from DB:', e.message);
       }
 
-      const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass', '--ignore-config', '--js-runtimes', 'node'];
+      const userAgent = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      const baseFlags = [
+        '--no-warnings',
+        '--no-playlist',
+        '--geo-bypass',
+        '--ignore-config',
+        '--js-runtimes', 'node',
+        '--user-agent', userAgent
+      ];
       let streamUrl = null;
       let lastErr = null;
 
@@ -530,6 +538,7 @@ const debugYtDlp = async (req, res) => {
       fs.writeFileSync(cookieFilePath, cleaned, 'utf8');
     }
 
+    const userAgent = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     const sampleUrl = 'https://www.youtube.com/watch?v=HsMFcQlxwKs';
     const args = [
       '--no-warnings',
@@ -538,6 +547,7 @@ const debugYtDlp = async (req, res) => {
       '--ignore-config',
       '--js-runtimes', 'node',
       '--extractor-args', 'youtube:player_client=android_vr',
+      '--user-agent', userAgent,
       '-f', 'ba',
       '-g'
     ];
