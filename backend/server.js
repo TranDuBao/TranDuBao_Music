@@ -23,35 +23,21 @@ const PORT = process.env.PORT || 5000;
 app.enable('trust proxy');
 
 app.use((req, res, next) => {
-  const originalJson = res.json;
-  res.json = function (body) {
-    if (body && typeof body === 'object') {
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const currentBackendUrl = process.env.BACKEND_URL || `${protocol}://${req.get('host')}`;
-      
-      const replaceUrls = (obj) => {
-        if (typeof obj === 'string') {
-          if (obj.includes('localhost:1005') || obj.includes('localhost:5000')) {
-            return obj.replace(/https?:\/\/localhost:\d+/, currentBackendUrl);
-          }
-          return obj;
-        }
-        if (Array.isArray(obj)) {
-          return obj.map(replaceUrls);
-        }
-        if (obj !== null && typeof obj === 'object') {
-          const newObj = {};
-          for (const key in obj) {
-            newObj[key] = replaceUrls(obj[key]);
-          }
-          return newObj;
-        }
-        return obj;
-      };
-      
-      body = replaceUrls(body);
+  const originalSend = res.send;
+  res.send = function (body) {
+    if (typeof body === 'string') {
+      try {
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const currentBackendUrl = process.env.BACKEND_URL || `${protocol}://${req.get('host')}`;
+        
+        // Safely replace all local hosts (e.g. localhost:1005 or localhost:5000) with the actual host
+        const modified = body.replace(/https?:\/\/localhost:(?:1005|5000)/g, currentBackendUrl);
+        return originalSend.call(this, modified);
+      } catch (err) {
+        console.error('URL rewrite error:', err);
+      }
     }
-    return originalJson.call(this, body);
+    return originalSend.call(this, body);
   };
   next();
 });
