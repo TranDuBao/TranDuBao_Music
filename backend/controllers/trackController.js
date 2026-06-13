@@ -206,6 +206,8 @@ const importTrack = async (req, res) => {
     if (!fs.existsSync(imgDir))   fs.mkdirSync(imgDir,   { recursive: true });
 
     // ── Load cookies from DB (optional) ───────────────────────────────
+    let hasCookies = false;
+    let cookieLength = 0;
     try {
       const rows = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
       if (rows && rows.length > 0 && rows[0].value && rows[0].value.trim()) {
@@ -214,7 +216,9 @@ const importTrack = async (req, res) => {
         cookieFilePath = path.join(tempDir, `yt_cookies_${Date.now()}.txt`);
         const cleanedCookies = cleanNetscapeCookies(rows[0].value.trim());
         fs.writeFileSync(cookieFilePath, cleanedCookies, 'utf8');
-        console.log('[Import] YouTube cookies loaded and cleaned from DB.');
+        hasCookies = true;
+        cookieLength = rows[0].value.trim().length;
+        console.log(`[Import] YouTube cookies loaded and cleaned from DB (${cookieLength} chars).`);
       }
     } catch (e) {
       console.warn('[Import] Could not load cookies from DB:', e.message);
@@ -253,9 +257,7 @@ const importTrack = async (req, res) => {
     if (!meta) {
       const raw = lastMetaErr?.message || '';
       console.error('[Import] All clients failed for metadata.');
-      const msg = isBotBlocked(raw)
-        ? 'YouTube đang chặn server của ứng dụng. Hãy nhờ admin dán YouTube Cookies vào phần "Admin Panel → Cấu hình → YouTube Cookies" để tiếp tục.'
-        : `Không thể lấy thông tin bài hát từ URL này. Lỗi: ${raw.slice(0, 300)}`;
+      const msg = `Lỗi lấy thông tin bài hát (Cookies: ${hasCookies ? 'Đã nạp ' + cookieLength + ' ký tự' : 'Chưa nạp'}). Chi tiết: ${raw.slice(0, 400)}`;
       return res.status(400).json({ success: false, message: msg });
     }
 
