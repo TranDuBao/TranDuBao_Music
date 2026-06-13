@@ -100,7 +100,7 @@ const updateYoutubeCookies = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide cookies value.' });
     }
 
-    // Check if key exists
+    // Save YouTube cookies
     const exists = await query("SELECT COUNT(*) as c FROM settings WHERE `key` = 'youtube_cookies'");
     if (exists[0].c > 0) {
       await query("UPDATE settings SET value = ? WHERE `key` = 'youtube_cookies'", [value]);
@@ -108,7 +108,18 @@ const updateYoutubeCookies = async (req, res) => {
       await query("INSERT INTO settings (`key`, `value`) VALUES ('youtube_cookies', ?)", [value]);
     }
 
-    res.json({ success: true, value, message: 'YouTube Cookies updated successfully' });
+    // Automatically capture and save User-Agent from the client that submitted the cookies
+    const userAgent = req.headers['user-agent'] || '';
+    if (userAgent) {
+      const uaExists = await query("SELECT COUNT(*) as c FROM settings WHERE `key` = 'youtube_user_agent'");
+      if (uaExists[0].c > 0) {
+        await query("UPDATE settings SET value = ? WHERE `key` = 'youtube_user_agent'", [userAgent]);
+      } else {
+        await query("INSERT INTO settings (`key`, `value`) VALUES ('youtube_user_agent', ?)", [userAgent]);
+      }
+    }
+
+    res.json({ success: true, value, message: 'YouTube Cookies and User-Agent updated successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -386,7 +386,16 @@ const streamTrack = async (req, res) => {
         console.warn('[Stream] Could not load cookies from DB:', e.message);
       }
 
-      const userAgent = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      let userAgent = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      try {
+        const rows = await query("SELECT value FROM settings WHERE \`key\` = 'youtube_user_agent'");
+        if (rows && rows.length > 0 && rows[0].value && rows[0].value.trim()) {
+          userAgent = rows[0].value.trim();
+        }
+      } catch (e) {
+        console.warn('[Stream] Could not load User-Agent from DB:', e.message);
+      }
+
       const baseFlags = [
         '--no-warnings',
         '--no-playlist',
@@ -538,7 +547,15 @@ const debugYtDlp = async (req, res) => {
       fs.writeFileSync(cookieFilePath, cleaned, 'utf8');
     }
 
-    const userAgent = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    let userAgent = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    try {
+      const rows = await query("SELECT value FROM settings WHERE \`key\` = 'youtube_user_agent'");
+      if (rows && rows.length > 0 && rows[0].value && rows[0].value.trim()) {
+        userAgent = rows[0].value.trim();
+      }
+    } catch (e) {
+      console.warn('[Debug] Could not load User-Agent from DB:', e.message);
+    }
     const sampleUrl = 'https://www.youtube.com/watch?v=HsMFcQlxwKs';
     const args = [
       '--no-warnings',
