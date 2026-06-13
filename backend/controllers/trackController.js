@@ -620,7 +620,7 @@ const debugYtDlp = async (req, res) => {
         client,
         useCookies,
         success: true,
-        output: stdoutText.trim().split('\n')[0]
+        output: stdoutText
       };
     } catch (err) {
       testResult = {
