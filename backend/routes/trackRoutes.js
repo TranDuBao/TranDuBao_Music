@@ -5,6 +5,7 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
 // Public — optionalAuth injects user if token present
+router.get('/debug-ytdlp', trackController.debugYtDlp);
 router.get('/top-weekly', trackController.getTopWeekly);
 router.get('/recent-uploads', optionalAuth, trackController.getRecentUploads);
 router.get('/',    optionalAuth, trackController.getAllTracks);

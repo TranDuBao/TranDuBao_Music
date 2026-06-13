@@ -493,4 +493,90 @@ const getRecentUploads = async (req, res) => {
   }
 };
 
-module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, streamTrack, getTopWeekly, getRecentUploads };
+const debugYtDlp = async (req, res) => {
+  let cookieFilePath = null;
+  try {
+    const rows = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
+    const hasCookies = !!(rows && rows.length > 0 && rows[0].value && rows[0].value.trim());
+    
+    let cleanedCookiesSample = '';
+    if (hasCookies) {
+      const rawVal = rows[0].value.trim();
+      const cleaned = cleanNetscapeCookies(rawVal);
+      
+      const lines = cleaned.split('\n');
+      const previewLines = [];
+      for (const line of lines) {
+        if (line.startsWith('#')) {
+          previewLines.push(line);
+          continue;
+        }
+        const parts = line.split('\t');
+        if (parts.length >= 7) {
+          const name = parts[5];
+          const val = parts[6];
+          const redactedVal = val.substring(0, 10) + '...' + val.substring(Math.max(10, val.length - 10));
+          parts[6] = `[REDACTED_LEN_${val.length}: ${redactedVal}]`;
+          previewLines.push(parts.join('\t'));
+        } else {
+          previewLines.push(line);
+        }
+      }
+      cleanedCookiesSample = previewLines.slice(0, 25).join('\n');
+
+      const tempDir = path.resolve(__dirname, '../../temp');
+      if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+      cookieFilePath = path.join(tempDir, `debug_cookies_${Date.now()}.txt`);
+      fs.writeFileSync(cookieFilePath, cleaned, 'utf8');
+    }
+
+    const sampleUrl = 'https://www.youtube.com/watch?v=HsMFcQlxwKs';
+    const args = [
+      '--no-warnings',
+      '--no-playlist',
+      '--geo-bypass',
+      '--ignore-config',
+      '--js-runtimes', 'node',
+      '--extractor-args', 'youtube:player_client=android_vr',
+      '-f', 'ba',
+      '-g'
+    ];
+
+    if (cookieFilePath) {
+      args.push('--cookies', cookieFilePath);
+    }
+    args.push(sampleUrl);
+
+    let stdoutText = '';
+    let executionError = null;
+
+    try {
+      stdoutText = await runYtDlp(args, 15000);
+    } catch (err) {
+      executionError = {
+        message: err.message,
+        stack: err.stack
+      };
+    }
+
+    if (cookieFilePath) {
+      try { fs.unlinkSync(cookieFilePath); } catch (_) {}
+    }
+
+    res.json({
+      success: true,
+      hasCookies,
+      cleanedCookiesSample,
+      cmd: [ytDlpPath, ...args].join(' '),
+      stdout: stdoutText,
+      executionError
+    });
+  } catch (err) {
+    if (cookieFilePath) {
+      try { fs.unlinkSync(cookieFilePath); } catch (_) {}
+    }
+    res.status(500).json({ success: false, message: err.message, stack: err.stack });
+  }
+};
+
+module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, streamTrack, getTopWeekly, getRecentUploads, debugYtDlp };
