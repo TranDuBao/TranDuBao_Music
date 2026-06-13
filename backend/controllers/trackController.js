@@ -584,57 +584,49 @@ const debugYtDlp = async (req, res) => {
     } catch (e) {
       console.warn('[Debug] Could not load User-Agent from DB:', e.message);
     }
-    const sampleUrl = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
-    const testClients = ['android_vr', 'web'];
-    const tasks = [];
+    const sampleUrl = req.query.url || 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
+    const client = req.query.client || 'android_vr';
+    const useCookies = req.query.useCookies !== 'false' && hasCookies;
+    const timeoutVal = parseInt(req.query.timeout) || 40000;
 
-    for (const client of testClients) {
-      for (const useCookies of [true, false]) {
-        if (useCookies && !hasCookies) continue;
-
-        tasks.push((async () => {
-          const args = [
-            '--no-warnings',
-            '--no-playlist',
-            '--geo-bypass',
-            '--ignore-config',
-            '--extractor-args', `youtube:player_client=${client}`,
-            '-f', 'ba/18/22/best',
-            '-g'
-          ];
-          if (client === 'web') {
-            args.push('--user-agent', userAgent);
-          }
-          if (useCookies && cookieFilePath) {
-            args.push('--cookies', cookieFilePath);
-          }
-          args.push(sampleUrl);
-
-          try {
-            const stdoutText = await runYtDlp(args, 25000);
-            return {
-              client,
-              useCookies,
-              success: true,
-              output: stdoutText.trim().split('\n')[0]
-            };
-          } catch (err) {
-            return {
-              client,
-              useCookies,
-              success: false,
-              error: err.message.trim(),
-              stderr: err.stderr ? err.stderr.trim() : null,
-              stdout: err.stdout ? err.stdout.trim() : null,
-              killed: err.killed || false,
-              signal: err.signal || null
-            };
-          }
-        })());
-      }
+    const args = [
+      '--no-warnings',
+      '--no-playlist',
+      '--geo-bypass',
+      '--ignore-config',
+      '--extractor-args', `youtube:player_client=${client}`,
+      '-f', 'ba/18/22/best',
+      '-g'
+    ];
+    if (client === 'web') {
+      args.push('--user-agent', userAgent);
     }
+    if (useCookies && cookieFilePath) {
+      args.push('--cookies', cookieFilePath);
+    }
+    args.push(sampleUrl);
 
-    const results = await Promise.all(tasks);
+    let testResult = null;
+    try {
+      const stdoutText = await runYtDlp(args, timeoutVal);
+      testResult = {
+        client,
+        useCookies,
+        success: true,
+        output: stdoutText.trim().split('\n')[0]
+      };
+    } catch (err) {
+      testResult = {
+        client,
+        useCookies,
+        success: false,
+        error: err.message.trim(),
+        stderr: err.stderr ? err.stderr.trim() : null,
+        stdout: err.stdout ? err.stdout.trim() : null,
+        killed: err.killed || false,
+        signal: err.signal || null
+      };
+    }
 
     if (cookieFilePath) {
       try { fs.unlinkSync(cookieFilePath); } catch (_) {}
@@ -645,7 +637,7 @@ const debugYtDlp = async (req, res) => {
       hasCookies,
       cleanedCookiesSample,
       userAgent,
-      results
+      testResult
     });
   } catch (err) {
     if (cookieFilePath) {
