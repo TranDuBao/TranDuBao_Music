@@ -238,31 +238,43 @@ const importTrack = async (req, res) => {
 
     // Shared base flags
     const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass', '--ignore-config'];
-    if (cookieFilePath) {
-      baseFlags.push('--cookies', cookieFilePath);
-    }
 
-    // ── STEP 1: Fetch metadata — try each client ───────────────────────
+    // ── STEP 1: Fetch metadata ─────────────────────────────────────────
     let meta         = null;
     let lastMetaErr  = null;
 
+    // Build attempts: first try all clients WITHOUT cookies, then WITH cookies
+    const metaAttempts = [];
     for (const client of PLAYER_CLIENTS) {
+      metaAttempts.push({ client, useCookies: false });
+    }
+    if (cookieFilePath) {
+      for (const client of PLAYER_CLIENTS) {
+        metaAttempts.push({ client, useCookies: true });
+      }
+    }
+
+    for (const attempt of metaAttempts) {
       try {
-        console.log(`[Import] Metadata attempt with client="${client}"`);
+        console.log(`[Import] Metadata attempt: client="${attempt.client}", cookies=${attempt.useCookies}`);
         const args = [
           ...baseFlags,
           '-f', 'b',
-          '--extractor-args', `youtube:player_client=${client}`,
+          '--extractor-args', `youtube:player_client=${attempt.client}`,
           '--dump-json',
-          url,
         ];
+        if (attempt.useCookies && cookieFilePath) {
+          args.push('--cookies', cookieFilePath);
+        }
+        args.push(url);
+
         const raw = await runYtDlp(args);
         meta = JSON.parse(raw);
-        console.log(`[Import] Metadata OK  (client="${client}", title="${meta.title}")`);
+        console.log(`[Import] Metadata OK  (client="${attempt.client}", cookies=${attempt.useCookies}, title="${meta.title}")`);
         break;
       } catch (err) {
         lastMetaErr = err;
-        console.warn(`[Import] Metadata FAIL (client="${client}"): ${(err.message || '').slice(0, 150)}`);
+        console.warn(`[Import] Metadata FAIL (client="${attempt.client}", cookies=${attempt.useCookies}): ${(err.message || '').slice(0, 150)}`);
       }
     }
 
@@ -285,22 +297,37 @@ const importTrack = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
     }
 
-    // ── STEP 3: Download audio — try each client ────────────────────────
+    // ── STEP 3: Download audio ──────────────────────────────────────────
     const fileBase   = `${Date.now()}_ytdl`;
     const outPattern = path.join(audioDir, `${fileBase}.%(ext)s`);
     let   audioFile  = null;
     let   lastDlErr  = null;
 
+    // Build download attempts
+    const dlAttempts = [];
     for (const client of PLAYER_CLIENTS) {
+      dlAttempts.push({ client, useCookies: false });
+    }
+    if (cookieFilePath) {
+      for (const client of PLAYER_CLIENTS) {
+        dlAttempts.push({ client, useCookies: true });
+      }
+    }
+
+    for (const attempt of dlAttempts) {
       try {
-        console.log(`[Import] Download attempt with client="${client}"`);
+        console.log(`[Import] Download attempt: client="${attempt.client}", cookies=${attempt.useCookies}`);
         const args = [
           ...baseFlags,
           '-f', 'bestaudio/best',
-          '--extractor-args', `youtube:player_client=${client}`,
+          '--extractor-args', `youtube:player_client=${attempt.client}`,
           '-o', outPattern,
-          url,
         ];
+        if (attempt.useCookies && cookieFilePath) {
+          args.push('--cookies', cookieFilePath);
+        }
+        args.push(url);
+
         try {
           await runYtDlp(args);
         } catch (dlErr) {
@@ -308,24 +335,28 @@ const importTrack = async (req, res) => {
           if (isBotBlocked(errMsg)) {
             throw dlErr;
           }
-          console.log(`[Import] Download failed for client="${client}". Retrying without format filter...`);
+          console.log(`[Import] Download failed for client="${attempt.client}", cookies=${attempt.useCookies}. Retrying without format filter...`);
           const fallbackArgs = [
             ...baseFlags,
-            '--extractor-args', `youtube:player_client=${client}`,
+            '--extractor-args', `youtube:player_client=${attempt.client}`,
             '-o', outPattern,
-            url,
           ];
+          if (attempt.useCookies && cookieFilePath) {
+            fallbackArgs.push('--cookies', cookieFilePath);
+          }
+          fallbackArgs.push(url);
           await runYtDlp(fallbackArgs);
         }
+
         const found = fs.readdirSync(audioDir).find(f => f.startsWith(fileBase));
         if (found) {
           audioFile = found;
-          console.log(`[Import] Download OK   (client="${client}", file="${found}")`);
+          console.log(`[Import] Download OK   (client="${attempt.client}", cookies=${attempt.useCookies}, file="${found}")`);
           break;
         }
       } catch (err) {
         lastDlErr = err;
-        console.warn(`[Import] Download FAIL (client="${client}"): ${(err.message || '').slice(0, 150)}`);
+        console.warn(`[Import] Download FAIL (client="${attempt.client}", cookies=${attempt.useCookies}): ${(err.message || '').slice(0, 150)}`);
       }
     }
 
