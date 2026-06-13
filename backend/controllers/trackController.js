@@ -28,9 +28,11 @@ const runYtDlp = (args, timeoutMs = 30000, signal = null) => {
     }
     execFile(ytDlpPath, args, options, (error, stdout, stderr) => {
       if (error) {
-        const err = new Error(stderr.trim() || error.message);
-        err.stderr = stderr;
-        err.stdout = stdout;
+        const safeStderr = stderr ? stderr.toString() : '';
+        const safeStdout = stdout ? stdout.toString() : '';
+        const err = new Error(safeStderr.trim() || error.message);
+        err.stderr = safeStderr;
+        err.stdout = safeStdout;
         err.killed = error.killed;
         err.signal = error.signal;
         reject(err);
