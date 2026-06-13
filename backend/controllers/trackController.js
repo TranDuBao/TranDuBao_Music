@@ -434,8 +434,8 @@ const streamTrack = async (req, res) => {
           }
           args.push(url);
 
-          // Use strict 6000ms timeout per attempt for fast fallback/failure response
-          const output = await runYtDlp(args, 6000);
+          // Use 20000ms timeout per attempt to accommodate Render's CPU constraints
+          const output = await runYtDlp(args, 20000);
           if (output && output.trim()) {
             streamUrl = output.trim().split('\n')[0];
             break;
@@ -578,7 +578,7 @@ const debugYtDlp = async (req, res) => {
     let executionError = null;
 
     try {
-      stdoutText = await runYtDlp(args, 15000);
+      stdoutText = await runYtDlp(args, 25000);
     } catch (err) {
       executionError = {
         message: err.message,
