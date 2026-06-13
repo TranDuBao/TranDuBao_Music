@@ -159,42 +159,35 @@ const deleteTrack = async (req, res) => {
 
 const cleanNetscapeCookies = (rawCookies) => {
   if (!rawCookies) return '';
-  const lines = rawCookies.split(/\r?\n/);
-  const cookieBlocks = [];
-  let currentBlock = [];
-
+  // Remove markdown code fence if present
+  let clean = rawCookies.replace(/```(?:txt|cookies)?/g, '').trim();
+  
+  const lines = clean.split(/\r?\n/);
+  const resultLines = [];
+  
+  // Ensure the header is present
+  resultLines.push('# Netscape HTTP Cookie File');
+  
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    if (trimmed.startsWith('#')) continue;
-
+    if (trimmed.startsWith('#')) continue; // Skip comments
+    
+    // Split by tabs or spaces
     const parts = trimmed.split(/\s+/);
-    const isNewCookie = parts.length >= 5 &&
-      (parts[1] === 'TRUE' || parts[1] === 'FALSE') &&
-      (parts[3] === 'TRUE' || parts[3] === 'FALSE') &&
-      /^\d+$/.test(parts[4]);
-
-    if (isNewCookie) {
-      if (currentBlock.length > 0) {
-        cookieBlocks.push(currentBlock.join(' '));
-      }
-      currentBlock = [trimmed];
-    } else {
-      currentBlock.push(trimmed);
-    }
-  }
-  if (currentBlock.length > 0) {
-    cookieBlocks.push(currentBlock.join(' '));
-  }
-
-  const resultLines = ['# Netscape HTTP Cookie File'];
-  for (const block of cookieBlocks) {
-    const match = block.match(/^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)(?:\s+(.*))?$/);
-    if (match) {
-      const [, domain, subdomains, path, secure, expiry, name, value = ''] = match;
+    if (parts.length >= 6) {
+      // Netscape format: domain, include_subdomains, path, is_secure, expiry, name, value
+      const domain = parts[0];
+      const subdomains = parts[1];
+      const path = parts[2];
+      const secure = parts[3];
+      const expiry = parts[4];
+      const name = parts[5];
+      const value = parts.slice(6).join(' '); // Value might contain spaces
       resultLines.push([domain, subdomains, path, secure, expiry, name, value].join('\t'));
     }
   }
+  
   return resultLines.join('\n');
 };
 
