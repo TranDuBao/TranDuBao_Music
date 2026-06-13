@@ -401,8 +401,7 @@ const streamTrack = async (req, res) => {
         '--no-playlist',
         '--geo-bypass',
         '--ignore-config',
-        '--js-runtimes', 'node',
-        '--user-agent', userAgent
+        '--js-runtimes', 'node'
       ];
       let streamUrl = null;
       let lastErr = null;
@@ -428,6 +427,9 @@ const streamTrack = async (req, res) => {
           const args = [...baseFlags];
           if (attempt.client !== 'default') {
             args.push('--extractor-args', `youtube:player_client=${attempt.client}`);
+          }
+          if (attempt.client === 'web' || attempt.client === 'default') {
+            args.push('--user-agent', userAgent);
           }
           args.push('-f', 'ba/18/22/best', '-g');
 
@@ -572,10 +574,12 @@ const debugYtDlp = async (req, res) => {
           '--geo-bypass',
           '--ignore-config',
           '--extractor-args', `youtube:player_client=${client}`,
-          '--user-agent', userAgent,
           '-f', 'ba/18/22/best',
           '-g'
         ];
+        if (client === 'web') {
+          args.push('--user-agent', userAgent);
+        }
         if (useCookies && cookieFilePath) {
           args.push('--cookies', cookieFilePath);
         }
