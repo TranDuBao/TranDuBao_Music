@@ -408,27 +408,29 @@ const streamTrack = async (req, res) => {
       let lastErr = null;
 
       // Limit streaming player clients to only the most reliable for streaming
-      const STREAM_CLIENTS = ['ios', 'android_vr', 'web'];
+      const STREAM_CLIENTS = ['android_vr', 'web', 'ios'];
 
       const attempts = [];
       // Prioritize cookies if available to bypass datacenter IP block immediately
       if (hasCookies) {
+        attempts.push({ client: 'default', useCookies: true });
         for (const client of STREAM_CLIENTS) {
           attempts.push({ client, useCookies: true });
         }
       }
+      attempts.push({ client: 'default', useCookies: false });
       for (const client of STREAM_CLIENTS) {
         attempts.push({ client, useCookies: false });
       }
 
       for (const attempt of attempts) {
         try {
-          const args = [
-            ...baseFlags,
-            '--extractor-args', `youtube:player_client=${attempt.client}`,
-            '-f', 'ba',
-            '-g',
-          ];
+          const args = [...baseFlags];
+          if (attempt.client !== 'default') {
+            args.push('--extractor-args', `youtube:player_client=${attempt.client}`);
+          }
+          args.push('-f', 'ba/18/22/best', '-g');
+
           if (attempt.useCookies && cookieFilePath) {
             args.push('--cookies', cookieFilePath);
           }
