@@ -415,7 +415,7 @@ const streamTrack = async (req, res) => {
         return res.redirect(302, streamUrl);
       } else {
         console.error('[Stream] Failed to get YouTube stream URL:', lastErr?.message);
-        return res.status(400).json({ success: false, message: 'Could not extract stream URL. YouTube cookies may be expired.' });
+        return res.status(400).json({ success: false, message: 'Could not extract stream URL: ' + (lastErr?.message || 'Unknown error') });
       }
     } else {
       const filename = path.basename(url);
