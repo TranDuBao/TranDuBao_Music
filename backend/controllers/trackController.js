@@ -237,7 +237,7 @@ const importTrack = async (req, res) => {
     }
 
     // Shared base flags
-    const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass', '--ignore-config'];
+    const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass', '--ignore-config', '--js-runtimes', 'node'];
 
     // ── STEP 1: Fetch metadata ─────────────────────────────────────────
     let meta         = null;
