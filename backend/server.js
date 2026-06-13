@@ -30,9 +30,38 @@ app.use((req, res, next) => {
         const protocol = req.headers['x-forwarded-proto'] || req.protocol;
         const currentBackendUrl = process.env.BACKEND_URL || `${protocol}://${req.get('host')}`;
         
-        // Safely replace all local hosts (e.g. localhost:1005 or localhost:5000) with the actual host
-        const modified = body.replace(/https?:\/\/localhost:(?:1005|5000)/g, currentBackendUrl);
-        return originalSend.call(this, modified);
+        let data;
+        try {
+          data = JSON.parse(body);
+        } catch (e) {
+          // If not valid JSON, just perform simple localhost replace and send
+          const modified = body.replace(/https?:\/\/localhost:(?:1005|5000)/g, currentBackendUrl);
+          return originalSend.call(this, modified);
+        }
+
+        const walkAndRewrite = (obj) => {
+          if (Array.isArray(obj)) {
+            return obj.map(walkAndRewrite);
+          }
+          if (obj !== null && typeof obj === 'object') {
+            if (typeof obj.id !== 'undefined' && typeof obj.audio_url === 'string') {
+              const url = obj.audio_url;
+              if (url.includes('youtube.com') || url.includes('youtu.be') || url.startsWith('youtube:')) {
+                obj.audio_url = `${currentBackendUrl}/api/tracks/${obj.id}/stream`;
+              }
+            }
+            for (const key in obj) {
+              obj[key] = walkAndRewrite(obj[key]);
+            }
+          }
+          return obj;
+        };
+
+        data = walkAndRewrite(data);
+        body = JSON.stringify(data);
+        
+        // Final string-based localhost replace
+        body = body.replace(/https?:\/\/localhost:(?:1005|5000)/g, currentBackendUrl);
       } catch (err) {
         console.error('URL rewrite error:', err);
       }

@@ -210,13 +210,6 @@ const importTrack = async (req, res) => {
       return res.status(400).json({ success: false, message: 'URL là bắt buộc' });
     }
 
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
-    const audioDir   = path.resolve(__dirname, '../../uploads/audio');
-    const imgDir     = path.resolve(__dirname, '../../uploads/img');
-
-    if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
-    if (!fs.existsSync(imgDir))   fs.mkdirSync(imgDir,   { recursive: true });
-
     // ── Load cookies from DB (optional) ───────────────────────────────
     let hasCookies = false;
     let cookieLength = 0;
@@ -243,7 +236,6 @@ const importTrack = async (req, res) => {
     let meta         = null;
     let lastMetaErr  = null;
 
-    // Build attempts: first try all clients WITHOUT cookies, then WITH cookies
     const metaAttempts = [];
     for (const client of PLAYER_CLIENTS) {
       metaAttempts.push({ client, useCookies: false });
@@ -297,93 +289,11 @@ const importTrack = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
     }
 
-    // ── STEP 3: Download audio ──────────────────────────────────────────
-    const fileBase   = `${Date.now()}_ytdl`;
-    const outPattern = path.join(audioDir, `${fileBase}.%(ext)s`);
-    let   audioFile  = null;
-    let   lastDlErr  = null;
+    // ── STEP 3: Setup permanent URLs ───────────────────────────────────
+    const cover_url = meta.thumbnail || '';
+    const audio_url = url; // Save the original YouTube URL directly in the database!
 
-    // Build download attempts
-    const dlAttempts = [];
-    for (const client of PLAYER_CLIENTS) {
-      dlAttempts.push({ client, useCookies: false });
-    }
-    if (cookieFilePath) {
-      for (const client of PLAYER_CLIENTS) {
-        dlAttempts.push({ client, useCookies: true });
-      }
-    }
-
-    for (const attempt of dlAttempts) {
-      try {
-        console.log(`[Import] Download attempt: client="${attempt.client}", cookies=${attempt.useCookies}`);
-        const args = [
-          ...baseFlags,
-          '-f', 'bestaudio/best',
-          '--extractor-args', `youtube:player_client=${attempt.client}`,
-          '-o', outPattern,
-        ];
-        if (attempt.useCookies && cookieFilePath) {
-          args.push('--cookies', cookieFilePath);
-        }
-        args.push(url);
-
-        try {
-          await runYtDlp(args);
-        } catch (dlErr) {
-          const errMsg = dlErr.message || '';
-          if (isBotBlocked(errMsg)) {
-            throw dlErr;
-          }
-          console.log(`[Import] Download failed for client="${attempt.client}", cookies=${attempt.useCookies}. Retrying without format filter...`);
-          const fallbackArgs = [
-            ...baseFlags,
-            '--extractor-args', `youtube:player_client=${attempt.client}`,
-            '-o', outPattern,
-          ];
-          if (attempt.useCookies && cookieFilePath) {
-            fallbackArgs.push('--cookies', cookieFilePath);
-          }
-          fallbackArgs.push(url);
-          await runYtDlp(fallbackArgs);
-        }
-
-        const found = fs.readdirSync(audioDir).find(f => f.startsWith(fileBase));
-        if (found) {
-          audioFile = found;
-          console.log(`[Import] Download OK   (client="${attempt.client}", cookies=${attempt.useCookies}, file="${found}")`);
-          break;
-        }
-      } catch (err) {
-        lastDlErr = err;
-        console.warn(`[Import] Download FAIL (client="${attempt.client}", cookies=${attempt.useCookies}): ${(err.message || '').slice(0, 150)}`);
-      }
-    }
-
-    if (!audioFile) {
-      const raw = lastDlErr?.message || '';
-      console.error('[Import] All clients failed for audio download.');
-      const msg = isBotBlocked(raw)
-        ? 'YouTube đang chặn server của ứng dụng. Hãy nhờ admin dán YouTube Cookies vào phần "Admin Panel → Cấu hình → YouTube Cookies" để tiếp tục.'
-        : `Không thể tải âm thanh. Lỗi: ${raw.slice(0, 300)}`;
-      return res.status(400).json({ success: false, message: msg });
-    }
-
-    // ── STEP 4: Download thumbnail ─────────────────────────────────────
-    let cover_url = '';
-    try {
-      if (meta.thumbnail) {
-        const thumbFile = `${Date.now()}_ytdl.jpg`;
-        const thumbPath = path.join(imgDir, thumbFile);
-        await downloadFile(meta.thumbnail, thumbPath);
-        cover_url = `${backendUrl}/uploads/img/${thumbFile}`;
-      }
-    } catch (e) {
-      console.warn('[Import] Thumbnail download skipped:', e.message);
-    }
-
-    // ── STEP 5: Persist track ──────────────────────────────────────────
-    const audio_url = `${backendUrl}/uploads/audio/${audioFile}`;
+    // ── STEP 4: Persist track ──────────────────────────────────────────
     const newTrack  = await Track.create({
       title,
       artist,
@@ -410,6 +320,88 @@ const importTrack = async (req, res) => {
     if (cookieFilePath) {
       try { fs.unlinkSync(cookieFilePath); } catch (_) {}
     }
+  }
+};
+
+const streamTrack = async (req, res) => {
+  try {
+    const track = await Track.getById(req.params.id);
+    if (!track) {
+      return res.status(404).json({ success: false, message: 'Track not found' });
+    }
+
+    const url = track.audio_url;
+    if (url.includes('youtube.com') || url.includes('youtu.be') || url.startsWith('youtube:')) {
+      let cookieFilePath = null;
+      let hasCookies = false;
+      try {
+        const rows = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
+        if (rows && rows.length > 0 && rows[0].value && rows[0].value.trim()) {
+          const tempDir = path.resolve(__dirname, '../../temp');
+          if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+          cookieFilePath = path.join(tempDir, `yt_stream_cookies_${Date.now()}.txt`);
+          const cleanedCookies = cleanNetscapeCookies(rows[0].value.trim());
+          fs.writeFileSync(cookieFilePath, cleanedCookies, 'utf8');
+          hasCookies = true;
+        }
+      } catch (e) {
+        console.warn('[Stream] Could not load cookies from DB:', e.message);
+      }
+
+      const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass', '--ignore-config', '--js-runtimes', 'node'];
+      let streamUrl = null;
+      let lastErr = null;
+
+      const attempts = [];
+      for (const client of PLAYER_CLIENTS) {
+        attempts.push({ client, useCookies: false });
+      }
+      if (hasCookies) {
+        for (const client of PLAYER_CLIENTS) {
+          attempts.push({ client, useCookies: true });
+        }
+      }
+
+      for (const attempt of attempts) {
+        try {
+          const args = [
+            ...baseFlags,
+            '--extractor-args', `youtube:player_client=${attempt.client}`,
+            '-f', 'ba',
+            '-g',
+          ];
+          if (attempt.useCookies && cookieFilePath) {
+            args.push('--cookies', cookieFilePath);
+          }
+          args.push(url);
+
+          const output = await runYtDlp(args);
+          if (output && output.trim()) {
+            streamUrl = output.trim().split('\n')[0];
+            break;
+          }
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      if (cookieFilePath) {
+        try { fs.unlinkSync(cookieFilePath); } catch (_) {}
+      }
+
+      if (streamUrl) {
+        return res.redirect(302, streamUrl);
+      } else {
+        console.error('[Stream] Failed to get YouTube stream URL:', lastErr?.message);
+        return res.status(400).json({ success: false, message: 'Could not extract stream URL' });
+      }
+    } else {
+      const filename = path.basename(url);
+      return res.redirect(302, `/uploads/audio/${filename}`);
+    }
+  } catch (err) {
+    console.error('[Stream] Error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -446,4 +438,4 @@ const getRecentUploads = async (req, res) => {
   }
 };
 
-module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, getTopWeekly, getRecentUploads };
+module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, streamTrack, getTopWeekly, getRecentUploads };
