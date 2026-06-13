@@ -323,6 +323,10 @@ const importTrack = async (req, res) => {
   }
 };
 
+// In-memory cache for YouTube streaming URLs
+// Key: trackId, Value: { streamUrl, expiresAt }
+const streamCache = new Map();
+
 const streamTrack = async (req, res) => {
   try {
     const track = await Track.getById(req.params.id);
@@ -332,6 +336,14 @@ const streamTrack = async (req, res) => {
 
     const url = track.audio_url;
     if (url.includes('youtube.com') || url.includes('youtu.be') || url.startsWith('youtube:')) {
+      const now = Date.now();
+      // Check cache first
+      const cached = streamCache.get(track.id);
+      if (cached && cached.expiresAt > now + 600000) { // 10 minutes buffer
+        console.log(`[Stream] Serving cached stream URL for track ${track.id} (Expires in ${Math.round((cached.expiresAt - now) / 60000)} mins)`);
+        return res.redirect(302, cached.streamUrl);
+      }
+
       let cookieFilePath = null;
       let hasCookies = false;
       try {
@@ -353,13 +365,14 @@ const streamTrack = async (req, res) => {
       let lastErr = null;
 
       const attempts = [];
-      for (const client of PLAYER_CLIENTS) {
-        attempts.push({ client, useCookies: false });
-      }
+      // Prioritize cookies if available to bypass datacenter IP block immediately
       if (hasCookies) {
         for (const client of PLAYER_CLIENTS) {
           attempts.push({ client, useCookies: true });
         }
+      }
+      for (const client of PLAYER_CLIENTS) {
+        attempts.push({ client, useCookies: false });
       }
 
       for (const attempt of attempts) {
@@ -390,6 +403,18 @@ const streamTrack = async (req, res) => {
       }
 
       if (streamUrl) {
+        let expiresAt = now + 4 * 60 * 60 * 1000; // 4h fallback
+        const expireMatch = streamUrl.match(/[&?]expire=(\d+)/);
+        if (expireMatch) {
+          expiresAt = parseInt(expireMatch[1]) * 1000;
+        }
+        
+        streamCache.set(track.id, {
+          streamUrl,
+          expiresAt
+        });
+
+        console.log(`[Stream] Cached new stream URL for track ${track.id} (Expires at ${new Date(expiresAt).toISOString()})`);
         return res.redirect(302, streamUrl);
       } else {
         console.error('[Stream] Failed to get YouTube stream URL:', lastErr?.message);
