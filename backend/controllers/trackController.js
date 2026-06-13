@@ -37,7 +37,10 @@ const runYtDlp = (args, timeoutMs = 30000, signal = null) => {
         err.signal = error.signal;
         reject(err);
       } else {
-        resolve(stdout);
+        resolve({
+          stdout: stdout ? stdout.toString() : '',
+          stderr: stderr ? stderr.toString() : ''
+        });
       }
     });
   });
@@ -450,9 +453,9 @@ const streamTrack = async (req, res) => {
           }
           args.push(url);
 
-          const output = await runYtDlp(args, 25000, signal);
-          if (output && output.trim()) {
-            const resolvedUrl = output.trim().split('\n')[0];
+          const { stdout } = await runYtDlp(args, 25000, signal);
+          if (stdout && stdout.trim()) {
+            const resolvedUrl = stdout.trim().split('\n')[0];
             if (resolvedUrl && resolvedUrl.startsWith('http')) {
               return resolvedUrl;
             }
@@ -615,12 +618,13 @@ const debugYtDlp = async (req, res) => {
 
     let testResult = null;
     try {
-      const stdoutText = await runYtDlp(args, timeoutVal);
+      const { stdout, stderr } = await runYtDlp(args, timeoutVal);
       testResult = {
         client,
         useCookies,
         success: true,
-        output: stdoutText
+        output: stdout,
+        stderr: stderr
       };
     } catch (err) {
       testResult = {
