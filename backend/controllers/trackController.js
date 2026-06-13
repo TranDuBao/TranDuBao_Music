@@ -559,31 +559,45 @@ const debugYtDlp = async (req, res) => {
       console.warn('[Debug] Could not load User-Agent from DB:', e.message);
     }
     const sampleUrl = 'https://www.youtube.com/watch?v=HsMFcQlxwKs';
-    const args = [
-      '--no-warnings',
-      '--no-playlist',
-      '--geo-bypass',
-      '--ignore-config',
-      '--extractor-args', 'youtube:player_client=android_vr',
-      '--user-agent', userAgent,
-      '-F'
-    ];
+    const testClients = ['tvhtml5', 'android', 'ios', 'web', 'mweb'];
+    const results = [];
 
-    if (cookieFilePath) {
-      args.push('--cookies', cookieFilePath);
-    }
-    args.push(sampleUrl);
+    for (const client of testClients) {
+      for (const useCookies of [true, false]) {
+        if (useCookies && !hasCookies) continue;
 
-    let stdoutText = '';
-    let executionError = null;
+        const args = [
+          '--no-warnings',
+          '--no-playlist',
+          '--geo-bypass',
+          '--ignore-config',
+          '--extractor-args', `youtube:player_client=${client}`,
+          '--user-agent', userAgent,
+          '-f', 'ba/18/22/best',
+          '-g'
+        ];
+        if (useCookies && cookieFilePath) {
+          args.push('--cookies', cookieFilePath);
+        }
+        args.push(sampleUrl);
 
-    try {
-      stdoutText = await runYtDlp(args, 25000);
-    } catch (err) {
-      executionError = {
-        message: err.message,
-        stack: err.stack
-      };
+        try {
+          const stdoutText = await runYtDlp(args, 8000);
+          results.push({
+            client,
+            useCookies,
+            success: true,
+            output: stdoutText.trim().split('\n')[0]
+          });
+        } catch (err) {
+          results.push({
+            client,
+            useCookies,
+            success: false,
+            error: err.message.trim()
+          });
+        }
+      }
     }
 
     if (cookieFilePath) {
@@ -594,9 +608,8 @@ const debugYtDlp = async (req, res) => {
       success: true,
       hasCookies,
       cleanedCookiesSample,
-      cmd: [ytDlpPath, ...args].join(' '),
-      stdout: stdoutText,
-      executionError
+      userAgent,
+      results
     });
   } catch (err) {
     if (cookieFilePath) {
