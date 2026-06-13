@@ -560,7 +560,7 @@ const debugYtDlp = async (req, res) => {
     } catch (e) {
       console.warn('[Debug] Could not load User-Agent from DB:', e.message);
     }
-    const sampleUrl = 'https://www.youtube.com/watch?v=HsMFcQlxwKs';
+    const sampleUrl = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
     const testClients = ['android_vr', 'web'];
     const results = [];
 
