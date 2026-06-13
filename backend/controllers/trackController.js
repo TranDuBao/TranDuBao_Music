@@ -408,7 +408,7 @@ const streamTrack = async (req, res) => {
       let lastErr = null;
 
       // Limit streaming player clients to only the most reliable for streaming
-      const STREAM_CLIENTS = ['android_vr', 'web'];
+      const STREAM_CLIENTS = ['ios', 'android_vr', 'web'];
 
       const attempts = [];
       // Prioritize cookies if available to bypass datacenter IP block immediately
