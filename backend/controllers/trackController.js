@@ -562,7 +562,6 @@ const debugYtDlp = async (req, res) => {
       '--no-playlist',
       '--geo-bypass',
       '--ignore-config',
-      '--extractor-args', 'youtube:player_client=ios',
       '--user-agent', userAgent,
       '-f', 'ba',
       '-g'
