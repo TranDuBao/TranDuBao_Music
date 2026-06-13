@@ -160,30 +160,42 @@ const deleteTrack = async (req, res) => {
 const cleanNetscapeCookies = (rawCookies) => {
   if (!rawCookies) return '';
   const lines = rawCookies.split(/\r?\n/);
-  const cleaned = [];
-  for (let line of lines) {
+  const cookieBlocks = [];
+  let currentBlock = [];
+
+  for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    if (trimmed.startsWith('#')) {
-      cleaned.push(line);
-      continue;
-    }
+    if (trimmed.startsWith('#')) continue;
+
     const parts = trimmed.split(/\s+/);
-    const isNew = parts.length >= 4 && 
+    const isNewCookie = parts.length >= 5 &&
       (parts[1] === 'TRUE' || parts[1] === 'FALSE') &&
-      (parts[3] === 'TRUE' || parts[3] === 'FALSE');
-      
-    if (isNew) {
-      cleaned.push(line);
-    } else {
-      if (cleaned.length > 0) {
-        cleaned[cleaned.length - 1] = cleaned[cleaned.length - 1] + line;
-      } else {
-        cleaned.push(line);
+      (parts[3] === 'TRUE' || parts[3] === 'FALSE') &&
+      /^\d+$/.test(parts[4]);
+
+    if (isNewCookie) {
+      if (currentBlock.length > 0) {
+        cookieBlocks.push(currentBlock.join(' '));
       }
+      currentBlock = [trimmed];
+    } else {
+      currentBlock.push(trimmed);
     }
   }
-  return cleaned.join('\n');
+  if (currentBlock.length > 0) {
+    cookieBlocks.push(currentBlock.join(' '));
+  }
+
+  const resultLines = ['# Netscape HTTP Cookie File'];
+  for (const block of cookieBlocks) {
+    const match = block.match(/^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$/);
+    if (match) {
+      const [, domain, subdomains, path, secure, expiry, name, value] = match;
+      resultLines.push([domain, subdomains, path, secure, expiry, name, value].join('\t'));
+    }
+  }
+  return resultLines.join('\n');
 };
 
 // ── Player clients to try in order ────────────────────────────────────────────
