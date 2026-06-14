@@ -498,7 +498,16 @@ const streamTrack = async (req, res) => {
         return res.redirect(302, streamUrl);
       } else {
         console.error('[Stream] Failed to get YouTube stream URL:', lastErr?.message);
-        return res.status(400).json({ success: false, message: 'Could not extract stream URL: ' + (lastErr?.message || 'Unknown error') });
+        const details = lastErr && lastErr.errors ? lastErr.errors.map((err, idx) => ({
+          client: configs[idx]?.client,
+          useCookies: configs[idx]?.useCookies,
+          error: err.message || err
+        })) : [];
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Could not extract stream URL: ' + (lastErr?.message || 'Unknown error'),
+          details
+        });
       }
     } else {
       const filename = path.basename(url);
