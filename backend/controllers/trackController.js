@@ -478,8 +478,8 @@ const streamTrack = async (req, res) => {
       const now = Date.now();
       // Check cache first
       const cached = streamCache.get(track.id);
-      if (cached && cached.expiresAt > now + 600000) { // 10 minutes buffer
-        console.log(`[Stream] Serving cached stream URL for track ${track.id} (Expires in ${Math.round((cached.expiresAt - now) / 60000)} mins)`);
+      if (cached && cached.expiresAt > now + 15000) { // 15 seconds buffer to accommodate short-lived Cobalt URLs
+        console.log(`[Stream] Serving cached stream URL for track ${track.id} (Expires in ${Math.round((cached.expiresAt - now) / 1000)} seconds)`);
         return res.redirect(302, cached.streamUrl);
       }
 
@@ -590,7 +590,14 @@ const streamTrack = async (req, res) => {
         let expiresAt = now + 4 * 60 * 60 * 1000; // 4h fallback
         const expireMatch = streamUrl.match(/[&?]expire=(\d+)/);
         if (expireMatch) {
-          expiresAt = parseInt(expireMatch[1]) * 1000;
+          const val = parseInt(expireMatch[1]);
+          expiresAt = val < 10000000000 ? val * 1000 : val;
+        } else {
+          const expMatch = streamUrl.match(/[&?]exp=(\d+)/);
+          if (expMatch) {
+            const val = parseInt(expMatch[1]);
+            expiresAt = val < 10000000000 ? val * 1000 : val;
+          }
         }
         
         streamCache.set(track.id, {
