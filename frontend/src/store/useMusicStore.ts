@@ -41,6 +41,11 @@ interface MusicStore {
   favorites: number[];
   lastFetchParams: { search: string; mine: boolean; categoryId: number | null } | null;
 
+  // Custom players
+  ytPlayer: any | null;
+  progressInterval: any | null;
+  initYoutubePlayer: (callback?: () => void) => void;
+
   // API Fetch actions
   fetchTracks: (search?: string, mine?: boolean, categoryId?: number | null) => Promise<void>;
   fetchPlaylists: () => Promise<void>;
@@ -79,6 +84,40 @@ interface MusicStore {
 
 import { API_BASE } from '../config';
 
+const getYoutubeVideoId = (url: string): string | null => {
+  if (!url) return null;
+  if (url.startsWith('youtube:')) {
+    return url.replace('youtube:', '');
+  }
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+const loadYoutubeAPI = (onReady: () => void) => {
+  if ((window as any).YT && (window as any).YT.Player) {
+    onReady();
+    return;
+  }
+  
+  const prevCallback = (window as any).onYouTubeIframeAPIReady;
+  (window as any).onYouTubeIframeAPIReady = () => {
+    if (prevCallback) prevCallback();
+    onReady();
+  };
+
+  if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    if (firstScriptTag && firstScriptTag.parentNode) {
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    } else {
+      document.head.appendChild(tag);
+    }
+  }
+};
+
 export const useMusicStore = create<MusicStore>((set, get) => ({
   tracks: [],
   playlists: [],
@@ -110,6 +149,9 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     set({ repeatMode: next });
   },
 
+  ytPlayer: null,
+  progressInterval: null,
+
   initAudio: () => {
     if (get().audio) return;
 
@@ -132,6 +174,72 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     });
 
     set({ audio });
+
+    // Preload YouTube API eagerly
+    loadYoutubeAPI(() => {});
+  },
+
+  initYoutubePlayer: (callback?: () => void) => {
+    if (get().ytPlayer) {
+      if (callback) callback();
+      return;
+    }
+
+    loadYoutubeAPI(() => {
+      let container = document.getElementById('youtube-player-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'youtube-player-container';
+        container.style.position = 'absolute';
+        container.style.top = '-9999px';
+        container.style.left = '-9999px';
+        container.style.width = '1px';
+        container.style.height = '1px';
+        document.body.appendChild(container);
+      }
+
+      let placeholder = document.getElementById('youtube-player-placeholder');
+      if (!placeholder) {
+        placeholder = document.createElement('div');
+        placeholder.id = 'youtube-player-placeholder';
+        container.appendChild(placeholder);
+      }
+
+      const player = new (window as any).YT.Player('youtube-player-placeholder', {
+        height: '1px',
+        width: '1px',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          rel: 0,
+          showinfo: 0,
+          modestbranding: 1
+        },
+        events: {
+          onReady: () => {
+            console.log('[Player] YouTube Player Ready');
+            set({ ytPlayer: player });
+            if (callback) callback();
+          },
+          onStateChange: (event: any) => {
+            if (event.data === 0) { // YT.PlayerState.ENDED
+              const { repeatMode, currentTrack } = get();
+              if (repeatMode === 'one' && currentTrack) {
+                if (player && typeof player.seekTo === 'function') {
+                  player.seekTo(0, true);
+                  player.playVideo();
+                }
+                set({ isPlaying: true, progress: 0 });
+              } else {
+                get().playNext();
+              }
+            }
+          }
+        }
+      });
+    });
   },
 
   fetchTracks: async (search, mine, categoryId) => {
@@ -401,37 +509,109 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     initAudio();
 
     const activeAudio = get().audio;
-    if (!activeAudio) return;
-
     const playQueue = customQueue || get().tracks;
     const index = playQueue.findIndex(t => t.id === track.id);
 
-    activeAudio.src = track.audio_url;
-    activeAudio.play().then(() => {
-      set({
-        currentTrack: track,
-        isPlaying: true,
-        progress: 0,
-        queue: playQueue,
-        queueIndex: index,
+    // Stop standard audio
+    if (activeAudio) {
+      activeAudio.pause();
+      activeAudio.src = '';
+    }
+    
+    // Stop YouTube audio
+    const ytPlayer = get().ytPlayer;
+    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+      try { ytPlayer.stopVideo(); } catch (_) {}
+    }
+
+    if (get().progressInterval) {
+      clearInterval(get().progressInterval);
+      set({ progressInterval: null });
+    }
+
+    const videoId = getYoutubeVideoId(track.audio_url);
+
+    if (videoId) {
+      console.log(`[Player] Playing YouTube track via client-side player: ${videoId}`);
+      
+      const setupPlayerAndPlay = () => {
+        const player = get().ytPlayer;
+        if (!player) return;
+        
+        try {
+          player.loadVideoById({
+            videoId: videoId,
+            suggestedQuality: 'small'
+          });
+          player.setVolume(get().volume * 100);
+          player.playVideo();
+          
+          set({
+            currentTrack: track,
+            isPlaying: true,
+            progress: 0,
+            queue: playQueue,
+            queueIndex: index,
+          });
+
+          // Record play count on backend
+          const token = localStorage.getItem('ms_token');
+          fetch(`${API_BASE}/tracks/${track.id}/play`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }).catch(() => {});
+          
+          // Setup progress interval
+          const interval = setInterval(() => {
+            const p = get().ytPlayer;
+            if (p && typeof p.getCurrentTime === 'function') {
+              try {
+                set({ progress: p.getCurrentTime() });
+              } catch (_) {}
+            }
+          }, 500);
+          set({ progressInterval: interval });
+
+        } catch (err) {
+          console.error('[Player] loadVideoById failed:', err);
+        }
+      };
+
+      // Ensure YouTube Player is initialized
+      if (get().ytPlayer) {
+        setupPlayerAndPlay();
+      } else {
+        get().initYoutubePlayer(() => {
+          setupPlayerAndPlay();
+        });
+      }
+
+    } else {
+      if (!activeAudio) return;
+      console.log(`[Player] Playing standard audio stream: ${track.audio_url}`);
+      activeAudio.src = track.audio_url;
+      activeAudio.play().then(() => {
+        set({
+          currentTrack: track,
+          isPlaying: true,
+          progress: 0,
+          queue: playQueue,
+          queueIndex: index,
+        });
+
+        const token = localStorage.getItem('ms_token');
+        fetch(`${API_BASE}/tracks/${track.id}/play`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }).catch(() => {});
+      }).catch(err => {
+        console.error('Standard playback failed', err);
       });
-
-      // ── Record play & increment play_count ──────────────────────
-      const token = localStorage.getItem('ms_token');
-      fetch(`${API_BASE}/tracks/${track.id}/play`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }).catch(() => {/* silent – non-critical */ });
-
-    }).catch(err => {
-      console.error('Playback failed', err);
-    });
+    }
   },
 
   togglePlay: () => {
     const { audio, isPlaying, currentTrack, tracks, playTrack } = get();
-    if (!audio) return;
-
     if (!currentTrack) {
       if (tracks.length > 0) {
         playTrack(tracks[0]);
@@ -439,12 +619,27 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       return;
     }
 
-    if (isPlaying) {
-      audio.pause();
-      set({ isPlaying: false });
+    const videoId = getYoutubeVideoId(currentTrack.audio_url);
+    if (videoId) {
+      const ytPlayer = get().ytPlayer;
+      if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+        if (isPlaying) {
+          try { ytPlayer.pauseVideo(); } catch (_) {}
+          set({ isPlaying: false });
+        } else {
+          try { ytPlayer.playVideo(); } catch (_) {}
+          set({ isPlaying: true });
+        }
+      }
     } else {
-      audio.play().catch(err => console.error(err));
-      set({ isPlaying: true });
+      if (!audio) return;
+      if (isPlaying) {
+        audio.pause();
+        set({ isPlaying: false });
+      } else {
+        audio.play().catch(err => console.error(err));
+        set({ isPlaying: true });
+      }
     }
   },
 
@@ -454,13 +649,33 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     if (audio) {
       audio.volume = clamped;
     }
+    
+    const ytPlayer = get().ytPlayer;
+    if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+      try {
+        ytPlayer.setVolume(clamped * 100);
+      } catch (_) {}
+    }
+    
     set({ volume: clamped });
   },
 
   setProgress: (time) => {
-    const { audio } = get();
-    if (audio) {
-      audio.currentTime = time;
+    const { audio, currentTrack } = get();
+    if (currentTrack) {
+      const videoId = getYoutubeVideoId(currentTrack.audio_url);
+      if (videoId) {
+        const ytPlayer = get().ytPlayer;
+        if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
+          try {
+            ytPlayer.seekTo(time, true);
+          } catch (_) {}
+        }
+      } else {
+        if (audio) {
+          audio.currentTime = time;
+        }
+      }
     }
     set({ progress: time });
   },
@@ -489,6 +704,14 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           if (audio) {
             audio.pause();
             audio.currentTime = 0;
+          }
+          const ytPlayer = get().ytPlayer;
+          if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+            try { ytPlayer.stopVideo(); } catch (_) {}
+          }
+          if (get().progressInterval) {
+            clearInterval(get().progressInterval);
+            set({ progressInterval: null });
           }
           set({ isPlaying: false, progress: 0 });
         }
@@ -535,6 +758,14 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     if (audio) {
       audio.pause();
       audio.src = '';
+    }
+    const ytPlayer = get().ytPlayer;
+    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+      try { ytPlayer.stopVideo(); } catch (_) {}
+    }
+    if (get().progressInterval) {
+      clearInterval(get().progressInterval);
+      set({ progressInterval: null });
     }
     set({
       currentTrack: null,
