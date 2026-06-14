@@ -238,6 +238,98 @@ const cleanNetscapeCookies = (rawCookies) => {
   return resultLines.join('\n');
 };
 
+// Helper: fetch metadata using oEmbed (YouTube official & noembed) when yt-dlp fails
+const fetchFallbackMetadata = async (youtubeUrl) => {
+  // 1. Try YouTube official oEmbed
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeUrl)}&format=json`;
+    console.log(`[Import Fallback] Querying YouTube official oEmbed: ${oembedUrl}`);
+    const res = await fetch(oembedUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.title) {
+        console.log(`[Import Fallback] YouTube official oEmbed success: "${data.title}"`);
+        return {
+          title: data.title,
+          uploader: data.author_name || 'Unknown Artist',
+          thumbnail: data.thumbnail_url || '',
+          duration: 180,
+          extractor_key: 'Youtube'
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[Import Fallback] YouTube official oEmbed failed:', err.message);
+  }
+
+  // 2. Try noembed.com
+  try {
+    const noembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(youtubeUrl)}`;
+    console.log(`[Import Fallback] Querying noembed.com: ${noembedUrl}`);
+    const res = await fetch(noembedUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.title) {
+        console.log(`[Import Fallback] noembed.com success: "${data.title}"`);
+        return {
+          title: data.title,
+          uploader: data.author_name || 'Unknown Artist',
+          thumbnail: data.thumbnail_url || '',
+          duration: 180,
+          extractor_key: 'Youtube'
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[Import Fallback] noembed.com failed:', err.message);
+  }
+
+  return null;
+};
+
+// Helper: fetch stream URL from Cobalt public instances when yt-dlp fails
+const fetchCobaltStreamUrl = async (youtubeUrl) => {
+  const cobaltInstances = [
+    'https://api.cobalt.tools',
+    'https://cobalt.api.ryder.link',
+    'https://co.wuk.sh'
+  ];
+
+  for (const instance of cobaltInstances) {
+    try {
+      console.log(`[Stream Fallback] Trying Cobalt instance "${instance}" for url="${youtubeUrl}"`);
+      const res = await fetch(`${instance}/api/json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          url: youtubeUrl,
+          isAudioOnly: true,
+          aFormat: 'best'
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.url) {
+          console.log(`[Stream Fallback] Cobalt success: "${instance}" -> URL found`);
+          return data.url;
+        } else if (data && data.status === 'redirect' && data.url) {
+          console.log(`[Stream Fallback] Cobalt success (redirect): "${instance}" -> URL found`);
+          return data.url;
+        }
+      } else {
+        const text = await res.text();
+        console.warn(`[Stream Fallback] Cobalt "${instance}" returned ${res.status}: ${text.slice(0, 100)}`);
+      }
+    } catch (err) {
+      console.warn(`[Stream Fallback] Cobalt "${instance}" connection error:`, err.message);
+    }
+  }
+  return null;
+};
+
 // ── Player clients to try in order ────────────────────────────────────────────
 // Render datacenter IPs are often blocked by web client but less so by mobile/TV clients.
 const PLAYER_CLIENTS = ['tv', 'android_vr', 'ios', 'mweb', 'web_music', 'web'];
@@ -311,8 +403,13 @@ const importTrack = async (req, res) => {
     }
 
     if (!meta) {
+      console.log(`[Import] All yt-dlp attempts failed. Trying oEmbed fallbacks for url="${url}"...`);
+      meta = await fetchFallbackMetadata(url);
+    }
+
+    if (!meta) {
       const raw = lastMetaErr?.message || '';
-      console.error('[Import] All clients failed for metadata.');
+      console.error('[Import] All clients and oEmbed fallbacks failed for metadata.');
       const msg = `Lỗi lấy thông tin bài hát (Cookies: ${hasCookies ? 'Đã nạp ' + cookieLength + ' ký tự' : 'Chưa nạp'}). Chi tiết: ${raw.slice(0, 400)}`;
       return res.status(400).json({ success: false, message: msg });
     }
@@ -480,6 +577,11 @@ const streamTrack = async (req, res) => {
 
       if (cookieFilePath) {
         try { fs.unlinkSync(cookieFilePath); } catch (_) {}
+      }
+
+      if (!streamUrl) {
+        console.log(`[Stream] All yt-dlp attempts failed. Trying Cobalt fallback for url="${url}"...`);
+        streamUrl = await fetchCobaltStreamUrl(url);
       }
 
       if (streamUrl) {
