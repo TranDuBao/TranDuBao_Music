@@ -240,7 +240,7 @@ const cleanNetscapeCookies = (rawCookies) => {
 
 // ── Player clients to try in order ────────────────────────────────────────────
 // Render datacenter IPs are often blocked by web client but less so by mobile/TV clients.
-const PLAYER_CLIENTS = ['android_vr', 'tv', 'ios', 'mweb', 'web_music', 'web'];
+const PLAYER_CLIENTS = ['tv', 'android_vr', 'ios', 'mweb', 'web_music', 'web'];
 
 const importTrack = async (req, res) => {
   let cookieFilePath = null;
@@ -277,13 +277,13 @@ const importTrack = async (req, res) => {
     let lastMetaErr  = null;
 
     const metaAttempts = [];
-    for (const client of PLAYER_CLIENTS) {
-      metaAttempts.push({ client, useCookies: false });
-    }
     if (cookieFilePath) {
       for (const client of PLAYER_CLIENTS) {
         metaAttempts.push({ client, useCookies: true });
       }
+    }
+    for (const client of PLAYER_CLIENTS) {
+      metaAttempts.push({ client, useCookies: false });
     }
 
     for (const attempt of metaAttempts) {
@@ -300,8 +300,8 @@ const importTrack = async (req, res) => {
         }
         args.push(url);
 
-        const raw = await runYtDlp(args);
-        meta = JSON.parse(raw);
+        const { stdout } = await runYtDlp(args);
+        meta = JSON.parse(stdout);
         console.log(`[Import] Metadata OK  (client="${attempt.client}", cookies=${attempt.useCookies}, title="${meta.title}")`);
         break;
       } catch (err) {
