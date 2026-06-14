@@ -289,12 +289,36 @@ const fetchFallbackMetadata = async (youtubeUrl) => {
 
 // Helper: fetch stream URL from Cobalt public instances when yt-dlp fails
 const fetchCobaltStreamUrl = async (youtubeUrl) => {
-  const cobaltInstances = [
+  const defaultInstances = [
+    'https://cobaltapi.kittycat.boo',
     'https://dog.kittycat.boo',
     'https://rue-cobalt.xenon.zone',
-    'https://fox.kittycat.boo',
-    'https://cobaltapi.kittycat.boo'
+    'https://fox.kittycat.boo'
   ];
+
+  let cobaltInstances = defaultInstances;
+  try {
+    const res = await fetch('https://cobalt.directory/api/working?type=api', {
+      signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : null
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const liveList = json?.data?.youtube || json?.data?.['youtube'] || [];
+      if (liveList.length > 0) {
+        const cleanLive = liveList.filter(url => 
+          !url.includes('qwkuns.me') && 
+          !url.includes('wolfy.love') && 
+          !url.includes('clxxped.lol') && 
+          !url.includes('squair.xyz') && 
+          !url.includes('meowing.de')
+        );
+        cobaltInstances = Array.from(new Set([...cleanLive, ...defaultInstances]));
+        console.log(`[Stream Fallback] Loaded ${cobaltInstances.length} Cobalt instances (including dynamic ones)`);
+      }
+    }
+  } catch (err) {
+    console.warn('[Stream Fallback] Could not fetch live Cobalt instances:', err.message);
+  }
 
   for (const instance of cobaltInstances) {
     try {
@@ -314,12 +338,32 @@ const fetchCobaltStreamUrl = async (youtubeUrl) => {
       });
       if (res.ok) {
         const data = await res.json();
+        let streamUrl = null;
         if (data && data.url) {
-          console.log(`[Stream Fallback] Cobalt success: "${instance}" -> URL found`);
-          return data.url;
+          streamUrl = data.url;
         } else if (data && data.status === 'redirect' && data.url) {
-          console.log(`[Stream Fallback] Cobalt success (redirect): "${instance}" -> URL found`);
-          return data.url;
+          streamUrl = data.url;
+        }
+
+        if (streamUrl) {
+          console.log(`[Stream Fallback] Cobalt instance "${instance}" returned URL. Verifying stream validity...`);
+          try {
+            const verifySignal = AbortSignal.timeout ? AbortSignal.timeout(5000) : null;
+            const testRes = await fetch(streamUrl, {
+              method: 'GET',
+              headers: { 'Range': 'bytes=0-1' },
+              signal: verifySignal
+            });
+            const len = testRes.headers.get('content-length');
+            if ((testRes.status === 200 || testRes.status === 206) && parseInt(len || '0') > 0) {
+              console.log(`[Stream Fallback] Verification success for "${instance}" (Content-Length: ${len})`);
+              return streamUrl;
+            } else {
+              console.warn(`[Stream Fallback] Verification failed for "${instance}". Status: ${testRes.status}, Content-Length: ${len}`);
+            }
+          } catch (verifyErr) {
+            console.warn(`[Stream Fallback] Verification failed for "${instance}" due to connection error:`, verifyErr.message);
+          }
         }
       } else {
         const text = await res.text();
