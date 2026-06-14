@@ -290,15 +290,16 @@ const fetchFallbackMetadata = async (youtubeUrl) => {
 // Helper: fetch stream URL from Cobalt public instances when yt-dlp fails
 const fetchCobaltStreamUrl = async (youtubeUrl) => {
   const cobaltInstances = [
-    'https://api.cobalt.tools',
-    'https://cobalt.api.ryder.link',
-    'https://co.wuk.sh'
+    'https://dog.kittycat.boo',
+    'https://rue-cobalt.xenon.zone',
+    'https://fox.kittycat.boo',
+    'https://cobaltapi.kittycat.boo'
   ];
 
   for (const instance of cobaltInstances) {
     try {
       console.log(`[Stream Fallback] Trying Cobalt instance "${instance}" for url="${youtubeUrl}"`);
-      const res = await fetch(`${instance}/api/json`, {
+      const res = await fetch(instance, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -306,8 +307,9 @@ const fetchCobaltStreamUrl = async (youtubeUrl) => {
         },
         body: JSON.stringify({
           url: youtubeUrl,
-          isAudioOnly: true,
-          aFormat: 'best'
+          downloadMode: 'audio',
+          audioFormat: 'best',
+          audioBitrate: '128'
         })
       });
       if (res.ok) {
