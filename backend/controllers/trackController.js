@@ -423,22 +423,26 @@ const streamTrack = async (req, res) => {
       const configs = [];
 
       if (hasCookies && cookieFilePath) {
+        configs.push({ client: 'tv', useCookies: true });
         configs.push({ client: 'default', useCookies: true });
         for (const client of STREAM_CLIENTS) {
-          configs.push({ client, useCookies: true });
+          if (client !== 'tv') {
+            configs.push({ client, useCookies: true });
+          }
         }
       } else {
+        configs.push({ client: 'tv', useCookies: false });
         configs.push({ client: 'default', useCookies: false });
         for (const client of STREAM_CLIENTS) {
-          configs.push({ client, useCookies: false });
+          if (client !== 'tv') {
+            configs.push({ client, useCookies: false });
+          }
         }
       }
 
-      const controller = new AbortController();
-      const { signal } = controller;
-
-      const tasks = configs.map(config => {
-        return (async () => {
+      const attemptsErrors = [];
+      for (const config of configs) {
+        try {
           const args = [...baseFlags];
           if (config.client !== 'default') {
             args.push('--extractor-args', `youtube:player_client=${config.client}`);
@@ -453,28 +457,24 @@ const streamTrack = async (req, res) => {
           }
           args.push(url);
 
-          const { stdout } = await runYtDlp(args, 25000, signal);
+          console.log(`[Stream] Trying client: ${config.client} (useCookies: ${config.useCookies})...`);
+          const { stdout } = await runYtDlp(args, 25000);
           if (stdout && stdout.trim()) {
             const resolvedUrl = stdout.trim().split('\n')[0];
             if (resolvedUrl && resolvedUrl.startsWith('http')) {
-              return resolvedUrl;
+              streamUrl = resolvedUrl;
+              console.log(`[Stream] Successfully resolved stream using client: ${config.client}`);
+              break;
             }
           }
-          throw new Error(`Invalid output from client ${config.client}`);
-        })();
-      });
-
-      try {
-        streamUrl = await Promise.any(tasks);
-        controller.abort();
-      } catch (aggregateError) {
-        controller.abort();
-        lastErr = aggregateError;
-        console.error('[Stream] All parallel stream extraction attempts failed.');
-        if (aggregateError.errors) {
-          aggregateError.errors.forEach((err, idx) => {
-            console.error(`  - Config ${configs[idx].client} (cookies: ${configs[idx].useCookies}) failed:`, err.message || err);
+        } catch (err) {
+          console.warn(`[Stream] Client ${config.client} (useCookies: ${config.useCookies}) failed:`, err.message || err);
+          attemptsErrors.push({
+            client: config.client,
+            useCookies: config.useCookies,
+            error: err.message || err
           });
+          lastErr = err;
         }
       }
 
@@ -498,15 +498,10 @@ const streamTrack = async (req, res) => {
         return res.redirect(302, streamUrl);
       } else {
         console.error('[Stream] Failed to get YouTube stream URL:', lastErr?.message);
-        const details = lastErr && lastErr.errors ? lastErr.errors.map((err, idx) => ({
-          client: configs[idx]?.client,
-          useCookies: configs[idx]?.useCookies,
-          error: err.message || err
-        })) : [];
         return res.status(400).json({ 
           success: false, 
           message: 'Could not extract stream URL: ' + (lastErr?.message || 'Unknown error'),
-          details
+          details: attemptsErrors
         });
       }
     } else {
