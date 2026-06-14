@@ -419,7 +419,7 @@ const streamTrack = async (req, res) => {
       ];
       let streamUrl = null;
       let lastErr = null;
-      const STREAM_CLIENTS = ['android_vr', 'web', 'ios'];
+      const STREAM_CLIENTS = ['tv', 'android_vr', 'web', 'ios'];
       const configs = [];
 
       if (hasCookies && cookieFilePath) {
