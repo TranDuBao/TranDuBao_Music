@@ -2170,3 +2170,235 @@ function SettingsTab({ authH }: any) {
     </div>
   );
 }
+
+// ── Stats Tab ─────────────────────────────────────────────────────
+function StatsTab({ authH }: any) {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [categoryTracks, setCategoryTracks] = useState<any[]>([]);
+  const [catTracksLoading, setCatTracksLoading] = useState(false);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/stats`, { headers: authH });
+      if (data.success) setStats(data.data);
+    } catch (err) {
+      console.error('Stats fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchStats(); }, []);
+
+  const fetchCategoryTracks = async (cat: any) => {
+    setSelectedCategory(cat);
+    setCatTracksLoading(true);
+    try {
+      const catId = cat.categoryId ?? 'null';
+      const { data } = await axios.get(`${API}/stats/category-tracks?categoryId=${catId}`, { headers: authH });
+      if (data.success) setCategoryTracks(data.data);
+    } catch { setCategoryTracks([]); }
+    finally { setCatTracksLoading(false); }
+  };
+
+  const maxDailyPlays = Math.max(1, ...(stats?.dailyPlays || []).map((d: any) => d.count));
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!stats) return (
+    <div className="text-center py-16 text-zinc-500 text-sm">
+      {isVi ? 'Không thể tải thống kê.' : 'Could not load statistics.'}
+      <button onClick={fetchStats} className="block mx-auto mt-3 text-amber-400 hover:text-amber-300 text-xs">
+        {isVi ? 'Thử lại' : 'Retry'}
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <BarChart2 className="w-5 h-5 text-amber-400" />
+          {isVi ? 'Thống kê hệ thống' : 'System Statistics'}
+        </h3>
+        <button onClick={fetchStats} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all border border-white/5">
+          <RefreshCw className="w-3.5 h-3.5" /> {isVi ? 'Làm mới' : 'Refresh'}
+        </button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: isVi ? 'Người dùng' : 'Users', value: stats.totalUsers ?? 0, icon: '👤', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
+          { label: isVi ? 'Bài hát' : 'Tracks', value: stats.totalTracks ?? 0, icon: '🎵', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
+          { label: isVi ? 'Lượt nghe' : 'Total Plays', value: formatCount(stats.totalPlays ?? 0), icon: '▶️', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+          { label: isVi ? 'Yêu thích' : 'Favorites', value: stats.totalFavorites ?? 0, icon: '❤️', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+        ].map(card => (
+          <div key={card.label} className={`rounded-xl border p-4 ${card.bg}`}>
+            <div className="text-2xl mb-1">{card.icon}</div>
+            <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">{card.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Daily plays bar chart */}
+      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-5">
+        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-amber-400" />
+          {isVi ? 'Lượt nghe 7 ngày gần nhất' : 'Plays — Last 7 Days'}
+        </h4>
+        {stats.dailyPlays && stats.dailyPlays.length > 0 ? (
+          <div className="flex items-end gap-2 h-32">
+            {stats.dailyPlays.map((d: any, i: number) => {
+              const pct = Math.max(4, Math.round((d.count / maxDailyPlays) * 100));
+              const label = formatDateLabel(d.day, 'day');
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1 group cursor-default">
+                  <span className="text-[9px] text-zinc-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">{d.count}</span>
+                  <div
+                    className="w-full rounded-t-lg bg-gradient-to-t from-amber-600 to-amber-400 group-hover:from-amber-500 group-hover:to-yellow-300 transition-all"
+                    style={{ height: `${pct}%` }}
+                    title={`${label}: ${d.count} ${isVi ? 'lượt' : 'plays'}`}
+                  />
+                  <span className="text-[9px] text-zinc-600 truncate w-full text-center">{label.slice(0, 5)}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="h-32 flex items-center justify-center text-zinc-600 text-sm">
+            {isVi ? 'Chưa có dữ liệu lượt nghe.' : 'No play data yet.'}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Top tracks */}
+        <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
+          <h4 className="text-sm font-bold text-white mb-3">
+            🔥 {isVi ? 'Top bài nghe nhiều nhất' : 'Most Played Tracks'}
+          </h4>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {(stats.topTracks || []).slice(0, 8).map((t: any, i: number) => (
+              <div key={t.id} className="flex items-center gap-3">
+                <span className="text-[10px] text-zinc-600 w-5 text-right flex-shrink-0 font-bold">{i + 1}</span>
+                <img src={t.cover_url || 'https://via.placeholder.com/32'} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-zinc-200 truncate">{t.title}</p>
+                  <p className="text-[10px] text-zinc-500 truncate">{t.artist}</p>
+                </div>
+                <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">{formatCount(t.play_count || 0)}</span>
+              </div>
+            ))}
+            {(!stats.topTracks || stats.topTracks.length === 0) && (
+              <p className="text-xs text-zinc-600 text-center py-6">{isVi ? 'Chưa có lượt nghe nào.' : 'No plays yet.'}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Category breakdown */}
+        <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
+          <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-amber-400" />
+            {isVi ? 'Theo danh mục (click để xem chi tiết)' : 'By Category (click for details)'}
+          </h4>
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {(stats.genreStats || []).map((g: any, i: number) => {
+              const maxPlays = Math.max(1, ...(stats.genreStats || []).map((x: any) => x.plays));
+              const pct = Math.round((g.plays / maxPlays) * 100);
+              return (
+                <button key={i} onClick={() => fetchCategoryTracks(g)}
+                  className={`w-full text-left rounded-lg p-2 transition-all hover:bg-white/5 ${selectedCategory?.genre === g.genre ? 'bg-amber-500/10 border border-amber-500/20' : ''}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-zinc-300 truncate">{g.genre}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[10px] text-zinc-500">{g.count} {isVi ? 'bài' : 'tracks'}</span>
+                      <span className="text-[10px] text-amber-400 font-bold">{formatCount(g.plays)}</span>
+                    </div>
+                  </div>
+                  <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: g.color || '#7c3aed' }} />
+                  </div>
+                </button>
+              );
+            })}
+            {(!stats.genreStats || stats.genreStats.length === 0) && (
+              <p className="text-xs text-zinc-600 text-center py-6">{isVi ? 'Chưa có danh mục nào.' : 'No categories yet.'}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Category tracks drill-down */}
+      {selectedCategory && (
+        <div className="bg-zinc-900/60 border border-amber-500/20 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-bold text-white">
+              {isVi ? 'Bài hát trong: ' : 'Tracks in: '}
+              <span style={{ color: selectedCategory.color || '#a78bfa' }}>{selectedCategory.genre}</span>
+            </h4>
+            <button onClick={() => { setSelectedCategory(null); setCategoryTracks([]); }}
+              className="text-zinc-500 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-white/5 transition-all">✕</button>
+          </div>
+          {catTracksLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {categoryTracks.map((t: any, i: number) => (
+                <div key={t.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03]">
+                  <span className="text-[10px] text-zinc-600 w-4">{i + 1}</span>
+                  <img src={t.cover_url || 'https://via.placeholder.com/28'} className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-zinc-200 truncate">{t.title}</p>
+                    <p className="text-[10px] text-zinc-500 truncate">{t.artist}</p>
+                  </div>
+                  <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">{formatCount(t.plays || 0)}</span>
+                </div>
+              ))}
+              {categoryTracks.length === 0 && (
+                <p className="text-xs text-zinc-600 text-center py-4">{isVi ? 'Danh mục này chưa có bài hát.' : 'No tracks in this category.'}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recent activity */}
+      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
+        <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-amber-400" />
+          {isVi ? 'Hoạt động nghe nhạc gần đây' : 'Recent Listening Activity'}
+        </h4>
+        <div className="space-y-1 max-h-52 overflow-y-auto">
+          {(stats.recentActivity || []).map((a: any, i: number) => (
+            <div key={i} className="flex items-center gap-3 text-xs py-1.5 border-b border-white/[0.03] last:border-0">
+              <span className="text-zinc-600 flex-shrink-0 w-28 truncate text-[10px]">
+                {new Date(a.played_at).toLocaleString(isVi ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+              </span>
+              <span className="text-zinc-200 flex-1 truncate font-medium">{a.title}</span>
+              <span className="text-zinc-500 truncate max-w-[80px] hidden md:block">{a.artist}</span>
+              <span className="text-purple-400 flex-shrink-0 truncate max-w-[80px] text-[10px]">{a.user_name || 'Guest'}</span>
+            </div>
+          ))}
+          {(!stats.recentActivity || stats.recentActivity.length === 0) && (
+            <p className="text-xs text-zinc-600 text-center py-4">{isVi ? 'Chưa có hoạt động nào.' : 'No recent activity.'}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
