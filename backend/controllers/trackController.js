@@ -381,89 +381,61 @@ const fetchCobaltStreamUrl = async (youtubeUrl) => {
 const PLAYER_CLIENTS = ['tv', 'android_vr', 'ios', 'mweb', 'web_music', 'web'];
 
 const importTrack = async (req, res) => {
-  let cookieFilePath = null;
   try {
     const { url, genre = 'Lofi', is_public = 1, category_id = null } = req.body;
     if (!url) {
       return res.status(400).json({ success: false, message: 'URL là bắt buộc' });
     }
 
-    // ── Load cookies from DB (optional) ───────────────────────────────
-    let hasCookies = false;
-    let cookieLength = 0;
+    // ── YouTube URL: use oEmbed to get metadata (fast, never blocked) ─
+    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+    if (!isYouTube) {
+      // Direct audio file URL (mp3, wav, Deezer preview, etc.)
+      const title  = req.body.title  || 'Imported Audio';
+      const artist = req.body.artist || 'Unknown Artist';
+      const dup = await query(
+        'SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)',
+        [title.trim(), artist.trim()]
+      );
+      if (dup && dup.length > 0) {
+        return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
+      }
+      const newTrack = await Track.create({
+        title, artist,
+        album: req.body.album || 'Imported',
+        duration: parseInt(req.body.duration) || 180,
+        cover_url: req.body.cover_url || '',
+        audio_url: url,
+        genre,
+        is_public: Number(is_public),
+        user_id: req.user?.id || null,
+        category_id: category_id ? Number(category_id) : null,
+      });
+      return res.status(201).json({ success: true, data: newTrack });
+    }
+
+    // ── YouTube oEmbed (no API key, no yt-dlp, instant) ──────────────
+    let title, artist, cover_url, duration;
     try {
-      const rows = await query("SELECT value FROM settings WHERE `key` = 'youtube_cookies'");
-      if (rows && rows.length > 0 && rows[0].value && rows[0].value.trim()) {
-        const tempDir = path.resolve(__dirname, '../../temp');
-        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-        cookieFilePath = path.join(tempDir, `yt_cookies_${Date.now()}.txt`);
-        const cleanedCookies = cleanNetscapeCookies(rows[0].value.trim());
-        fs.writeFileSync(cookieFilePath, cleanedCookies, 'utf8');
-        hasCookies = true;
-        cookieLength = rows[0].value.trim().length;
-        console.log(`[Import] YouTube cookies loaded and cleaned from DB (${cookieLength} chars).`);
-      }
-    } catch (e) {
-      console.warn('[Import] Could not load cookies from DB:', e.message);
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      console.log(`[Import] Fetching oEmbed: ${oembedUrl}`);
+      const oRes = await fetch(oembedUrl);
+      if (!oRes.ok) throw new Error(`oEmbed HTTP ${oRes.status}`);
+      const data = await oRes.json();
+      title    = data.title          || 'Imported Audio';
+      artist   = data.author_name    || 'Unknown Artist';
+      cover_url = data.thumbnail_url || '';
+      duration = 180; // oEmbed doesn't return duration — frontend gets it from YT player
+      console.log(`[Import] oEmbed OK: "${title}" by "${artist}"`);
+    } catch (err) {
+      console.error('[Import] oEmbed failed:', err.message);
+      return res.status(400).json({
+        success: false,
+        message: `Không thể lấy thông tin bài hát từ YouTube. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
+      });
     }
 
-    // Shared base flags
-    const baseFlags = ['--no-warnings', '--no-playlist', '--geo-bypass', '--ignore-config', '--js-runtimes', 'node'];
-
-    // ── STEP 1: Fetch metadata ─────────────────────────────────────────
-    let meta         = null;
-    let lastMetaErr  = null;
-
-    const metaAttempts = [];
-    if (cookieFilePath) {
-      for (const client of PLAYER_CLIENTS) {
-        metaAttempts.push({ client, useCookies: true });
-      }
-    }
-    for (const client of PLAYER_CLIENTS) {
-      metaAttempts.push({ client, useCookies: false });
-    }
-
-    for (const attempt of metaAttempts) {
-      try {
-        console.log(`[Import] Metadata attempt: client="${attempt.client}", cookies=${attempt.useCookies}`);
-        const args = [
-          ...baseFlags,
-          '-f', 'b',
-          '--extractor-args', `youtube:player_client=${attempt.client}`,
-          '--dump-json',
-        ];
-        if (attempt.useCookies && cookieFilePath) {
-          args.push('--cookies', cookieFilePath);
-        }
-        args.push(url);
-
-        const { stdout } = await runYtDlp(args);
-        meta = JSON.parse(stdout);
-        console.log(`[Import] Metadata OK  (client="${attempt.client}", cookies=${attempt.useCookies}, title="${meta.title}")`);
-        break;
-      } catch (err) {
-        lastMetaErr = err;
-        console.warn(`[Import] Metadata FAIL (client="${attempt.client}", cookies=${attempt.useCookies}): ${(err.message || '').slice(0, 150)}`);
-      }
-    }
-
-    if (!meta) {
-      console.log(`[Import] All yt-dlp attempts failed. Trying oEmbed fallbacks for url="${url}"...`);
-      meta = await fetchFallbackMetadata(url);
-    }
-
-    if (!meta) {
-      const raw = lastMetaErr?.message || '';
-      console.error('[Import] All clients and oEmbed fallbacks failed for metadata.');
-      const msg = `Lỗi lấy thông tin bài hát (Cookies: ${hasCookies ? 'Đã nạp ' + cookieLength + ' ký tự' : 'Chưa nạp'}). Chi tiết: ${raw.slice(0, 400)}`;
-      return res.status(400).json({ success: false, message: msg });
-    }
-
-    const title  = meta.title                                             || 'Imported Audio';
-    const artist = meta.uploader || meta.artist || meta.channel           || 'Unknown Artist';
-
-    // ── STEP 2: Duplicate check ────────────────────────────────────────
+    // ── Duplicate check ───────────────────────────────────────────────
     const dup = await query(
       'SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)',
       [title.trim(), artist.trim()]
@@ -472,37 +444,23 @@ const importTrack = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
     }
 
-    // ── STEP 3: Setup permanent URLs ───────────────────────────────────
-    const cover_url = meta.thumbnail || '';
-    const audio_url = url; // Save the original YouTube URL directly in the database!
-
-    // ── STEP 4: Persist track ──────────────────────────────────────────
-    const newTrack  = await Track.create({
-      title,
-      artist,
-      album:       meta.extractor_key || 'Imported',
-      duration:    parseInt(meta.duration) || 180,
+    // ── Save track with original YouTube URL ─────────────────────────
+    const newTrack = await Track.create({
+      title, artist,
+      album: 'YouTube',
+      duration,
       cover_url,
-      audio_url,
+      audio_url: url, // frontend plays via YouTube IFrame API
       genre,
-      is_public:   Number(is_public),
-      user_id:     req.user?.id || null,
+      is_public: Number(is_public),
+      user_id: req.user?.id || null,
       category_id: category_id ? Number(category_id) : null,
     });
-
     return res.status(201).json({ success: true, data: newTrack });
 
   } catch (err) {
-    const raw = err.message || '';
-    console.error('[Import] Unhandled error:', raw);
-    const msg = isBotBlocked(raw)
-      ? 'YouTube đang chặn server của ứng dụng. Hãy nhờ admin dán YouTube Cookies vào phần "Admin Panel → Cấu hình → YouTube Cookies" để tiếp tục.'
-      : raw;
-    res.status(500).json({ success: false, message: msg });
-  } finally {
-    if (cookieFilePath) {
-      try { fs.unlinkSync(cookieFilePath); } catch (_) {}
-    }
+    console.error('[Import] Unhandled error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 

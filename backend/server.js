@@ -22,63 +22,9 @@ const PORT = process.env.PORT || 5000;
 // ── Middleware ────────────────────────────────────────────────────
 app.enable('trust proxy');
 
-app.use((req, res, next) => {
-  const originalJson = res.json;
-  const originalSend = res.send;
-
-  res.json = function (obj) {
-    if (obj && typeof obj === 'object') {
-      try {
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const currentBackendUrl = process.env.BACKEND_URL || `${protocol}://${req.get('host')}`;
-
-        const formatTrack = (track) => {
-          if (!track || typeof track !== 'object') return;
-          if (track.audio_url && typeof track.audio_url === 'string') {
-            const url = track.audio_url;
-            if (url.includes('youtube.com') || url.includes('youtu.be') || url.startsWith('youtube:')) {
-              track.audio_url = `${currentBackendUrl}/api/tracks/${track.id}/stream`;
-            }
-          }
-        };
-
-        if (obj.data) {
-          const data = obj.data;
-          if (Array.isArray(data)) {
-            for (const item of data) {
-              formatTrack(item);
-              if (item && item.tracks && Array.isArray(item.tracks)) {
-                for (const t of item.tracks) formatTrack(t);
-              }
-            }
-          } else if (typeof data === 'object') {
-            formatTrack(data);
-            if (data.tracks && Array.isArray(data.tracks)) {
-              for (const t of data.tracks) formatTrack(t);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('JSON rewrite error:', err);
-      }
-    }
-    return originalJson.call(this, obj);
-  };
-
-  res.send = function (body) {
-    if (typeof body === 'string') {
-      const contentType = res.get('Content-Type');
-      if (contentType && contentType.includes('application/json')) {
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const currentBackendUrl = process.env.BACKEND_URL || `${protocol}://${req.get('host')}`;
-        body = body.replace(/https?:\/\/localhost:(?:1005|5000)/g, currentBackendUrl);
-      }
-    }
-    return originalSend.call(this, body);
-  };
-
-  next();
-});
+// YouTube URLs are passed as-is to the frontend.
+// The frontend uses YouTube IFrame API (client-side) to play them directly.
+// No server-side URL rewriting needed.
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
