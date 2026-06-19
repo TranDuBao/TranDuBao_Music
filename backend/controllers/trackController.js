@@ -3,7 +3,7 @@ const fs = require('fs');
 const { execFile } = require('child_process');
 const Track = require('../models/Track');
 const { query, dbType } = require('../config/db');
-const { uploadToCloudinary } = require('../config/cloudinary');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 
 const isWindows = process.platform === 'win32';
 const ytDlpPath = isWindows
