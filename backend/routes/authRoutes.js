@@ -3,7 +3,7 @@ const router  = express.Router();
 const {
   passport, register, login, getMe,
   oauthCallback, getAllUsers, updateUserRole, deleteUser, banUser,
-  updateProfile, changePassword, updateAvatar, getMyUploads
+  updateProfile, changePassword, updateAvatar, deleteAvatar, getMyUploads
 } = require('../controllers/authController');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -35,6 +35,7 @@ router.get('/facebook/callback',
 router.put('/profile',           requireAuth, updateProfile);
 router.put('/password',          requireAuth, changePassword);
 router.put('/avatar',            requireAuth, upload.single('avatar'), updateAvatar);
+router.delete('/avatar',         requireAuth, deleteAvatar);
 router.get('/my-uploads',        requireAuth, getMyUploads);
 
 // ── Admin: User Management ────────────────────────────────────────

@@ -1,4 +1,5 @@
 const Album = require('../models/Album');
+const { deleteFromCloudinary } = require('../config/cloudinary');
 
 exports.getAlbums = async (req, res) => {
   try {
@@ -45,6 +46,12 @@ exports.updateAlbum = async (req, res) => {
     if (!name || !artist) {
       return res.status(400).json({ success: false, message: 'Name and Artist are required' });
     }
+
+    const oldAlbum = await Album.getById(req.params.id);
+    if (oldAlbum && cover_url && oldAlbum.cover_url !== cover_url) {
+      await deleteFromCloudinary(oldAlbum.cover_url);
+    }
+
     if (typeof trackIds === 'string') {
       try {
         trackIds = JSON.parse(trackIds);
@@ -62,6 +69,10 @@ exports.updateAlbum = async (req, res) => {
 
 exports.deleteAlbum = async (req, res) => {
   try {
+    const album = await Album.getById(req.params.id);
+    if (album && album.cover_url) {
+      await deleteFromCloudinary(album.cover_url);
+    }
     await Album.delete(req.params.id);
     res.json({ success: true, message: 'Album deleted successfully' });
   } catch (err) {

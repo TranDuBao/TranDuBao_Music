@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
 import { useMusicStore } from '../store/useMusicStore';
+import { useModalStore } from '../store/useModalStore';
 import Avatar from '../components/Avatar';
 import axios from 'axios';
 import {
@@ -76,6 +77,7 @@ function ProfileHeader({ user, token, authH }: any) {
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar_url || '');
   const { initAuth } = useAuthStore();
+  const { showConfirm, showAlert } = useModalStore();
 
   useEffect(() => {
     setAvatarUrl(user.avatar_url || '');
@@ -94,12 +96,37 @@ function ProfileHeader({ user, token, authH }: any) {
       if (data.success) {
         setAvatarUrl(data.avatar_url);
         await initAuth();
+        showAlert('Thành công', 'Đã cập nhật ảnh đại diện mới!', 'success');
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Không thể cập nhật ảnh đại diện');
+      showAlert('Lỗi', err.response?.data?.message || 'Không thể cập nhật ảnh đại diện', 'error');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleAvatarDelete = () => {
+    showConfirm(
+      'Xóa ảnh đại diện',
+      'Bạn có chắc chắn muốn xóa ảnh đại diện hiện tại không?',
+      async () => {
+        setUploading(true);
+        try {
+          const { data } = await axios.delete(`${API}/auth/avatar`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (data.success) {
+            setAvatarUrl('');
+            await initAuth();
+            showAlert('Thành công', 'Đã xóa ảnh đại diện thành công!', 'success');
+          }
+        } catch (err: any) {
+          showAlert('Lỗi', err.response?.data?.message || 'Không thể xóa ảnh đại diện', 'error');
+        } finally {
+          setUploading(false);
+        }
+      }
+    );
   };
 
   return (
@@ -111,10 +138,23 @@ function ProfileHeader({ user, token, authH }: any) {
         <div className="w-28 h-28 rounded-full overflow-hidden bg-zinc-900 border-4 border-purple-500/20 shadow-xl relative group flex items-center justify-center">
           <Avatar src={avatarUrl} name={user.name} className="w-full h-full" />
         </div>
+        
+        {avatarUrl && (
+          <button
+            onClick={handleAvatarDelete}
+            disabled={uploading}
+            className="absolute bottom-1 left-1 w-9 h-9 bg-rose-600/90 hover:bg-rose-600 hover:scale-105 active:scale-95 rounded-full flex items-center justify-center border-4 border-zinc-950 shadow-lg transition-all cursor-pointer text-white"
+            title="Xóa ảnh đại diện"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           className="absolute bottom-1 right-1 w-9 h-9 bg-gradient-to-tr from-purple-600 to-pink-500 hover:scale-105 active:scale-95 rounded-full flex items-center justify-center border-4 border-zinc-950 shadow-lg transition-all cursor-pointer"
+          title="Thay đổi ảnh đại diện"
         >
           {uploading ? (
             <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />

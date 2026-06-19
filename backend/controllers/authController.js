@@ -247,10 +247,30 @@ const changePassword = async (req, res) => {
 const updateAvatar = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+
+    const user = await User.findById(req.user.id);
+    if (user && user.avatar_url) {
+      await deleteFromCloudinary(user.avatar_url);
+    }
+
     const avatarUrl = await uploadToCloudinary(req.file.path, 'music-stream/avatars');
     await require('../config/db').query('UPDATE users SET avatar_url=? WHERE id=?', [avatarUrl, req.user.id]);
     res.json({ success: true, avatar_url: avatarUrl });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+};
+
+// User: delete avatar
+const deleteAvatar = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user && user.avatar_url) {
+      await deleteFromCloudinary(user.avatar_url);
+    }
+    await require('../config/db').query('UPDATE users SET avatar_url=NULL WHERE id=?', [req.user.id]);
+    res.json({ success: true, message: 'Avatar deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 // User: get uploads (tracks uploaded by current user)
@@ -265,6 +285,6 @@ const getMyUploads = async (req, res) => {
 module.exports = {
   passport, register, login, getMe, oauthCallback,
   getAllUsers, updateUserRole, deleteUser, banUser,
-  updateProfile, changePassword, updateAvatar, getMyUploads
+  updateProfile, changePassword, updateAvatar, deleteAvatar, getMyUploads
 };
 

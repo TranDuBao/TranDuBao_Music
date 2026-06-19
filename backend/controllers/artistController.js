@@ -1,5 +1,5 @@
 const { query } = require('../config/db');
-const { uploadToCloudinary } = require('../config/cloudinary');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 
 const GLOW_CLASSES = [
   'group-hover:shadow-[0_0_30px_rgba(168,85,247,0.35)] group-hover:border-purple-500/30',
@@ -51,6 +51,10 @@ const createArtist = async (req, res) => {
 const deleteArtist = async (req, res) => {
   try {
     const { id } = req.params;
+    const artist = await query('SELECT image_url FROM featured_artists WHERE id = ?', [id]);
+    if (artist && artist.length > 0) {
+      await deleteFromCloudinary(artist[0].image_url);
+    }
     await query('DELETE FROM featured_artists WHERE id = ?', [id]);
     res.json({ success: true, message: 'Artist deleted successfully' });
   } catch (err) {
@@ -74,6 +78,7 @@ const updateArtist = async (req, res) => {
 
     let image_url = artist[0].image_url;
     if (req.file) {
+      await deleteFromCloudinary(artist[0].image_url);
       image_url = await uploadToCloudinary(req.file.path, 'music-stream/artists');
     } else if (bodyImageUrl !== undefined) {
       image_url = bodyImageUrl;

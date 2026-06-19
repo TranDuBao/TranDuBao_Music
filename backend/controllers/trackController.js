@@ -163,6 +163,14 @@ const deleteTrack = async (req, res) => {
     if (track.user_id && track.user_id !== req.user?.id && req.user?.role !== 'admin')
       return res.status(403).json({ success: false, message: 'Forbidden' });
 
+    // Delete audio and cover files from Cloudinary
+    if (track.audio_url) {
+      await deleteFromCloudinary(track.audio_url);
+    }
+    if (track.cover_url) {
+      await deleteFromCloudinary(track.cover_url);
+    }
+
     await Track.delete(req.params.id);
     res.json({ success: true, message: 'Track deleted' });
   } catch (err) {
