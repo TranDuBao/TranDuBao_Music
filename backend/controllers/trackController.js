@@ -394,9 +394,11 @@ const importTrack = async (req, res) => {
       return res.status(400).json({ success: false, message: 'URL là bắt buộc' });
     }
 
-    // ── YouTube URL: use oEmbed to get metadata (fast, never blocked) ─
+    // ── YouTube or SoundCloud URL: use oEmbed to get metadata (fast, never blocked) ─
     const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-    if (!isYouTube) {
+    const isSoundCloud = url.includes('soundcloud.com');
+
+    if (!isYouTube && !isSoundCloud) {
       // Direct audio file URL (mp3, wav, Deezer preview, etc.)
       const title  = req.body.title  || 'Imported Audio';
       const artist = req.body.artist || 'Unknown Artist';
@@ -421,10 +423,15 @@ const importTrack = async (req, res) => {
       return res.status(201).json({ success: true, data: newTrack });
     }
 
-    // ── YouTube oEmbed (no API key, no yt-dlp, instant) ──────────────
+    // ── oEmbed Extraction (no API key, instant) ──────────────
     let title, artist, cover_url, duration;
     try {
-      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      let oembedUrl;
+      if (isYouTube) {
+        oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      } else {
+        oembedUrl = `https://soundcloud.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      }
       console.log(`[Import] Fetching oEmbed: ${oembedUrl}`);
       const oRes = await fetch(oembedUrl);
       if (!oRes.ok) throw new Error(`oEmbed HTTP ${oRes.status}`);
@@ -432,13 +439,13 @@ const importTrack = async (req, res) => {
       title    = data.title          || 'Imported Audio';
       artist   = data.author_name    || 'Unknown Artist';
       cover_url = data.thumbnail_url || '';
-      duration = 180; // oEmbed doesn't return duration — frontend gets it from YT player
+      duration = 180; // oEmbed doesn't return duration — frontend gets it from player or backend extracts
       console.log(`[Import] oEmbed OK: "${title}" by "${artist}"`);
     } catch (err) {
       console.error('[Import] oEmbed failed:', err.message);
       return res.status(400).json({
         success: false,
-        message: `Không thể lấy thông tin bài hát từ YouTube. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
+        message: `Không thể lấy thông tin bài hát từ URL. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
       });
     }
 
@@ -451,13 +458,13 @@ const importTrack = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
     }
 
-    // ── Save track with original YouTube URL ─────────────────────────
+    // ── Save track with original YouTube / SoundCloud URL ─────────────
     const newTrack = await Track.create({
       title, artist,
-      album: 'YouTube',
+      album: isYouTube ? 'YouTube' : 'SoundCloud',
       duration,
       cover_url,
-      audio_url: url, // frontend plays via YouTube IFrame API
+      audio_url: url,
       genre,
       is_public: Number(is_public),
       user_id: req.user?.id || null,
@@ -483,7 +490,7 @@ const streamTrack = async (req, res) => {
     }
 
     const url = track.audio_url;
-    if (url.includes('youtube.com') || url.includes('youtu.be') || url.startsWith('youtube:')) {
+    if (url.includes('youtube.com') || url.includes('youtu.be') || url.startsWith('youtube:') || url.includes('soundcloud.com')) {
       const now = Date.now();
       // Check cache first
       const cached = streamCache.get(track.id);

@@ -604,8 +604,12 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
 
     } else {
       if (!activeAudio) return;
-      console.log(`[Player] Playing standard audio stream: ${track.audio_url}`);
-      activeAudio.src = getAbsoluteUrl(track.audio_url);
+      let finalUrl = track.audio_url;
+      if (finalUrl && finalUrl.includes('soundcloud.com')) {
+        finalUrl = `${API_BASE}/tracks/${track.id}/stream`;
+      }
+      console.log(`[Player] Playing standard audio stream: ${finalUrl}`);
+      activeAudio.src = getAbsoluteUrl(finalUrl);
       activeAudio.play().then(() => {
         set({
           currentTrack: track,

@@ -188,7 +188,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
   const TABS: { key: UploadMode; label: string }[] = [
     { key: 'search', label: '🔍 Tìm kiếm' },
-    { key: 'url',    label: '🔗 YouTube / URL' },
+    { key: 'url',    label: '🔗 YouTube / SoundCloud' },
     { key: 'file',   label: '📁 Tải file lên' },
   ];
 
@@ -315,12 +315,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           {uploadMode === 'url' && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Đường dẫn YouTube hoặc link audio</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Đường dẫn YouTube, SoundCloud hoặc link audio trực tiếp</label>
                 <div className="relative">
                   <input
                     type="url"
                     required
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder="https://youtube.com/watch?v=... hoặc https://soundcloud.com/..."
                     value={importUrl}
                     onChange={e => setImportUrl(e.target.value)}
                     className="w-full bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg pl-10 pr-3 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-600"
@@ -328,7 +328,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <Link2 className="absolute left-3 top-3 w-4 h-4 text-zinc-500" />
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1.5">
-                  YouTube URL → thông tin được lấy tự động qua oEmbed, nhạc phát qua YouTube Player. Link mp3 trực tiếp cũng được.
+                  Nhập link YouTube hoặc SoundCloud để tự động lấy tên bài hát, ca sĩ và ảnh bìa. Nhạc sẽ được phát trực tuyến mượt mà.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
