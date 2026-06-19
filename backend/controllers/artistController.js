@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 const GLOW_CLASSES = [
   'group-hover:shadow-[0_0_30px_rgba(168,85,247,0.35)] group-hover:border-purple-500/30',
@@ -26,7 +27,7 @@ const createArtist = async (req, res) => {
 
     let image_url = bodyImageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500';
     if (req.file) {
-      image_url = `/uploads/img/${req.file.filename}`;
+      image_url = await uploadToCloudinary(req.file.path, 'music-stream/artists');
     }
 
     // Pick a glow class randomly
@@ -73,7 +74,7 @@ const updateArtist = async (req, res) => {
 
     let image_url = artist[0].image_url;
     if (req.file) {
-      image_url = `/uploads/img/${req.file.filename}`;
+      image_url = await uploadToCloudinary(req.file.path, 'music-stream/artists');
     } else if (bodyImageUrl !== undefined) {
       image_url = bodyImageUrl;
     }

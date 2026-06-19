@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 const getBannerSlides = async (req, res) => {
   try {
@@ -15,7 +16,7 @@ const createBannerSlide = async (req, res) => {
     let image_url = bodyImageUrl;
 
     if (req.file) {
-      image_url = `/uploads/img/${req.file.filename}`;
+      image_url = await uploadToCloudinary(req.file.path, 'music-stream/banners');
     }
 
     if (!image_url) {
@@ -60,7 +61,7 @@ const updateBackground = async (req, res) => {
     let value = bodyBgUrl;
 
     if (req.file) {
-      value = `/uploads/img/${req.file.filename}`;
+      value = await uploadToCloudinary(req.file.path, 'music-stream/backgrounds');
     }
 
     if (value === undefined) {

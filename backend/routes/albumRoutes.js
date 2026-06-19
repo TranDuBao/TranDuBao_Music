@@ -4,6 +4,8 @@ const albumController = require('../controllers/albumController');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
+const { uploadToCloudinary } = require('../config/cloudinary');
+
 // Public endpoints
 router.get('/', albumController.getAlbums);
 router.get('/:id', albumController.getAlbumById);
@@ -14,12 +16,15 @@ router.post(
   requireAuth,
   requireAdmin,
   upload.single('cover'),
-  (req, res, next) => {
-    // If a file is uploaded, set cover_url to its server path
-    if (req.file) {
-      req.body.cover_url = `/uploads/img/${req.file.filename}`;
+  async (req, res, next) => {
+    try {
+      if (req.file) {
+        req.body.cover_url = await uploadToCloudinary(req.file.path, 'music-stream/albums');
+      }
+      next();
+    } catch (err) {
+      next(err);
     }
-    next();
   },
   albumController.createAlbum
 );
@@ -29,12 +34,15 @@ router.put(
   requireAuth,
   requireAdmin,
   upload.single('cover'),
-  (req, res, next) => {
-    // If a file is uploaded, set cover_url to its server path
-    if (req.file) {
-      req.body.cover_url = `/uploads/img/${req.file.filename}`;
+  async (req, res, next) => {
+    try {
+      if (req.file) {
+        req.body.cover_url = await uploadToCloudinary(req.file.path, 'music-stream/albums');
+      }
+      next();
+    } catch (err) {
+      next(err);
     }
-    next();
   },
   albumController.updateAlbum
 );

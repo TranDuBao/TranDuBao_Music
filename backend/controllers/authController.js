@@ -4,6 +4,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
 const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 // ── Passport Google Strategy ─────────────────────────────────────
 const setupGoogleStrategy = () => {
@@ -246,10 +247,9 @@ const changePassword = async (req, res) => {
 const updateAvatar = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
-    const avatarUrl = `/uploads/img/${req.file.filename}`;
+    const avatarUrl = await uploadToCloudinary(req.file.path, 'music-stream/avatars');
     await require('../config/db').query('UPDATE users SET avatar_url=? WHERE id=?', [avatarUrl, req.user.id]);
-    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
-    res.json({ success: true, avatar_url: `${backendUrl}${avatarUrl}` });
+    res.json({ success: true, avatar_url: avatarUrl });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 

@@ -3,6 +3,7 @@ const fs = require('fs');
 const { execFile } = require('child_process');
 const Track = require('../models/Track');
 const { query, dbType } = require('../config/db');
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 const isWindows = process.platform === 'win32';
 const ytDlpPath = isWindows
@@ -115,10 +116,10 @@ const createTrack = async (req, res) => {
 
     // Handle file uploads
     if (req.files?.audio?.[0]) {
-      audio_url = `/uploads/audio/${req.files.audio[0].filename}`;
+      audio_url = await uploadToCloudinary(req.files.audio[0].path, 'music-stream/audio');
     }
     if (req.files?.cover?.[0]) {
-      cover_url = `/uploads/img/${req.files.cover[0].filename}`;
+      cover_url = await uploadToCloudinary(req.files.cover[0].path, 'music-stream/covers');
     }
 
     if (!audio_url)
