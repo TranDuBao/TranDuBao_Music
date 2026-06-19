@@ -31,6 +31,32 @@ const initDb = async () => {
       if (tables && tables.length > 0) {
         console.log('MySQL database is already initialized.');
         
+        // ── Migration: Ensure 'backdrops' table exists for MySQL ──
+        try {
+          const backdropTable = await query("SHOW TABLES LIKE 'backdrops'");
+          if (!backdropTable || backdropTable.length === 0) {
+            console.log('Migrating: Creating backdrops table for MySQL...');
+            await query(`CREATE TABLE IF NOT EXISTS backdrops (
+              id          INT AUTO_INCREMENT PRIMARY KEY,
+              image_url   VARCHAR(500) NOT NULL,
+              created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+            // Seed default backdrops
+            const defaultBackdrops = [
+              'http://localhost:1005/uploads/img/the_weeknd.png',
+              'http://localhost:1005/uploads/img/banner_slide_2.png',
+              'http://localhost:1005/uploads/img/banner_slide_3.png'
+            ];
+            for (const url of defaultBackdrops) {
+              await query("INSERT INTO backdrops (image_url) VALUES (?)", [url]);
+            }
+            console.log('Migrating: Seeded default backdrops for MySQL.');
+          }
+        } catch (migErr) {
+          console.error('Failed to migrate backdrops table for MySQL:', migErr.message);
+        }
+
         // Auto-fix PHP $2y$ password hashes for seeded users if they exist in DB
         try {
           const phpUsers = await query("SELECT id, email FROM users WHERE password_hash LIKE '$2y$%'");

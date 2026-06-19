@@ -134,6 +134,13 @@ CREATE TABLE IF NOT EXISTS banner_slides (
     created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ── Backdrops ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS backdrops (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    image_url   VARCHAR(500) NOT NULL,
+    created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ── Settings ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS settings (
     `key`       VARCHAR(255) PRIMARY KEY,
@@ -170,6 +177,12 @@ INSERT IGNORE INTO banner_slides (id, image_url) VALUES
 (3, 'http://localhost:5000/uploads/img/banner_slide_3.png'),
 (4, 'http://localhost:5000/uploads/img/banner_slide_4.png'),
 (5, 'http://localhost:5000/uploads/img/banner_slide_5.png');
+
+-- ── Seed: Backdrops ───────────────────────────────────────────
+INSERT IGNORE INTO backdrops (id, image_url) VALUES
+(1, 'http://localhost:5000/uploads/img/the_weeknd.png'),
+(2, 'http://localhost:5000/uploads/img/banner_slide_2.png'),
+(3, 'http://localhost:5000/uploads/img/banner_slide_3.png');
 
 -- ── Seed: Settings ─────────────────────────────────────────────
 INSERT IGNORE INTO settings (`key`, `value`) VALUES
