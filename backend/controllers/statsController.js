@@ -6,7 +6,7 @@ const Favorite = require('../models/Favorite');
 const getStats = async (req, res) => {
   try {
     const [userStats]  = await query("SELECT COUNT(*) as total FROM users");
-    const [trackStats] = await query("SELECT COUNT(*) as total, SUM(play_count) as plays FROM tracks");
+    const [trackStats] = await query("SELECT COUNT(*) as total, COALESCE(SUM(play_count),0) as plays FROM tracks");
     const [favStats]   = await query("SELECT COUNT(*) as total FROM favorites");
     const [ratingStats]= await query("SELECT COUNT(*) as total, AVG(rating) as avg FROM ratings");
 
@@ -18,30 +18,39 @@ const getStats = async (req, res) => {
     const dailyPlays = await PlayHistory.getDailyStats(7);
     const recentActivity = await PlayHistory.getRecentGlobal(15);
 
-    // Grouping by the actual category names (phân loại nhạc) including all categories and category color
-    const genreStats = await query(`
+    // Compatible with both MySQL and SQLite — no UNION ALL with NULL int issues
+    // Tracks with a category
+    const withCat = await query(`
       SELECT 
         c.id as categoryId,
-        c.name as genre, 
+        c.name as genre,
         c.color,
-        COUNT(t.id) as count, 
+        COUNT(t.id) as count,
         COALESCE(SUM(t.play_count), 0) as plays
       FROM categories c
       LEFT JOIN tracks t ON t.category_id = c.id
       GROUP BY c.id, c.name, c.color
-      
-      UNION ALL
-      
-      SELECT 
-        NULL as categoryId,
-        'Chưa phân loại' as genre, 
-        '#71717a' as color,
-        COUNT(t.id) as count, 
-        COALESCE(SUM(t.play_count), 0) as plays
-      FROM tracks t
-      WHERE t.category_id IS NULL
-      
       ORDER BY plays DESC`);
+
+    // Tracks without a category
+    const [noCat] = await query(`
+      SELECT 
+        COUNT(*) as count,
+        COALESCE(SUM(play_count), 0) as plays
+      FROM tracks
+      WHERE category_id IS NULL`);
+
+    const genreStats = [...withCat];
+    if (noCat && Number(noCat.count) > 0) {
+      genreStats.push({
+        categoryId: null,
+        genre: 'Chưa phân loại',
+        color: '#71717a',
+        count: noCat.count,
+        plays: noCat.plays
+      });
+    }
+    genreStats.sort((a, b) => Number(b.plays) - Number(a.plays));
 
     const favoriteStats = await Favorite.getStats();
 
@@ -62,10 +71,14 @@ const getStats = async (req, res) => {
         favoriteStats,
       }
     });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) {
+    console.error('[Stats] ERROR:', e.message, '\nStack:', e.stack);
+    res.status(500).json({ success: false, message: e.message });
+  }
 };
 
 const getPlayHistoryStats = async (req, res) => {
+
   try {
     const { view = 'day', date, startDate, endDate } = req.query;
 
