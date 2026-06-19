@@ -430,7 +430,13 @@ const importTrack = async (req, res) => {
       if (isYouTube) {
         oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
       } else {
-        oembedUrl = `https://soundcloud.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+        // Strip query parameters for SoundCloud oEmbed to prevent 404s
+        let cleanSoundCloudUrl = url.trim();
+        const qIdx = cleanSoundCloudUrl.indexOf('?');
+        if (qIdx !== -1) {
+          cleanSoundCloudUrl = cleanSoundCloudUrl.substring(0, qIdx);
+        }
+        oembedUrl = `https://soundcloud.com/oembed?url=${encodeURIComponent(cleanSoundCloudUrl)}&format=json`;
       }
       console.log(`[Import] Fetching oEmbed: ${oembedUrl}`);
       const oRes = await fetch(oembedUrl);
@@ -442,11 +448,26 @@ const importTrack = async (req, res) => {
       duration = 180; // oEmbed doesn't return duration — frontend gets it from player or backend extracts
       console.log(`[Import] oEmbed OK: "${title}" by "${artist}"`);
     } catch (err) {
-      console.error('[Import] oEmbed failed:', err.message);
-      return res.status(400).json({
-        success: false,
-        message: `Không thể lấy thông tin bài hát từ URL. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
-      });
+      console.warn('[Import] oEmbed failed, trying yt-dlp fallback:', err.message);
+      try {
+        const { stdout } = await runYtDlp(['--dump-json', '--no-playlist', '--no-warnings', url], 15000);
+        if (stdout && stdout.trim()) {
+          const data = JSON.parse(stdout.trim());
+          title = data.title || 'Imported Audio';
+          artist = data.uploader || data.artist || 'Unknown Artist';
+          cover_url = data.thumbnail || '';
+          duration = Math.floor(Number(data.duration)) || 180;
+          console.log(`[Import] yt-dlp metadata fallback OK: "${title}" by "${artist}"`);
+        } else {
+          throw new Error('Empty stdout from yt-dlp');
+        }
+      } catch (fallbackErr) {
+        console.error('[Import] Both oEmbed and yt-dlp fallback failed:', fallbackErr.message);
+        return res.status(400).json({
+          success: false,
+          message: `Không thể lấy thông tin bài hát từ URL. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
+        });
+      }
     }
 
     // ── Duplicate check ───────────────────────────────────────────────
