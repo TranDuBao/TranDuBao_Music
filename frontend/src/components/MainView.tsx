@@ -29,7 +29,7 @@ interface MainViewProps {
 
 export default function MainView({ view, setView, onUploadClick }: MainViewProps) {
   const { t, i18n } = useTranslation();
-  const { tracks, currentPlaylist, currentPlaylistTracks, searchQuery, setSearchQuery, fetchTracks, playTrack } = useMusicStore();
+  const { tracks, currentPlaylist, currentPlaylistTracks, searchQuery, setSearchQuery, fetchTracks, playTrack, currentTrack } = useMusicStore();
   const { user } = useAuthStore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -284,15 +284,13 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 
   return (
     <main ref={mainRef as any} className="flex-1 flex flex-col h-full overflow-y-auto pb-32 relative">
-      {/* Background Image of Singer - Brighter and dynamic */}
-      {backgroundImageUrl && (
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-[0.15] pointer-events-none transition-all duration-1000"
-          style={{ backgroundImage: `url('${backgroundImageUrl}')` }}
-        />
-      )}
+      {/* Background Image - Fixed position, blurred and dynamic transition */}
+      <div
+        className="fixed inset-0 bg-cover bg-center opacity-[0.22] blur-[80px] pointer-events-none transition-all duration-1000 ease-in-out scale-110 z-0"
+        style={{ backgroundImage: `url('${currentTrack?.cover_url ? getAbsoluteUrl(currentTrack.cover_url) : backgroundImageUrl}')` }}
+      />
       {/* Dark Overlay to fade background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/20 to-zinc-950 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-b from-zinc-950/20 via-zinc-950/80 to-zinc-950 pointer-events-none z-0" />
 
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} setView={setView} />
 
