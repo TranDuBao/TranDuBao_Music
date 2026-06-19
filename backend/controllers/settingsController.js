@@ -3,7 +3,7 @@ const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudina
 
 const getBannerSlides = async (req, res) => {
   try {
-    const data = await query('SELECT * FROM banner_slides ORDER BY id DESC');
+    const data = await query('SELECT * FROM banner_slides ORDER BY position ASC, id DESC');
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -126,7 +126,7 @@ const updateYoutubeCookies = async (req, res) => {
 
 const getBackdrops = async (req, res) => {
   try {
-    const data = await query("SELECT * FROM backdrops ORDER BY id DESC");
+    const data = await query("SELECT * FROM backdrops ORDER BY position ASC, id DESC");
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -172,6 +172,38 @@ const deleteBackdrop = async (req, res) => {
   }
 };
 
+const reorderBannerSlides = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+      return res.status(400).json({ success: false, message: 'Invalid list of IDs' });
+    }
+    for (let index = 0; index < ids.length; index++) {
+      const id = ids[index];
+      await query('UPDATE banner_slides SET position = ? WHERE id = ?', [index, id]);
+    }
+    res.json({ success: true, message: 'Banner slides reordered successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const reorderBackdrops = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+      return res.status(400).json({ success: false, message: 'Invalid list of IDs' });
+    }
+    for (let index = 0; index < ids.length; index++) {
+      const id = ids[index];
+      await query('UPDATE backdrops SET position = ? WHERE id = ?', [index, id]);
+    }
+    res.json({ success: true, message: 'Backdrops reordered successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getBannerSlides,
   createBannerSlide,
@@ -182,5 +214,7 @@ module.exports = {
   createBackdrop,
   deleteBackdrop,
   getYoutubeCookies,
-  updateYoutubeCookies
+  updateYoutubeCookies,
+  reorderBannerSlides,
+  reorderBackdrops
 };

@@ -39,6 +39,7 @@ const initDb = async () => {
             await query(`CREATE TABLE IF NOT EXISTS backdrops (
               id          INT AUTO_INCREMENT PRIMARY KEY,
               image_url   VARCHAR(500) NOT NULL,
+              position    INT DEFAULT 0,
               created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
@@ -52,10 +53,16 @@ const initDb = async () => {
               await query("INSERT INTO backdrops (image_url) VALUES (?)", [url]);
             }
             console.log('Migrating: Seeded default backdrops for MySQL.');
+          } else {
+            // Ensure position column exists if table already existed
+            try { await query("ALTER TABLE backdrops ADD COLUMN position INT DEFAULT 0"); } catch (_) {}
           }
         } catch (migErr) {
           console.error('Failed to migrate backdrops table for MySQL:', migErr.message);
         }
+
+        // Ensure position column exists for banner_slides in MySQL
+        try { await query("ALTER TABLE banner_slides ADD COLUMN position INT DEFAULT 0"); } catch (_) {}
 
         // Auto-fix PHP $2y$ password hashes for seeded users if they exist in DB
         try {
@@ -220,6 +227,7 @@ const initDb = async () => {
     await query(`CREATE TABLE IF NOT EXISTS banner_slides (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       image_url   TEXT    NOT NULL,
+      position    INTEGER DEFAULT 0,
       created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
@@ -227,8 +235,13 @@ const initDb = async () => {
     await query(`CREATE TABLE IF NOT EXISTS backdrops (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       image_url   TEXT    NOT NULL,
+      position    INTEGER DEFAULT 0,
       created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // Ensure position column exists in existing SQLite tables
+    try { await query("ALTER TABLE banner_slides ADD COLUMN position INTEGER DEFAULT 0"); } catch (_) { }
+    try { await query("ALTER TABLE backdrops ADD COLUMN position INTEGER DEFAULT 0"); } catch (_) { }
 
     // ── Albums ────────────────────────────────────────────────────
     await query(`CREATE TABLE IF NOT EXISTS albums (

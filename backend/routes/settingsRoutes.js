@@ -25,6 +25,13 @@ router.delete(
   settingsController.deleteBannerSlide
 );
 
+router.put(
+  '/banner-slides/reorder',
+  requireAuth,
+  requireAdmin,
+  settingsController.reorderBannerSlides
+);
+
 router.post(
   '/background',
   requireAuth,
@@ -46,6 +53,13 @@ router.delete(
   requireAuth,
   requireAdmin,
   settingsController.deleteBackdrop
+);
+
+router.put(
+  '/backdrops/reorder',
+  requireAuth,
+  requireAdmin,
+  settingsController.reorderBackdrops
 );
 
 router.get(

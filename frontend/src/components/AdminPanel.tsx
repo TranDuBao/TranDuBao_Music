@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
-import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, RefreshCw, Plus, Edit2, Star, Heart, TrendingUp, Lock, Unlock, Disc, Calendar, Clock } from 'lucide-react';
+import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, RefreshCw, Plus, Edit2, Star, Heart, TrendingUp, Lock, Unlock, Disc, Calendar, Clock, GripVertical } from 'lucide-react';
 import axios from 'axios';
 import { useModalStore } from '../store/useModalStore';
 import ImageUploadWithCrop from './ImageUploadWithCrop';
@@ -1632,6 +1632,57 @@ function SettingsTab({ authH }: any) {
   const [youtubeCookies, setYoutubeCookies] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Drag and Drop reordering state
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [draggedType, setDraggedType] = useState<'backdrop' | 'banner' | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number, type: 'backdrop' | 'banner') => {
+    setDraggedIdx(index);
+    setDraggedType(type);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number, type: 'backdrop' | 'banner') => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedType !== type || draggedIdx === index) return;
+
+    if (type === 'backdrop') {
+      const list = [...backdrops];
+      const draggedItem = list[draggedIdx];
+      list.splice(draggedIdx, 1);
+      list.splice(index, 0, draggedItem);
+      setBackdrops(list);
+      setDraggedIdx(index);
+    } else {
+      const list = [...bannerSlides];
+      const draggedItem = list[draggedIdx];
+      list.splice(draggedIdx, 1);
+      list.splice(index, 0, draggedItem);
+      setBannerSlides(list);
+      setDraggedIdx(index);
+    }
+  };
+
+  const handleDragEnd = async (type: 'backdrop' | 'banner') => {
+    setDraggedIdx(null);
+    setDraggedType(null);
+    try {
+      if (type === 'backdrop') {
+        const ids = backdrops.map(b => b.id);
+        await axios.put(`${API}/settings/backdrops/reorder`, { ids }, { headers: authH });
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Cập nhật thứ tự hình nền thành công!' : 'Backdrop order updated successfully!', 'success');
+        window.dispatchEvent(new CustomEvent('reload-settings'));
+      } else {
+        const ids = bannerSlides.map(s => s.id);
+        await axios.put(`${API}/settings/banner-slides/reorder`, { ids }, { headers: authH });
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Cập nhật thứ tự banner thành công!' : 'Banner order updated successfully!', 'success');
+        window.dispatchEvent(new CustomEvent('reload-settings'));
+      }
+    } catch (err: any) {
+      showAlert(isVi ? 'Thất bại' : 'Failed', isVi ? 'Lỗi khi cập nhật thứ tự.' : 'Failed to update order.', 'error');
+    }
+  };
+
   // Form states for background (backdrop)
   const [bgFile, setBgFile] = useState<File | null>(null);
   const [bgUrl, setBgUrl] = useState('');
@@ -1812,12 +1863,37 @@ function SettingsTab({ authH }: any) {
           </p>
         </div>
 
+        {/* Hint for drag and drop */}
+        {backdrops.length > 0 && (
+          <p className="text-[11px] text-amber-500/90 bg-amber-500/5 border border-amber-500/10 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
+            💡 {isVi ? 'Nhấn giữ và kéo thả các ảnh để sắp xếp thứ tự hiển thị của hình nền trang chủ.' : 'Click and drag images to rearrange the home backdrop display order.'}
+          </p>
+        )}
+
         {/* List of current backdrops */}
         {backdrops.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {backdrops.map((item) => (
-              <div key={item.id} className="group relative aspect-[16/9] rounded-xl overflow-hidden border border-white/10 bg-zinc-900 shadow-md">
+            {backdrops.map((item, index) => (
+              <div
+                key={item.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index, 'backdrop')}
+                onDragOver={(e) => handleDragOver(e, index, 'backdrop')}
+                onDragEnd={() => handleDragEnd('backdrop')}
+                className={`group relative aspect-[16/9] rounded-xl overflow-hidden border bg-zinc-900 shadow-md cursor-grab active:cursor-grabbing transition-all duration-300 ${
+                  draggedIdx === index && draggedType === 'backdrop'
+                    ? 'opacity-40 border-amber-500 scale-95 z-50 shadow-amber-500/10'
+                    : 'border-white/10 hover:border-white/20'
+                }`}
+              >
                 <img src={getAbsoluteUrl(item.image_url)} alt="Backdrop" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                
+                {/* Drag Handle Indicator */}
+                <div className="absolute top-2 left-2 p-1 bg-black/60 rounded text-zinc-400 opacity-60 group-hover:opacity-100 transition-opacity flex items-center gap-1 pointer-events-none">
+                  <GripVertical className="w-3.5 h-3.5" />
+                  <span className="text-[9px] font-bold text-zinc-300">#{index + 1}</span>
+                </div>
+
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button
                     onClick={() => handleDeleteBackdrop(item.id)}
@@ -1957,19 +2033,44 @@ function SettingsTab({ authH }: any) {
 
         {/* Banner List */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold text-zinc-300">{isVi ? `Danh sách ảnh banner hiện tại (${bannerSlides.length})` : `Current banner image list (${bannerSlides.length})`}</h4>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h4 className="text-xs font-bold text-zinc-300">{isVi ? `Danh sách ảnh banner hiện tại (${bannerSlides.length})` : `Current banner image list (${bannerSlides.length})`}</h4>
+            {bannerSlides.length > 0 && (
+              <p className="text-[11px] text-amber-500/90 bg-amber-500/5 border border-amber-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 self-start">
+                💡 {isVi ? 'Nhấn giữ và kéo thả để thay đổi thứ tự trình chiếu slideshow.' : 'Click and drag to rearrange the slideshow sequence.'}
+              </p>
+            )}
+          </div>
           {bannerSlides.length === 0 ? (
             <p className="text-xs text-zinc-600">{isVi ? 'Chưa có ảnh banner nào. Hệ thống sẽ hiển thị các slide mặc định.' : 'No banner images yet. Default slides will be shown.'}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {bannerSlides.map(slide => (
-                <div key={slide.id} className="relative group rounded-xl overflow-hidden border border-white/5 bg-zinc-900 aspect-[16/9]">
+              {bannerSlides.map((slide, index) => (
+                <div
+                  key={slide.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index, 'banner')}
+                  onDragOver={(e) => handleDragOver(e, index, 'banner')}
+                  onDragEnd={() => handleDragEnd('banner')}
+                  className={`relative group rounded-xl overflow-hidden border bg-zinc-900 aspect-[16/9] cursor-grab active:cursor-grabbing transition-all duration-300 ${
+                    draggedIdx === index && draggedType === 'banner'
+                      ? 'opacity-40 border-amber-500 scale-95 z-50 shadow-amber-500/10'
+                      : 'border-white/5 hover:border-white/20'
+                  }`}
+                >
                   <img src={getAbsoluteUrl(slide.image_url)} alt="Banner slide" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-all duration-300" />
+                  
+                  {/* Drag Handle Indicator */}
+                  <div className="absolute top-2 left-2 p-1 bg-black/60 rounded text-zinc-400 opacity-60 group-hover:opacity-100 transition-opacity flex items-center gap-1 pointer-events-none">
+                    <GripVertical className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold text-zinc-300">#{index + 1}</span>
+                  </div>
+
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                     <div className="flex justify-end">
                       <button
                         onClick={() => handleDeleteBannerSlide(slide.id)}
-                        className="p-1.5 bg-red-600/95 hover:bg-red-500 text-white rounded-lg transition-all"
+                        className="p-1.5 bg-red-600/95 hover:bg-red-500 text-white rounded-lg transition-all cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
