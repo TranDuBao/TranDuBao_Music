@@ -82,7 +82,7 @@ interface MusicStore {
   resetPlayer: () => void;
 }
 
-import { API_BASE } from '../config';
+import { API_BASE, getAbsoluteUrl } from '../config';
 
 const getYoutubeVideoId = (url: string): string | null => {
   if (!url) return null;
@@ -564,10 +564,26 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           // Setup progress interval
           const interval = setInterval(() => {
             const p = get().ytPlayer;
-            if (p && typeof p.getCurrentTime === 'function') {
-              try {
-                set({ progress: p.getCurrentTime() });
-              } catch (_) {}
+            if (p) {
+              if (typeof p.getCurrentTime === 'function') {
+                try {
+                  set({ progress: p.getCurrentTime() });
+                } catch (_) {}
+              }
+              if (typeof p.getDuration === 'function') {
+                try {
+                  const ytDuration = Math.floor(p.getDuration());
+                  const currentTrack = get().currentTrack;
+                  if (ytDuration > 0 && currentTrack && currentTrack.duration !== ytDuration) {
+                    set({
+                      currentTrack: {
+                        ...currentTrack,
+                        duration: ytDuration
+                      }
+                    });
+                  }
+                } catch (_) {}
+              }
             }
           }, 500);
           set({ progressInterval: interval });
@@ -589,7 +605,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     } else {
       if (!activeAudio) return;
       console.log(`[Player] Playing standard audio stream: ${track.audio_url}`);
-      activeAudio.src = track.audio_url;
+      activeAudio.src = getAbsoluteUrl(track.audio_url);
       activeAudio.play().then(() => {
         set({
           currentTrack: track,

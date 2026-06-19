@@ -8,7 +8,7 @@ import {
   User, Lock, Clock, Music, ListMusic, Camera, Save,
   CheckCircle2, AlertCircle, Trash2, Play, Heart, ChevronRight, Eye, EyeOff
 } from 'lucide-react';
-import { API_BASE } from '../config';
+import { API_BASE, getAbsoluteUrl } from '../config';
 const API = API_BASE;
 
 type Tab = 'info' | 'security' | 'history' | 'uploads' | 'playlists';
@@ -322,7 +322,7 @@ function HistoryTab({ authH }: any) {
         {history.map((h, i) => (
           <div key={h.id} className="flex items-center gap-4 py-3 group hover:bg-white/[0.02] px-2 rounded-xl transition-all">
             <span className="text-xs text-zinc-600 w-5 text-center font-bold">{i+1}</span>
-            <img src={h.cover_url || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover border border-white/5" />
+            <img src={getAbsoluteUrl(h.cover_url) || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover border border-white/5" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-zinc-200 truncate">{h.title}</p>
               <p className="text-xs text-zinc-500 truncate mt-0.5">{h.artist}</p>
@@ -373,7 +373,7 @@ function UploadsTab({ authH }: any) {
         {tracks.map((t, i) => (
           <div key={t.id} className="flex items-center gap-3 p-3 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/[0.01] transition-all group">
             <span className="text-xs font-bold text-zinc-600 w-5 text-center">{i+1}</span>
-            <img src={t.cover_url || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover" />
+            <img src={getAbsoluteUrl(t.cover_url) || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-zinc-200 truncate">{t.title}</p>
               <p className="text-xs text-zinc-500 truncate mt-0.5">{t.artist} · <span className="text-zinc-600">{t.genre}</span></p>
@@ -469,7 +469,7 @@ function PlaylistsTab({ authH }: any) {
                   (tracks[pl.id] || []).map((t, i) => (
                     <div key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/[0.02] group">
                       <span className="text-xs text-zinc-600 w-4 font-bold">{i+1}</span>
-                      <img src={t.cover_url} className="w-9 h-9 rounded object-cover" />
+                      <img src={getAbsoluteUrl(t.cover_url)} className="w-9 h-9 rounded object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-zinc-300 truncate">{t.title}</p>
                         <p className="text-[10px] text-zinc-500 truncate mt-0.5">{t.artist}</p>

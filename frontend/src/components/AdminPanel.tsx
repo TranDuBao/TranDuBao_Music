@@ -5,7 +5,7 @@ import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, R
 import axios from 'axios';
 import { useModalStore } from '../store/useModalStore';
 import { formatCount, formatPlays, formatPlaysShort, formatDateLabel } from '../utils/format';
-import { API_BASE } from '../config';
+import { API_BASE, getAbsoluteUrl } from '../config';
 const API = API_BASE;
 type AdminTab = 'users' | 'tracks' | 'categories' | 'artists' | 'albums' | 'stats' | 'settings';
 
@@ -257,7 +257,7 @@ function UsersTab({ authH }: any) {
                 <div className={`w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center ${
                   isBanned(u) ? 'ring-1 ring-rose-500/40 opacity-60' : ''
                 }`}>
-                  {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-zinc-400">{u.name.charAt(0).toUpperCase()}</span>}
+                  {u.avatar_url ? <img src={getAbsoluteUrl(u.avatar_url)} className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-zinc-400">{u.name.charAt(0).toUpperCase()}</span>}
                 </div>
                 <div 
                   className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-zinc-950 ${
@@ -413,7 +413,7 @@ function TracksTab({ authH }: any) {
           {displayedTracks.map((t, i) => (
             <div key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] group">
               <span className="text-xs text-zinc-600 w-6 text-center">{i+1}</span>
-              <img src={t.cover_url || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-lg object-cover" />
+              <img src={getAbsoluteUrl(t.cover_url) || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-lg object-cover" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-zinc-200 truncate">{t.title}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -705,13 +705,25 @@ function CategoriesTab({ authH }: any) {
   };
   useEffect(() => { fetch(); }, []);
 
+  const { showConfirm, showAlert } = useModalStore();
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) { await axios.put(`${API}/categories/${editing}`, form, { headers: authH }); }
-    else { await axios.post(`${API}/categories`, form, { headers: authH }); }
-    setForm({ name:'', description:'', color:'#7c3aed', icon:'🎵' }); setEditing(null); fetch();
+    try {
+      if (editing) {
+        await axios.put(`${API}/categories/${editing}`, form, { headers: authH });
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Cập nhật danh mục thành công!' : 'Category updated successfully!', 'success');
+      } else {
+        await axios.post(`${API}/categories`, form, { headers: authH });
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Thêm danh mục mới thành công!' : 'Category created successfully!', 'success');
+      }
+      setForm({ name:'', description:'', color:'#7c3aed', icon:'🎵' });
+      setEditing(null);
+      fetch();
+    } catch (err: any) {
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi lưu danh mục' : 'An error occurred while saving the category'), 'error');
+    }
   };
-  const { showConfirm, showAlert } = useModalStore();
 
   const del = async (id: number) => {
     showConfirm(
@@ -955,7 +967,7 @@ function StatsTab({ authH }: any) {
               <div key={t.id} className="flex items-center gap-3">
                 <span className="text-[10px] text-zinc-600 w-5 text-right flex-shrink-0 font-bold">{i + 1}</span>
                 {t.cover_url ? (
-                  <img src={t.cover_url} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" alt="" />
+                  <img src={getAbsoluteUrl(t.cover_url)} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" alt="" />
                 ) : (
                   <div className="w-8 h-8 rounded-lg bg-zinc-800 flex-shrink-0 flex items-center justify-center">
                     <Music className="w-3.5 h-3.5 text-zinc-600" />
@@ -1028,7 +1040,7 @@ function StatsTab({ authH }: any) {
                 <div key={t.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03]">
                   <span className="text-[10px] text-zinc-600 w-4">{i + 1}</span>
                   {t.cover_url ? (
-                    <img src={t.cover_url} className="w-7 h-7 rounded-md object-cover flex-shrink-0" alt="" />
+                    <img src={getAbsoluteUrl(t.cover_url)} className="w-7 h-7 rounded-md object-cover flex-shrink-0" alt="" />
                   ) : (
                     <div className="w-7 h-7 rounded-md bg-zinc-800 flex-shrink-0 flex items-center justify-center">
                       <Music className="w-3 h-3 text-zinc-600" />
@@ -1080,6 +1092,7 @@ function StatsTab({ authH }: any) {
 function ArtistsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  const { showConfirm, showAlert } = useModalStore();
   const [artists, setArtists] = useState<any[]>([]);
   const [form, setForm] = useState({ name: '', genre: '', listeners: '', popular_track: '', bio: '' });
   const [file, setFile] = useState<File | null>(null);
@@ -1125,6 +1138,7 @@ function ArtistsTab({ authH }: any) {
       });
 
       if (data.success) {
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Thêm nghệ sĩ thành công!' : 'Artist added successfully!', 'success');
         setForm({ name: '', genre: '', listeners: '', popular_track: '', bio: '' });
         setFile(null);
         setImageUrl('');
@@ -1135,8 +1149,6 @@ function ArtistsTab({ authH }: any) {
       showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi thêm nghệ sĩ' : 'An error occurred while adding the artist'), 'error');
     }
   };
-
-  const { showConfirm, showAlert } = useModalStore();
 
   const del = async (id: number) => {
     showConfirm(
@@ -1234,7 +1246,7 @@ function ArtistsTab({ authH }: any) {
         <div className="divide-y divide-white/[0.03]">
           {artists.map((artist) => (
             <div key={artist.id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.01] group">
-              <img src={artist.image_url} alt={artist.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-white/5" />
+              <img src={getAbsoluteUrl(artist.image_url)} alt={artist.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-white/5" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-zinc-200">{artist.name}</span>
@@ -1261,6 +1273,7 @@ function ArtistsTab({ authH }: any) {
 function AlbumsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  const { showConfirm, showAlert } = useModalStore();
   const [albums, setAlbums] = useState<any[]>([]);
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1327,6 +1340,7 @@ function AlbumsTab({ authH }: any) {
       }
 
       if (res.data.success) {
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Lưu album thành công!' : 'Album saved successfully!', 'success');
         setForm({ name: '', artist: '', description: '', trackIds: [] });
         setFile(null);
         setImageUrl('');
@@ -1338,8 +1352,6 @@ function AlbumsTab({ authH }: any) {
       showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi lưu album' : 'An error occurred while saving the album'), 'error');
     }
   };
-
-  const { showConfirm, showAlert } = useModalStore();
 
   const del = async (id: number) => {
     showConfirm(
@@ -1508,7 +1520,7 @@ function AlbumsTab({ authH }: any) {
         <div className="divide-y divide-white/[0.03]">
           {albums.map((album) => (
             <div key={album.id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.01] group">
-              <img src={album.cover_url} alt={album.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-white/5" />
+              <img src={getAbsoluteUrl(album.cover_url)} alt={album.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-white/5" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-zinc-200">{album.name}</span>
@@ -1707,7 +1719,7 @@ function SettingsTab({ authH }: any) {
 
         {background && (
           <div className="relative w-full max-w-sm aspect-[21/9] rounded-xl overflow-hidden border border-white/10 bg-zinc-900">
-            <img src={background} alt="Current backdrop" className="w-full h-full object-cover opacity-70" />
+            <img src={getAbsoluteUrl(background)} alt="Current backdrop" className="w-full h-full object-cover opacity-70" />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
             <span className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-0.5 rounded text-zinc-400">
               {isVi ? 'Đang hiển thị' : 'Currently Displaying'}
@@ -1854,7 +1866,7 @@ function SettingsTab({ authH }: any) {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {bannerSlides.map(slide => (
                 <div key={slide.id} className="relative group rounded-xl overflow-hidden border border-white/5 bg-zinc-900 aspect-[16/9]">
-                  <img src={slide.image_url} alt="Banner slide" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-all duration-300" />
+                  <img src={getAbsoluteUrl(slide.image_url)} alt="Banner slide" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-all duration-300" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                     <div className="flex justify-end">
                       <button

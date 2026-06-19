@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getAbsoluteUrl } from '../config';
 
 interface AvatarProps {
   src?: string;
@@ -16,6 +17,8 @@ export default function Avatar({ src, name, className = 'w-8 h-8' }: AvatarProps
 
   const initials = name ? name.charAt(0).toUpperCase() : '?';
 
+  const absoluteSrc = getAbsoluteUrl(src);
+
   if (!src || error) {
     return (
       <div className={`${className} rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white font-bold text-xs select-none shadow-sm flex-shrink-0`}>
@@ -26,7 +29,7 @@ export default function Avatar({ src, name, className = 'w-8 h-8' }: AvatarProps
 
   return (
     <img
-      src={src}
+      src={absoluteSrc}
       alt={name}
       onError={() => setError(true)}
       className={`${className} rounded-full object-cover flex-shrink-0`}

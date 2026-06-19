@@ -115,12 +115,10 @@ const createTrack = async (req, res) => {
 
     // Handle file uploads
     if (req.files?.audio?.[0]) {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
-      audio_url = `${backendUrl}/uploads/audio/${req.files.audio[0].filename}`;
+      audio_url = `/uploads/audio/${req.files.audio[0].filename}`;
     }
     if (req.files?.cover?.[0]) {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
-      cover_url = `${backendUrl}/uploads/img/${req.files.cover[0].filename}`;
+      cover_url = `/uploads/img/${req.files.cover[0].filename}`;
     }
 
     if (!audio_url)

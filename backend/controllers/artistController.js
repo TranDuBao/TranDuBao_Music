@@ -26,8 +26,7 @@ const createArtist = async (req, res) => {
 
     let image_url = bodyImageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500';
     if (req.file) {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
-      image_url = `${backendUrl}/uploads/img/${req.file.filename}`;
+      image_url = `/uploads/img/${req.file.filename}`;
     }
 
     // Pick a glow class randomly

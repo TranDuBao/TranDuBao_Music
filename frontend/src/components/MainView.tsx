@@ -12,7 +12,7 @@ import AdminPanel from './AdminPanel';
 import UserProfilePage from '../pages/UserProfilePage';
 import FeaturedArtists from './FeaturedArtists';
 import { formatCount } from '../utils/format';
-import { BACKEND_URL, API_BASE } from '../config';
+import { BACKEND_URL, API_BASE, getAbsoluteUrl } from '../config';
 
 interface Album {
   name: string;
@@ -33,7 +33,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const { user } = useAuthStore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState(`${BACKEND_URL}/uploads/img/the_weeknd.png`);
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(getAbsoluteUrl('/uploads/img/the_weeknd.png'));
   const [bannerSlides, setBannerSlides] = useState<string[]>([
     `${BACKEND_URL}/uploads/img/banner_slide_1.png`,
     `${BACKEND_URL}/uploads/img/banner_slide_2.png`,
@@ -73,13 +73,13 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
       const bgRes = await fetch(`${API_BASE}/settings/background`);
       const bgData = await bgRes.json();
       if (bgData.success && bgData.value) {
-        setBackgroundImageUrl(bgData.value);
+        setBackgroundImageUrl(getAbsoluteUrl(bgData.value));
       }
 
       const slidesRes = await fetch(`${API_BASE}/settings/banner-slides`);
       const slidesData = await slidesRes.json();
       if (slidesData.success && slidesData.data) {
-        const urls = slidesData.data.map((item: any) => item.image_url);
+        const urls = slidesData.data.map((item: any) => getAbsoluteUrl(item.image_url));
         if (urls.length > 0) {
           setBannerSlides(urls);
         } else {
@@ -549,7 +549,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                   {/* Cover art */}
                   <div className="relative w-full aspect-square overflow-hidden bg-zinc-800">
                     {track.cover_url
-                      ? <img src={track.cover_url} alt={track.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      ? <img src={getAbsoluteUrl(track.cover_url)} alt={track.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       : <div className="w-full h-full flex items-center justify-center"><Music className="w-10 h-10 text-zinc-600" /></div>
                     }
                     {/* Play overlay */}
@@ -596,7 +596,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                   {/* Cover art */}
                   <div className="relative w-full aspect-square overflow-hidden bg-zinc-800">
                     {track.cover_url
-                      ? <img src={track.cover_url} alt={track.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      ? <img src={getAbsoluteUrl(track.cover_url)} alt={track.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       : <div className="w-full h-full flex items-center justify-center"><Music className="w-10 h-10 text-zinc-600" /></div>
                     }
                     {/* Play overlay */}
@@ -648,7 +648,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
                   {/* Album Cover */}
                   <div className="relative w-36 h-36 rounded-2xl overflow-hidden bg-zinc-900 border border-white/5 group-hover:border-purple-500/30 transition-all duration-300 shadow-lg group-hover:shadow-purple-500/10">
                     <img
-                      src={album.cover_url}
+                      src={getAbsoluteUrl(album.cover_url)}
                       alt={album.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />

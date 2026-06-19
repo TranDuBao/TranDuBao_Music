@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMusicStore } from '../store/useMusicStore';
 import type { Track } from '../store/useMusicStore';
 import { Play, Trash2, Plus, Music, Disc, Heart, GripVertical } from 'lucide-react';
+import { getAbsoluteUrl } from '../config';
 
 interface TrackRowProps {
   track: Track;
@@ -125,7 +126,7 @@ export default function TrackRow({
         {/* Cover Art */}
         <div className="w-11 h-11 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center relative flex-shrink-0 border border-white/5">
           {track.cover_url ? (
-            <img src={track.cover_url} alt={track.title} className="w-full h-full object-cover" />
+            <img src={getAbsoluteUrl(track.cover_url)} alt={track.title} className="w-full h-full object-cover" />
           ) : (
             <Music className="text-zinc-600 w-5 h-5" />
           )}

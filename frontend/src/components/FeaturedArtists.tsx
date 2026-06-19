@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users, Sparkles, Music2, Heart } from 'lucide-react';
-import { API_BASE } from '../config';
+import { API_BASE, getAbsoluteUrl } from '../config';
 
 interface Artist {
   id: number;
@@ -131,7 +131,7 @@ function ArtistCard({ artist, index, onClick }: { artist: Artist; index: number;
       {/* Left side: Image */}
       <div className="relative w-full md:w-[280px] h-[220px] md:h-auto flex-shrink-0 overflow-hidden">
         <img
-          src={artist.image_url}
+          src={getAbsoluteUrl(artist.image_url)}
           alt={artist.name}
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />

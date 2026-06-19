@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMusicStore } from '../store/useMusicStore';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Shuffle, Repeat, Repeat1, Disc } from 'lucide-react';
+import { getAbsoluteUrl } from '../config';
 
 export default function PlayerBar() {
   const { t } = useTranslation();
@@ -60,7 +61,7 @@ export default function PlayerBar() {
           <>
             <div className="w-14 h-14 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center">
               <img
-                src={currentTrack.cover_url}
+                src={getAbsoluteUrl(currentTrack.cover_url)}
                 alt={currentTrack.title}
                 className={`w-full h-full object-cover transition-transform duration-1000 ${
                   isPlaying ? 'rotate-animation' : ''

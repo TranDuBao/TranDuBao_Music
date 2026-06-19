@@ -15,8 +15,7 @@ const createBannerSlide = async (req, res) => {
     let image_url = bodyImageUrl;
 
     if (req.file) {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
-      image_url = `${backendUrl}/uploads/img/${req.file.filename}`;
+      image_url = `/uploads/img/${req.file.filename}`;
     }
 
     if (!image_url) {
@@ -48,7 +47,7 @@ const deleteBannerSlide = async (req, res) => {
 const getBackground = async (req, res) => {
   try {
     const row = await query("SELECT value FROM settings WHERE `key` = 'background_image_url'");
-    const value = row.length > 0 ? row[0].value : 'http://localhost:1005/uploads/img/the_weeknd.png';
+    const value = row.length > 0 ? row[0].value : '/uploads/img/the_weeknd.png';
     res.json({ success: true, value });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -61,8 +60,7 @@ const updateBackground = async (req, res) => {
     let value = bodyBgUrl;
 
     if (req.file) {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:1005';
-      value = `${backendUrl}/uploads/img/${req.file.filename}`;
+      value = `/uploads/img/${req.file.filename}`;
     }
 
     if (value === undefined) {
