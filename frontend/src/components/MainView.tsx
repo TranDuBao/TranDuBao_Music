@@ -49,6 +49,16 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
 
+  const extendedBackdrops = React.useMemo(() => {
+    if (backdrops.length === 0) return [];
+    const list: string[] = [];
+    const count = Math.max(6, backdrops.length);
+    for (let i = 0; i < count; i++) {
+      list.push(backdrops[i % backdrops.length]);
+    }
+    return list;
+  }, [backdrops]);
+
   useEffect(() => {
     fetch(`${API_BASE}/tracks/recent-uploads`)
       .then(r => r.json())
@@ -291,7 +301,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
     <main ref={mainRef as any} className="flex-1 flex flex-col h-full overflow-y-auto pb-32 relative">
       {/* Sequential Background Images distributed vertically with spacing */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        {backdrops.map((url, index) => (
+        {extendedBackdrops.map((url, index) => (
           <div
             key={url + index}
             className="absolute left-0 right-0 h-[650px] bg-cover bg-center opacity-[0.20] transition-all duration-1000"
