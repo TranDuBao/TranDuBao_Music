@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
 import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, RefreshCw, Plus, Edit2, Star, Heart, TrendingUp, Lock, Unlock, Disc, Calendar, Clock } from 'lucide-react';
@@ -16,13 +16,13 @@ export default function AdminPanel() {
   const authH = { Authorization: `Bearer ${token}` };
 
   const tabs = [
-    { id: 'users' as const,      label: i18n.language === 'vi' ? 'Người dùng' : 'Users', icon: <Users className="w-4 h-4" /> },
-    { id: 'tracks' as const,     label: i18n.language === 'vi' ? 'Quản lý nhạc' : 'Music', icon: <Music className="w-4 h-4" /> },
-    { id: 'categories' as const, label: i18n.language === 'vi' ? 'Danh mục' : 'Categories', icon: <FolderOpen className="w-4 h-4" /> },
-    { id: 'artists' as const,    label: i18n.language === 'vi' ? 'Nghệ sĩ' : 'Artists', icon: <Star className="w-4 h-4" /> },
-    { id: 'albums' as const,     label: i18n.language === 'vi' ? 'Quản lý Album' : 'Albums', icon: <Disc className="w-4 h-4" /> },
-    { id: 'settings' as const,   label: i18n.language === 'vi' ? 'Giao diện' : 'Appearance', icon: <Edit2 className="w-4 h-4" /> },
-    { id: 'stats' as const,      label: i18n.language === 'vi' ? 'Thống kê' : 'Statistics', icon: <BarChart2 className="w-4 h-4" /> },
+    { id: 'users' as const,      label: i18n.language === 'vi' ? 'NgÆ°á»i dĂ¹ng' : 'Users', icon: <Users className="w-4 h-4" /> },
+    { id: 'tracks' as const,     label: i18n.language === 'vi' ? 'Quáº£n lĂ½ nháº¡c' : 'Music', icon: <Music className="w-4 h-4" /> },
+    { id: 'categories' as const, label: i18n.language === 'vi' ? 'Danh má»¥c' : 'Categories', icon: <FolderOpen className="w-4 h-4" /> },
+    { id: 'artists' as const,    label: i18n.language === 'vi' ? 'Nghá»‡ sÄ©' : 'Artists', icon: <Star className="w-4 h-4" /> },
+    { id: 'albums' as const,     label: i18n.language === 'vi' ? 'Quáº£n lĂ½ Album' : 'Albums', icon: <Disc className="w-4 h-4" /> },
+    { id: 'settings' as const,   label: i18n.language === 'vi' ? 'Giao diá»‡n' : 'Appearance', icon: <Edit2 className="w-4 h-4" /> },
+    { id: 'stats' as const,      label: i18n.language === 'vi' ? 'Thá»‘ng kĂª' : 'Statistics', icon: <BarChart2 className="w-4 h-4" /> },
   ];
 
   return (
@@ -34,7 +34,7 @@ export default function AdminPanel() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-white">Admin Dashboard</h2>
-          <p className="text-xs text-zinc-500">{i18n.language === 'vi' ? 'Quản lý toàn bộ hệ thống MusicStream' : 'Manage the entire MusicStream system'}</p>
+          <p className="text-xs text-zinc-500">{i18n.language === 'vi' ? 'Quáº£n lĂ½ toĂ n bá»™ há»‡ thá»‘ng MusicStream' : 'Manage the entire MusicStream system'}</p>
         </div>
       </div>
 
@@ -60,7 +60,7 @@ export default function AdminPanel() {
   );
 }
 
-// ── Users Tab ─────────────────────────────────────────────────────
+// â”€â”€ Users Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function UsersTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -82,15 +82,15 @@ function UsersTab({ authH }: any) {
 
   const deleteUser = async (id: number) => {
     showConfirm(
-      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
-      isVi ? 'Bạn có chắc chắn muốn xóa người dùng này khỏi hệ thống?' : 'Are you sure you want to delete this user from the system?',
+      isVi ? 'XĂ¡c nháº­n xĂ³a' : 'Confirm Delete',
+      isVi ? 'Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a ngÆ°á»i dĂ¹ng nĂ y khá»i há»‡ thá»‘ng?' : 'Are you sure you want to delete this user from the system?',
       async () => {
         try {
           await axios.delete(`${API}/auth/users/${id}`, { headers: authH });
-          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa người dùng thành công.' : 'User deleted successfully.', 'success');
+          showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'ÄĂ£ xĂ³a ngÆ°á»i dĂ¹ng thĂ nh cĂ´ng.' : 'User deleted successfully.', 'success');
           fetchUsers();
         } catch (err: any) {
-          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa người dùng.' : 'Failed to delete user.'), 'error');
+          showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ xĂ³a ngÆ°á»i dĂ¹ng.' : 'Failed to delete user.'), 'error');
         }
       }
     );
@@ -103,21 +103,21 @@ function UsersTab({ authH }: any) {
         ? { type: 'permanent' }
         : { type: 'days', days: banDays };
       await axios.put(`${API}/auth/users/${banTarget.id}/ban`, payload, { headers: authH });
-      showAlert(isVi ? 'Thành công' : 'Success', isVi ? `Đã khóa tài khoản ${banTarget.name} thành công.` : `Successfully banned ${banTarget.name}.`, 'success');
+      showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? `ÄĂ£ khĂ³a tĂ i khoáº£n ${banTarget.name} thĂ nh cĂ´ng.` : `Successfully banned ${banTarget.name}.`, 'success');
       setBanTarget(null);
       fetchUsers();
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể khóa tài khoản.' : 'Failed to ban account.'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ khĂ³a tĂ i khoáº£n.' : 'Failed to ban account.'), 'error');
     }
   };
 
   const unbanUser = async (u: any) => {
     try {
       await axios.put(`${API}/auth/users/${u.id}/ban`, { type: 'unban' }, { headers: authH });
-      showAlert(isVi ? 'Thành công' : 'Success', isVi ? `Đã mở khóa tài khoản ${u.name}.` : `Successfully unbanned ${u.name}.`, 'success');
+      showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? `ÄĂ£ má»Ÿ khĂ³a tĂ i khoáº£n ${u.name}.` : `Successfully unbanned ${u.name}.`, 'success');
       fetchUsers();
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể mở khóa.' : 'Failed to unban.'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ má»Ÿ khĂ³a.' : 'Failed to unban.'), 'error');
     }
   };
 
@@ -129,9 +129,9 @@ function UsersTab({ authH }: any) {
   const isPermanentBan = (u: any) => u.banned_until && new Date(u.banned_until).getFullYear() >= 9999;
   const banLabel = (u: any) => {
     if (!isBanned(u)) return null;
-    if (isPermanentBan(u)) return isVi ? 'Khóa vĩnh viễn' : 'Permanently banned';
+    if (isPermanentBan(u)) return isVi ? 'KhĂ³a vÄ©nh viá»…n' : 'Permanently banned';
     const d = new Date(u.banned_until);
-    return isVi ? `Khóa đến ${d.toLocaleDateString('vi-VN')}` : `Banned until ${d.toLocaleDateString('en-US')}`;
+    return isVi ? `KhĂ³a Ä‘áº¿n ${d.toLocaleDateString('vi-VN')}` : `Banned until ${d.toLocaleDateString('en-US')}`;
   };
 
   const isOnline = (u: any) => {
@@ -142,7 +142,7 @@ function UsersTab({ authH }: any) {
   };
 
   const lastActiveLabel = (u: any) => {
-    if (!u.last_active_at) return isVi ? 'Chưa rõ' : 'Unknown';
+    if (!u.last_active_at) return isVi ? 'ChÆ°a rĂµ' : 'Unknown';
     const lastActive = new Date(u.last_active_at);
     return lastActive.toLocaleString(isVi ? 'vi-VN' : 'en-US');
   };
@@ -162,8 +162,8 @@ function UsersTab({ authH }: any) {
                 <Lock className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">{isVi ? 'Khóa tài khoản' : 'Ban Account'}</h3>
-                <p className="text-sm text-zinc-400 mt-0.5">{isVi ? 'Khóa tài khoản' : 'Ban account'} <span className="text-white font-semibold">{banTarget.name}</span></p>
+                <h3 className="text-base font-bold text-white">{isVi ? 'KhĂ³a tĂ i khoáº£n' : 'Ban Account'}</h3>
+                <p className="text-sm text-zinc-400 mt-0.5">{isVi ? 'KhĂ³a tĂ i khoáº£n' : 'Ban account'} <span className="text-white font-semibold">{banTarget.name}</span></p>
               </div>
             </div>
 
@@ -174,18 +174,18 @@ function UsersTab({ authH }: any) {
                   className={`py-2 rounded-xl text-sm font-semibold border transition-all ${
                     banType === 'days' ? 'bg-rose-500/15 border-rose-500/40 text-rose-400' : 'bg-zinc-900/60 border-white/5 text-zinc-500 hover:text-zinc-300'
                   }`}
-                >{isVi ? '⏱ Theo ngày' : '⏱ By days'}</button>
+                >{isVi ? 'â± Theo ngĂ y' : 'â± By days'}</button>
                 <button
                   onClick={() => setBanType('permanent')}
                   className={`py-2 rounded-xl text-sm font-semibold border transition-all ${
                     banType === 'permanent' ? 'bg-rose-500/15 border-rose-500/40 text-rose-400' : 'bg-zinc-900/60 border-white/5 text-zinc-500 hover:text-zinc-300'
                   }`}
-                >{isVi ? '🔒 Vĩnh viễn' : '🔒 Permanent'}</button>
+                >{isVi ? 'đŸ”’ VÄ©nh viá»…n' : 'đŸ”’ Permanent'}</button>
               </div>
 
               {banType === 'days' && (
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Số ngày khóa' : 'Days to ban'}</label>
+                  <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Sá»‘ ngĂ y khĂ³a' : 'Days to ban'}</label>
                   <div className="flex items-center gap-2">
                     {[1, 3, 7, 14, 30].map(d => (
                       <button
@@ -198,7 +198,7 @@ function UsersTab({ authH }: any) {
                     ))}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">{isVi ? 'Hoặc nhập số ngày:' : 'Or enter days:'}</span>
+                    <span className="text-xs text-zinc-500">{isVi ? 'Hoáº·c nháº­p sá»‘ ngĂ y:' : 'Or enter days:'}</span>
                     <input
                       type="number" min={1} max={365}
                       value={banDays}
@@ -211,7 +211,7 @@ function UsersTab({ authH }: any) {
 
               {banType === 'permanent' && (
                 <p className="text-xs text-zinc-500 bg-rose-500/5 border border-rose-500/10 rounded-xl px-3 py-2">
-                  {isVi ? '⚠️ Người dùng sẽ không thể đăng nhập mãi mãi cho đến khi admin mở khóa.' : '⚠️ User will not be able to log in until they are unbanned.'}
+                  {isVi ? 'â ï¸ NgÆ°á»i dĂ¹ng sáº½ khĂ´ng thá»ƒ Ä‘Äƒng nháº­p mĂ£i mĂ£i cho Ä‘áº¿n khi admin má»Ÿ khĂ³a.' : 'â ï¸ User will not be able to log in until they are unbanned.'}
                 </p>
               )}
             </div>
@@ -220,18 +220,18 @@ function UsersTab({ authH }: any) {
               <button
                 onClick={() => setBanTarget(null)}
                 className="px-4 py-2 border border-white/5 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-all"
-              >{isVi ? 'Hủy' : 'Cancel'}</button>
+              >{isVi ? 'Há»§y' : 'Cancel'}</button>
               <button
                 onClick={applyBan}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition-all"
-              >{isVi ? 'Xác nhận khóa' : 'Confirm Ban'}</button>
+              >{isVi ? 'XĂ¡c nháº­n khĂ³a' : 'Confirm Ban'}</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-4 gap-3">
-        {[[isVi ? 'Tổng' : 'Total', users.length, 'text-blue-400','bg-blue-500/10'],['Admin', admins,'text-amber-400','bg-amber-500/10'],[isVi ? 'Người dùng' : 'User', regular,'text-purple-400','bg-purple-500/10'],[isVi ? 'Bị khóa' : 'Banned', banned,'text-rose-400','bg-rose-500/10']].map(([l,v,tc,bg]) => (
+        {[[isVi ? 'Tá»•ng' : 'Total', users.length, 'text-blue-400','bg-blue-500/10'],['Admin', admins,'text-amber-400','bg-amber-500/10'],[isVi ? 'NgÆ°á»i dĂ¹ng' : 'User', regular,'text-purple-400','bg-purple-500/10'],[isVi ? 'Bá»‹ khĂ³a' : 'Banned', banned,'text-rose-400','bg-rose-500/10']].map(([l,v,tc,bg]) => (
           <div key={l as string} className={`rounded-xl border border-white/5 p-4 ${bg} flex items-center gap-3`}>
             <div>
               <p className={`text-xl font-bold ${tc}`}>{v as number}</p>
@@ -243,7 +243,7 @@ function UsersTab({ authH }: any) {
 
       <div className="rounded-xl border border-white/5 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sách người dùng' : 'User List'}</h3>
+          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sĂ¡ch ngÆ°á»i dĂ¹ng' : 'User List'}</h3>
           <button onClick={fetchUsers} className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -263,7 +263,7 @@ function UsersTab({ authH }: any) {
                   className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-zinc-950 ${
                     isOnline(u) ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-500'
                   }`}
-                  title={isOnline(u) ? (isVi ? 'Đang hoạt động' : 'Active') : (isVi ? `Hoạt động lần cuối: ${lastActiveLabel(u)}` : `Last active: ${lastActiveLabel(u)}`)}
+                  title={isOnline(u) ? (isVi ? 'Äang hoáº¡t Ä‘á»™ng' : 'Active') : (isVi ? `Hoáº¡t Ä‘á»™ng láº§n cuá»‘i: ${lastActiveLabel(u)}` : `Last active: ${lastActiveLabel(u)}`)}
                 />
               </div>
               <div className="flex-1 min-w-0">
@@ -274,25 +274,25 @@ function UsersTab({ authH }: any) {
                     <Lock className="w-2.5 h-2.5" /> {banLabel(u)}
                   </span>}
                 </div>
-                <p className="text-xs text-zinc-500 truncate">{u.email || '—'} · {u.provider}</p>
+                <p className="text-xs text-zinc-500 truncate">{u.email || 'â€”'} Â· {u.provider}</p>
               </div>
               <span className="text-xs text-zinc-600 hidden md:block">{new Date(u.created_at).toLocaleDateString(isVi ? 'vi-VN' : 'en-US')}</span>
               <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                 {isBanned(u) ? (
                   <button
                     onClick={() => unbanUser(u)}
-                    title={isVi ? 'Mở khóa tài khoản' : 'Unban account'}
+                    title={isVi ? 'Má»Ÿ khĂ³a tĂ i khoáº£n' : 'Unban account'}
                     className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
                   >
-                    <Unlock className="w-3 h-3" /> {isVi ? 'Mở khóa' : 'Unban'}
+                    <Unlock className="w-3 h-3" /> {isVi ? 'Má»Ÿ khĂ³a' : 'Unban'}
                   </button>
                 ) : (
                   <button
                     onClick={() => { setBanTarget(u); setBanType('days'); setBanDays(7); }}
-                    title={isVi ? 'Khóa tài khoản' : 'Ban account'}
+                    title={isVi ? 'KhĂ³a tĂ i khoáº£n' : 'Ban account'}
                     className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all"
                   >
-                    <Lock className="w-3 h-3" /> {isVi ? 'Khóa' : 'Ban'}
+                    <Lock className="w-3 h-3" /> {isVi ? 'KhĂ³a' : 'Ban'}
                   </button>
                 )}
 
@@ -308,7 +308,7 @@ function UsersTab({ authH }: any) {
   );
 }
 
-// ── Tracks Tab ────────────────────────────────────────────────────
+// â”€â”€ Tracks Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TracksTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -351,15 +351,15 @@ function TracksTab({ authH }: any) {
 
   const del = async (id: number) => {
     showConfirm(
-      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
-      isVi ? 'Bạn có chắc chắn muốn xóa bài hát này khỏi hệ thống?' : 'Are you sure you want to delete this song from the system?',
+      isVi ? 'XĂ¡c nháº­n xĂ³a' : 'Confirm Delete',
+      isVi ? 'Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a bĂ i hĂ¡t nĂ y khá»i há»‡ thá»‘ng?' : 'Are you sure you want to delete this song from the system?',
       async () => {
         try {
           await axios.delete(`${API}/tracks/${id}`, { headers: authH });
-          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa bài hát thành công.' : 'Song deleted successfully.', 'success');
+          showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'ÄĂ£ xĂ³a bĂ i hĂ¡t thĂ nh cĂ´ng.' : 'Song deleted successfully.', 'success');
           setTracks(t => t.filter(x => x.id !== id));
         } catch (err: any) {
-          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa bài hát.' : 'Failed to delete song.'), 'error');
+          showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ xĂ³a bĂ i hĂ¡t.' : 'Failed to delete song.'), 'error');
         }
       }
     );
@@ -377,19 +377,19 @@ function TracksTab({ authH }: any) {
         is_public: Number(editingTrack.is_public)
       }, { headers: authH });
       if (res.data.success) {
-        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã cập nhật bài hát thành công.' : 'Song updated successfully.', 'success');
+        showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'ÄĂ£ cáº­p nháº­t bĂ i hĂ¡t thĂ nh cĂ´ng.' : 'Song updated successfully.', 'success');
         setEditingTrack(null);
         fetch();
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể cập nhật bài hát.' : 'Failed to update song.'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ cáº­p nháº­t bĂ i hĂ¡t.' : 'Failed to update song.'), 'error');
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={isVi ? "Tìm bài hát..." : "Search songs..."}
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={isVi ? "TĂ¬m bĂ i hĂ¡t..." : "Search songs..."}
           className="flex-1 bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2 text-sm text-white focus:outline-none placeholder-zinc-600" />
         
         <button
@@ -402,10 +402,10 @@ function TracksTab({ authH }: any) {
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
-          {isVi ? 'Bài mới (24h)' : 'New (24h)'}
+          {isVi ? 'BĂ i má»›i (24h)' : 'New (24h)'}
         </button>
 
-        <span className="text-xs text-zinc-500">{displayedTracks.length} / {tracks.length} {isVi ? 'bài' : 'tracks'}</span>
+        <span className="text-xs text-zinc-500">{displayedTracks.length} / {tracks.length} {isVi ? 'bĂ i' : 'tracks'}</span>
       </div>
 
       <div className="rounded-xl border border-white/5 overflow-hidden">
@@ -420,7 +420,7 @@ function TracksTab({ authH }: any) {
                   <span className="text-xs text-zinc-500 truncate">{t.artist}</span>
                   {t.category_name && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full border bg-purple-500/10 border-purple-500/20 text-purple-400 font-bold">
-                      {t.category_icon || '🎵'} {t.category_name}
+                      {t.category_icon || 'đŸµ'} {t.category_name}
                     </span>
                   )}
                   {t.genre && t.genre !== t.category_name && (
@@ -438,20 +438,20 @@ function TracksTab({ authH }: any) {
               </div>
               <span className="text-xs text-zinc-600">{formatPlaysShort(t.play_count || 0, isVi)}</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full border ${t.is_public ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
-                {t.is_public ? (isVi ? 'Công khai' : 'Public') : (isVi ? 'Riêng tư' : 'Private')}
+                {t.is_public ? (isVi ? 'CĂ´ng khai' : 'Public') : (isVi ? 'RiĂªng tÆ°' : 'Private')}
               </span>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                 <button
                   onClick={() => setEditingTrack({ ...t })}
                   className="p-1.5 text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all"
-                  title={isVi ? "Chỉnh sửa bài hát" : "Edit song"}
+                  title={isVi ? "Chá»‰nh sá»­a bĂ i hĂ¡t" : "Edit song"}
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => del(t.id)}
                   className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
-                  title={isVi ? "Xóa bài hát" : "Delete song"}
+                  title={isVi ? "XĂ³a bĂ i hĂ¡t" : "Delete song"}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -460,7 +460,7 @@ function TracksTab({ authH }: any) {
           ))}
           {displayedTracks.length === 0 && (
             <div className="p-8 text-center text-zinc-600 text-sm">
-              {isVi ? 'Không tìm thấy bài hát nào.' : 'No tracks found.'}
+              {isVi ? 'KhĂ´ng tĂ¬m tháº¥y bĂ i hĂ¡t nĂ o.' : 'No tracks found.'}
             </div>
           )}
         </div>
@@ -473,19 +473,19 @@ function TracksTab({ authH }: any) {
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-amber-400" />
-                {isVi ? 'Chỉnh sửa bài hát' : 'Edit Song'}
+                {isVi ? 'Chá»‰nh sá»­a bĂ i hĂ¡t' : 'Edit Song'}
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingTrack(null)}
                 className="text-zinc-500 hover:text-white transition-colors"
               >
-                ✕
+                âœ•
               </button>
             </div>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Tiêu đề bài hát *' : 'Song Title *'}</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'TiĂªu Ä‘á» bĂ i hĂ¡t *' : 'Song Title *'}</label>
                 <input
                   type="text"
                   required
@@ -495,7 +495,7 @@ function TracksTab({ authH }: any) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Nghệ sĩ *' : 'Artist *'}</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Nghá»‡ sÄ© *' : 'Artist *'}</label>
                 <input
                   type="text"
                   required
@@ -515,7 +515,7 @@ function TracksTab({ authH }: any) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Danh mục nhạc' : 'Music Category'}</label>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Danh má»¥c nháº¡c' : 'Music Category'}</label>
                   <select
                     value={editingTrack.category_id || ''}
                     onChange={e => {
@@ -529,7 +529,7 @@ function TracksTab({ authH }: any) {
                     }}
                     className="w-full bg-zinc-900 border border-zinc-800 focus:border-amber-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
                   >
-                    <option value="">{isVi ? '-- Chọn danh mục --' : '-- Select Category --'}</option>
+                    <option value="">{isVi ? '-- Chá»n danh má»¥c --' : '-- Select Category --'}</option>
                     {categories.map(c => (
                       <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                     ))}
@@ -538,7 +538,7 @@ function TracksTab({ authH }: any) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Thể loại chi tiết' : 'Detailed Genre'}</label>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Thá»ƒ loáº¡i chi tiáº¿t' : 'Detailed Genre'}</label>
                   <input
                     type="text"
                     value={editingTrack.genre || ''}
@@ -547,14 +547,14 @@ function TracksTab({ authH }: any) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hiển thị' : 'Visibility'}</label>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hiá»ƒn thá»‹' : 'Visibility'}</label>
                   <select
                     value={editingTrack.is_public}
                     onChange={e => setEditingTrack({ ...editingTrack, is_public: Number(e.target.value) })}
                     className="w-full bg-zinc-900 border border-zinc-800 focus:border-amber-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
                   >
-                    <option value="1">{isVi ? 'Công khai' : 'Public'}</option>
-                    <option value="0">{isVi ? 'Riêng tư' : 'Private'}</option>
+                    <option value="1">{isVi ? 'CĂ´ng khai' : 'Public'}</option>
+                    <option value="0">{isVi ? 'RiĂªng tÆ°' : 'Private'}</option>
                   </select>
                 </div>
               </div>
@@ -563,11 +563,11 @@ function TracksTab({ authH }: any) {
                   type="button"
                   onClick={() => setEditingTrack(null)}
                   className="px-4 py-2 border border-white/5 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-all"
-                >{isVi ? 'Hủy' : 'Cancel'}</button>
+                >{isVi ? 'Há»§y' : 'Cancel'}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all"
-                >{isVi ? 'Lưu' : 'Save'}</button>
+                >{isVi ? 'LÆ°u' : 'Save'}</button>
               </div>
             </form>
           </div>
@@ -577,122 +577,122 @@ function TracksTab({ authH }: any) {
   );
 }
 
-// ── Categories Tab ────────────────────────────────────────────────
+// â”€â”€ Categories Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PRESET_EMOJIS = [
-  { char: '🎵', tags: 'music song note nhạc nốt' },
-  { char: '🎶', tags: 'music notes melody nhạc giai điệu' },
-  { char: '📻', tags: 'radio lofi đài phát thanh' },
-  { char: '🎸', tags: 'guitar rock instrument đàn ghita' },
-  { char: '🎹', tags: 'piano classical instrument đàn dương cầm' },
-  { char: '🎻', tags: 'violin classical instrument vĩ cầm' },
-  { char: '🎷', tags: 'saxophone jazz instrument kèn' },
-  { char: '🎺', tags: 'trumpet instrument kèn' },
-  { char: '🎤', tags: 'microphone mic sing vocal hát micro' },
-  { char: '🎧', tags: 'headphone dj music nghe nhạc tai nghe' },
-  { char: '🇻🇳', tags: 'vietnam vpop viet nam cờ việt nam' },
-  { char: '🇺🇸', tags: 'usa us uk english cờ mỹ' },
-  { char: '🇰🇷', tags: 'korea kpop cờ hàn quốc' },
-  { char: '🇯🇵', tags: 'japan jpop cờ nhật bản' },
-  { char: '🇬🇧', tags: 'uk britain english cờ anh' },
-  { char: '🇨🇳', tags: 'china cpop cờ trung quốc' },
-  { char: '⚡', tags: 'electric edm thunder flash điện sét' },
-  { char: '🌌', tags: 'synthwave galaxy space space vũ trụ dải ngân hà' },
-  { char: '🔥', tags: 'hiphop hot rap fire lửa nhiệt' },
-  { char: '💃', tags: 'dance latin girl khiêu vũ nhảy' },
-  { char: '🕺', tags: 'dance disco boy khiêu vũ nhảy' },
-  { char: '☕', tags: 'coffee acoustic lofi tea cà phê trà' },
-  { char: '💤', tags: 'sleep lofi relax ngủ thư giãn' },
-  { char: '🌊', tags: 'wave chill ocean biển sóng' },
-  { char: '🌴', tags: 'palm summer beach nhiệt đới cây dừa' },
-  { char: '🍂', tags: 'autumn sad ballad lá rụng mùa thu buồn' },
-  { char: '🎮', tags: 'gaming game chiptune trò chơi' },
-  { char: '📼', tags: 'retro tape cassette băng nhạc' },
-  { char: '💿', tags: 'cd dvd disc vinyl đĩa nhạc' },
-  { char: '🎭', tags: 'theater drama opera classical nghệ thuật kịch' },
-  { char: '⭐', tags: 'star favorite ngôi sao' },
-  { char: '✨', tags: 'sparkles magic lấp lánh ảo thuật' },
-  { char: '❤️', tags: 'love heart tim yêu' },
-  { char: '💔', tags: 'broken heart buồn sad chia tay' },
-  { char: '🎉', tags: 'party celebrate party lễ hội tiệc' },
-  { char: '🔊', tags: 'sound speaker volume loa âm thanh' },
-  { char: '🥁', tags: 'drum beats trống gõ' },
-  { char: '🎼', tags: 'score stave music khuông nhạc' },
-  { char: '📣', tags: 'megaphone announcement loa phát thanh' },
-  { char: '🔔', tags: 'bell notification chuông' },
-  { char: '🪐', tags: 'saturn space sao thổ vũ trụ' },
-  { char: '🌙', tags: 'moon night lofi trăng đêm' },
-  { char: '☀️', tags: 'sun bright day mặt trời nắng' },
-  { char: '☁️', tags: 'cloud chill mây' },
-  { char: '🌧️', tags: 'rain sad ballad mưa buồn' },
-  { char: '❄️', tags: 'snow cold winter tuyết lạnh' },
-  { char: '🌈', tags: 'rainbow cầu vồng' },
-  { char: '🔮', tags: 'crystal magic quả cầu pha lê' },
-  { char: '🎈', tags: 'balloon bóng bay' },
-  { char: '🧸', tags: 'bear toy lofi gấu bông' },
-  { char: '🐱', tags: 'cat meow mèo' },
-  { char: '🐶', tags: 'dog woof chó' },
-  { char: '🦊', tags: 'fox cáo' },
-  { char: '🦄', tags: 'unicorn kỳ lân' },
-  { char: '🦁', tags: 'lion sư tử' },
-  { char: '🌸', tags: 'flower spring hoa anh đào' },
-  { char: '🌹', tags: 'rose flower hoa hồng' },
-  { char: '🍀', tags: 'lucky cỏ 4 lá may mắn' },
-  { char: '🌵', tags: 'cactus xương rồng' },
-  { char: '🌍', tags: 'earth world quả địa cầu' },
-  { char: '🚀', tags: 'rocket space bay tên lửa' },
-  { char: '🛸', tags: 'ufo alien đĩa bay' },
-  { char: '💎', tags: 'diamond kim cương' },
-  { char: '👑', tags: 'crown king queen vương miện' },
-  { char: '💡', tags: 'idea light bóng đèn ý tưởng' },
-  { char: '📚', tags: 'book study sách' },
-  { char: '✉️', tags: 'mail letter thư' },
-  { char: '🗺️', tags: 'map bản đồ' },
-  { char: '🧭', tags: 'compass la bàn' },
-  { char: '⏰', tags: 'clock time đồng hồ báo thức' },
-  { char: '💰', tags: 'money gold tiền vàng' },
-  { char: '🎁', tags: 'gift present quà' },
-  { char: '🎨', tags: 'art paint palette bảng màu mỹ thuật' },
-  { char: '🎬', tags: 'movie cinema clapperboard điện ảnh phim' },
-  { char: '📷', tags: 'camera photo máy ảnh' },
-  { char: '🔍', tags: 'search find kính lúp' },
-  { char: '🔑', tags: 'key mật mã chìa khóa' },
-  { char: '🧁', tags: 'cupcake cake bánh ngọt' },
-  { char: '🍭', tags: 'lollipop kẹo mút' },
-  { char: '🍎', tags: 'apple táo' },
-  { char: '🍉', tags: 'watermelon dưa hấu' },
-  { char: '🍓', tags: 'strawberry dâu tây' },
-  { char: '🍋', tags: 'lemon chanh' },
-  { char: '🍷', tags: 'wine rượu vang' },
-  { char: '🍺', tags: 'beer bia' },
-  { char: '🍹', tags: 'cocktail nước ngọt' },
-  { char: '🍕', tags: 'pizza' },
-  { char: '🍟', tags: 'fries khoai tây chiên' },
-  { char: '🍔', tags: 'burger bánh mì kẹp' },
-  { char: '🛫', tags: 'plane travel máy bay cất cánh' },
-  { char: '🚗', tags: 'car xe hơi' },
-  { char: '🚲', tags: 'bicycle xe đạp' },
-  { char: '⚓', tags: 'anchor mỏ neo' },
-  { char: '⛰️', tags: 'mountain núi' },
-  { char: '⛺', tags: 'tent camping lều cắm trại' },
-  { char: '🏠', tags: 'home house nhà' },
-  { char: '🏙️', tags: 'city thành phố' },
-  { char: '⛲', tags: 'fountain đài phun nước' },
-  { char: '🎢', tags: 'rollercoaster tàu lượn siêu tốc' },
-  { char: '🎠', tags: 'carousel ngựa gỗ' },
-  { char: '🎡', tags: 'ferris wheel vòng quay' },
-  { char: '🎪', tags: 'circus rạp xiếc' },
-  { char: '🎟️', tags: 'ticket vé' },
-  { char: '🏆', tags: 'trophy cup cúp vô địch' },
-  { char: '🎯', tags: 'target bullseye mục tiêu' },
-  { char: '🧩', tags: 'puzzle mảnh ghép' },
-  { char: '🕶️', tags: 'sunglasses kính mát' }
+  { char: 'đŸµ', tags: 'music song note nháº¡c ná»‘t' },
+  { char: 'đŸ¶', tags: 'music notes melody nháº¡c giai Ä‘iá»‡u' },
+  { char: 'đŸ“»', tags: 'radio lofi Ä‘Ă i phĂ¡t thanh' },
+  { char: 'đŸ¸', tags: 'guitar rock instrument Ä‘Ă n ghita' },
+  { char: 'đŸ¹', tags: 'piano classical instrument Ä‘Ă n dÆ°Æ¡ng cáº§m' },
+  { char: 'đŸ»', tags: 'violin classical instrument vÄ© cáº§m' },
+  { char: 'đŸ·', tags: 'saxophone jazz instrument kĂ¨n' },
+  { char: 'đŸº', tags: 'trumpet instrument kĂ¨n' },
+  { char: 'đŸ¤', tags: 'microphone mic sing vocal hĂ¡t micro' },
+  { char: 'đŸ§', tags: 'headphone dj music nghe nháº¡c tai nghe' },
+  { char: 'đŸ‡»đŸ‡³', tags: 'vietnam vpop viet nam cá» viá»‡t nam' },
+  { char: 'đŸ‡ºđŸ‡¸', tags: 'usa us uk english cá» má»¹' },
+  { char: 'đŸ‡°đŸ‡·', tags: 'korea kpop cá» hĂ n quá»‘c' },
+  { char: 'đŸ‡¯đŸ‡µ', tags: 'japan jpop cá» nháº­t báº£n' },
+  { char: 'đŸ‡¬đŸ‡§', tags: 'uk britain english cá» anh' },
+  { char: 'đŸ‡¨đŸ‡³', tags: 'china cpop cá» trung quá»‘c' },
+  { char: 'â¡', tags: 'electric edm thunder flash Ä‘iá»‡n sĂ©t' },
+  { char: 'đŸŒŒ', tags: 'synthwave galaxy space space vÅ© trá»¥ dáº£i ngĂ¢n hĂ ' },
+  { char: 'đŸ”¥', tags: 'hiphop hot rap fire lá»­a nhiá»‡t' },
+  { char: 'đŸ’ƒ', tags: 'dance latin girl khiĂªu vÅ© nháº£y' },
+  { char: 'đŸ•º', tags: 'dance disco boy khiĂªu vÅ© nháº£y' },
+  { char: 'â˜•', tags: 'coffee acoustic lofi tea cĂ  phĂª trĂ ' },
+  { char: 'đŸ’¤', tags: 'sleep lofi relax ngá»§ thÆ° giĂ£n' },
+  { char: 'đŸŒ', tags: 'wave chill ocean biá»ƒn sĂ³ng' },
+  { char: 'đŸŒ´', tags: 'palm summer beach nhiá»‡t Ä‘á»›i cĂ¢y dá»«a' },
+  { char: 'đŸ‚', tags: 'autumn sad ballad lĂ¡ rá»¥ng mĂ¹a thu buá»“n' },
+  { char: 'đŸ®', tags: 'gaming game chiptune trĂ² chÆ¡i' },
+  { char: 'đŸ“¼', tags: 'retro tape cassette bÄƒng nháº¡c' },
+  { char: 'đŸ’¿', tags: 'cd dvd disc vinyl Ä‘Ä©a nháº¡c' },
+  { char: 'đŸ­', tags: 'theater drama opera classical nghá»‡ thuáº­t ká»‹ch' },
+  { char: 'â­', tags: 'star favorite ngĂ´i sao' },
+  { char: 'âœ¨', tags: 'sparkles magic láº¥p lĂ¡nh áº£o thuáº­t' },
+  { char: 'â¤ï¸', tags: 'love heart tim yĂªu' },
+  { char: 'đŸ’”', tags: 'broken heart buá»“n sad chia tay' },
+  { char: 'đŸ‰', tags: 'party celebrate party lá»… há»™i tiá»‡c' },
+  { char: 'đŸ”', tags: 'sound speaker volume loa Ă¢m thanh' },
+  { char: 'đŸ¥', tags: 'drum beats trá»‘ng gĂµ' },
+  { char: 'đŸ¼', tags: 'score stave music khuĂ´ng nháº¡c' },
+  { char: 'đŸ“£', tags: 'megaphone announcement loa phĂ¡t thanh' },
+  { char: 'đŸ””', tags: 'bell notification chuĂ´ng' },
+  { char: 'đŸª', tags: 'saturn space sao thá»• vÅ© trá»¥' },
+  { char: 'đŸŒ™', tags: 'moon night lofi trÄƒng Ä‘Ăªm' },
+  { char: 'â˜€ï¸', tags: 'sun bright day máº·t trá»i náº¯ng' },
+  { char: 'â˜ï¸', tags: 'cloud chill mĂ¢y' },
+  { char: 'đŸŒ§ï¸', tags: 'rain sad ballad mÆ°a buá»“n' },
+  { char: 'â„ï¸', tags: 'snow cold winter tuyáº¿t láº¡nh' },
+  { char: 'đŸŒˆ', tags: 'rainbow cáº§u vá»“ng' },
+  { char: 'đŸ”®', tags: 'crystal magic quáº£ cáº§u pha lĂª' },
+  { char: 'đŸˆ', tags: 'balloon bĂ³ng bay' },
+  { char: 'đŸ§¸', tags: 'bear toy lofi gáº¥u bĂ´ng' },
+  { char: 'đŸ±', tags: 'cat meow mĂ¨o' },
+  { char: 'đŸ¶', tags: 'dog woof chĂ³' },
+  { char: 'đŸ¦', tags: 'fox cĂ¡o' },
+  { char: 'đŸ¦„', tags: 'unicorn ká»³ lĂ¢n' },
+  { char: 'đŸ¦', tags: 'lion sÆ° tá»­' },
+  { char: 'đŸŒ¸', tags: 'flower spring hoa anh Ä‘Ă o' },
+  { char: 'đŸŒ¹', tags: 'rose flower hoa há»“ng' },
+  { char: 'đŸ€', tags: 'lucky cá» 4 lĂ¡ may máº¯n' },
+  { char: 'đŸŒµ', tags: 'cactus xÆ°Æ¡ng rá»“ng' },
+  { char: 'đŸŒ', tags: 'earth world quáº£ Ä‘á»‹a cáº§u' },
+  { char: 'đŸ€', tags: 'rocket space bay tĂªn lá»­a' },
+  { char: 'đŸ›¸', tags: 'ufo alien Ä‘Ä©a bay' },
+  { char: 'đŸ’', tags: 'diamond kim cÆ°Æ¡ng' },
+  { char: 'đŸ‘‘', tags: 'crown king queen vÆ°Æ¡ng miá»‡n' },
+  { char: 'đŸ’¡', tags: 'idea light bĂ³ng Ä‘Ă¨n Ă½ tÆ°á»Ÿng' },
+  { char: 'đŸ“', tags: 'book study sĂ¡ch' },
+  { char: 'âœ‰ï¸', tags: 'mail letter thÆ°' },
+  { char: 'đŸ—ºï¸', tags: 'map báº£n Ä‘á»“' },
+  { char: 'đŸ§­', tags: 'compass la bĂ n' },
+  { char: 'â°', tags: 'clock time Ä‘á»“ng há»“ bĂ¡o thá»©c' },
+  { char: 'đŸ’°', tags: 'money gold tiá»n vĂ ng' },
+  { char: 'đŸ', tags: 'gift present quĂ ' },
+  { char: 'đŸ¨', tags: 'art paint palette báº£ng mĂ u má»¹ thuáº­t' },
+  { char: 'đŸ¬', tags: 'movie cinema clapperboard Ä‘iá»‡n áº£nh phim' },
+  { char: 'đŸ“·', tags: 'camera photo mĂ¡y áº£nh' },
+  { char: 'đŸ”', tags: 'search find kĂ­nh lĂºp' },
+  { char: 'đŸ”‘', tags: 'key máº­t mĂ£ chĂ¬a khĂ³a' },
+  { char: 'đŸ§', tags: 'cupcake cake bĂ¡nh ngá»t' },
+  { char: 'đŸ­', tags: 'lollipop káº¹o mĂºt' },
+  { char: 'đŸ', tags: 'apple tĂ¡o' },
+  { char: 'đŸ‰', tags: 'watermelon dÆ°a háº¥u' },
+  { char: 'đŸ“', tags: 'strawberry dĂ¢u tĂ¢y' },
+  { char: 'đŸ‹', tags: 'lemon chanh' },
+  { char: 'đŸ·', tags: 'wine rÆ°á»£u vang' },
+  { char: 'đŸº', tags: 'beer bia' },
+  { char: 'đŸ¹', tags: 'cocktail nÆ°á»›c ngá»t' },
+  { char: 'đŸ•', tags: 'pizza' },
+  { char: 'đŸŸ', tags: 'fries khoai tĂ¢y chiĂªn' },
+  { char: 'đŸ”', tags: 'burger bĂ¡nh mĂ¬ káº¹p' },
+  { char: 'đŸ›«', tags: 'plane travel mĂ¡y bay cáº¥t cĂ¡nh' },
+  { char: 'đŸ—', tags: 'car xe hÆ¡i' },
+  { char: 'đŸ²', tags: 'bicycle xe Ä‘áº¡p' },
+  { char: 'â“', tags: 'anchor má» neo' },
+  { char: 'â›°ï¸', tags: 'mountain nĂºi' },
+  { char: 'â›º', tags: 'tent camping lá»u cáº¯m tráº¡i' },
+  { char: 'đŸ ', tags: 'home house nhĂ ' },
+  { char: 'đŸ™ï¸', tags: 'city thĂ nh phá»‘' },
+  { char: 'â›²', tags: 'fountain Ä‘Ă i phun nÆ°á»›c' },
+  { char: 'đŸ¢', tags: 'rollercoaster tĂ u lÆ°á»£n siĂªu tá»‘c' },
+  { char: 'đŸ ', tags: 'carousel ngá»±a gá»—' },
+  { char: 'đŸ¡', tags: 'ferris wheel vĂ²ng quay' },
+  { char: 'đŸª', tags: 'circus ráº¡p xiáº¿c' },
+  { char: 'đŸŸï¸', tags: 'ticket vĂ©' },
+  { char: 'đŸ†', tags: 'trophy cup cĂºp vĂ´ Ä‘á»‹ch' },
+  { char: 'đŸ¯', tags: 'target bullseye má»¥c tiĂªu' },
+  { char: 'đŸ§©', tags: 'puzzle máº£nh ghĂ©p' },
+  { char: 'đŸ•¶ï¸', tags: 'sunglasses kĂ­nh mĂ¡t' }
 ];
 
 function CategoriesTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const [cats, setCats]   = useState<any[]>([]);
-  const [form, setForm]   = useState({ name:'', description:'', color:'#7c3aed', icon:'🎵' });
+  const [form, setForm]   = useState({ name:'', description:'', color:'#7c3aed', icon:'đŸµ' });
   const [editing, setEditing] = useState<number|null>(null);
   const [loading, setLoading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -709,21 +709,21 @@ function CategoriesTab({ authH }: any) {
     e.preventDefault();
     if (editing) { await axios.put(`${API}/categories/${editing}`, form, { headers: authH }); }
     else { await axios.post(`${API}/categories`, form, { headers: authH }); }
-    setForm({ name:'', description:'', color:'#7c3aed', icon:'🎵' }); setEditing(null); fetch();
+    setForm({ name:'', description:'', color:'#7c3aed', icon:'đŸµ' }); setEditing(null); fetch();
   };
   const { showConfirm, showAlert } = useModalStore();
 
   const del = async (id: number) => {
     showConfirm(
-      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
-      isVi ? 'Bạn có chắc chắn muốn xóa danh mục này? Tất cả bài hát trong danh mục sẽ được gán lại.' : 'Are you sure you want to delete this category? All songs in this category will be reassigned.',
+      isVi ? 'XĂ¡c nháº­n xĂ³a' : 'Confirm Delete',
+      isVi ? 'Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a danh má»¥c nĂ y? Táº¥t cáº£ bĂ i hĂ¡t trong danh má»¥c sáº½ Ä‘Æ°á»£c gĂ¡n láº¡i.' : 'Are you sure you want to delete this category? All songs in this category will be reassigned.',
       async () => {
         try {
           await axios.delete(`${API}/categories/${id}`, { headers: authH });
-          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa danh mục thành công.' : 'Category deleted successfully.', 'success');
+          showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'ÄĂ£ xĂ³a danh má»¥c thĂ nh cĂ´ng.' : 'Category deleted successfully.', 'success');
           fetch();
         } catch (err: any) {
-          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa danh mục.' : 'Failed to delete category.'), 'error');
+          showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ xĂ³a danh má»¥c.' : 'Failed to delete category.'), 'error');
         }
       }
     );
@@ -739,7 +739,7 @@ function CategoriesTab({ authH }: any) {
     <div className="space-y-6">
       {/* Add/Edit Form */}
       <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
-        <h3 className="text-sm font-bold text-white mb-3">{editing ? (isVi ? 'Chỉnh sửa danh mục' : 'Edit Category') : (isVi ? 'Thêm danh mục mới' : 'Add New Category')}</h3>
+        <h3 className="text-sm font-bold text-white mb-3">{editing ? (isVi ? 'Chá»‰nh sá»­a danh má»¥c' : 'Edit Category') : (isVi ? 'ThĂªm danh má»¥c má»›i' : 'Add New Category')}</h3>
         <form onSubmit={save} className="flex flex-wrap gap-3 items-center">
           <div className="relative">
             <input
@@ -747,7 +747,7 @@ function CategoriesTab({ authH }: any) {
               value={form.icon}
               onChange={e => setForm({ ...form, icon: e.target.value })}
               onClick={() => setShowEmojiPicker(true)}
-              placeholder="🎵"
+              placeholder="đŸµ"
               className="w-14 bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg px-2 py-2 text-xl text-center focus:outline-none cursor-pointer"
             />
             {showEmojiPicker && (
@@ -764,13 +764,13 @@ function CategoriesTab({ authH }: any) {
                     type="text"
                     value={emojiSearch}
                     onChange={e => setEmojiSearch(e.target.value)}
-                    placeholder={isVi ? "Tìm biểu tượng..." : "Search icon..."}
+                    placeholder={isVi ? "TĂ¬m biá»ƒu tÆ°á»£ng..." : "Search icon..."}
                     className="w-full bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none placeholder-zinc-500"
                     autoFocus
                   />
                   <div className="grid grid-cols-5 gap-1 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                     {filteredEmojis.length === 0 ? (
-                      <span className="col-span-5 text-[10px] text-zinc-500 text-center py-4">{isVi ? 'Không tìm thấy' : 'Not found'}</span>
+                      <span className="col-span-5 text-[10px] text-zinc-500 text-center py-4">{isVi ? 'KhĂ´ng tĂ¬m tháº¥y' : 'Not found'}</span>
                     ) : (
                       filteredEmojis.map(emoji => (
                         <button
@@ -793,17 +793,17 @@ function CategoriesTab({ authH }: any) {
               </>
             )}
           </div>
-          <input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder={isVi ? "Tên danh mục" : "Category Name"}
+          <input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder={isVi ? "TĂªn danh má»¥c" : "Category Name"}
             className="flex-1 min-w-[120px] bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none placeholder-zinc-600" />
-          <input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder={isVi ? "Mô tả..." : "Description..."}
+          <input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder={isVi ? "MĂ´ táº£..." : "Description..."}
             className="flex-1 min-w-[200px] bg-zinc-900 border border-zinc-800 focus:border-purple-500 rounded-lg px-3 py-2 text-sm text-white focus:outline-none placeholder-zinc-600" />
           <input type="color" value={form.color} onChange={e=>setForm({...form,color:e.target.value})}
             className="w-10 h-9 rounded-lg border border-zinc-800 cursor-pointer bg-zinc-900 p-0.5" />
           <button type="submit" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-lg text-sm">
-            {editing ? (isVi ? 'Cập nhật' : 'Update') : (isVi ? 'Thêm' : 'Add')}
+            {editing ? (isVi ? 'Cáº­p nháº­t' : 'Update') : (isVi ? 'ThĂªm' : 'Add')}
           </button>
-          {editing && <button type="button" onClick={() => { setEditing(null); setForm({name:'',description:'',color:'#7c3aed',icon:'🎵'}); }}
-            className="px-3 py-2 text-zinc-400 hover:text-white bg-zinc-800 rounded-lg text-sm">{isVi ? 'Hủy' : 'Cancel'}</button>}
+          {editing && <button type="button" onClick={() => { setEditing(null); setForm({name:'',description:'',color:'#7c3aed',icon:'đŸµ'}); }}
+            className="px-3 py-2 text-zinc-400 hover:text-white bg-zinc-800 rounded-lg text-sm">{isVi ? 'Há»§y' : 'Cancel'}</button>}
         </form>
       </div>
 
@@ -817,7 +817,7 @@ function CategoriesTab({ authH }: any) {
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
                 <p className="text-sm font-semibold text-zinc-200">{c.name}</p>
               </div>
-              <p className="text-xs text-zinc-500">{c.track_count} {isVi ? 'bài hát' : 'songs'}</p>
+              <p className="text-xs text-zinc-500">{c.track_count} {isVi ? 'bĂ i hĂ¡t' : 'songs'}</p>
             </div>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
               <button onClick={() => startEdit(c)} className="p-1.5 text-zinc-500 hover:text-purple-400 rounded-lg hover:bg-white/5"><Edit2 className="w-3.5 h-3.5" /></button>
@@ -835,541 +835,216 @@ function StatsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Play history parameters
-  const [viewMode, setViewMode] = useState<'day' | 'month' | 'year'>('day');
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [historyData, setHistoryData] = useState<any>(null);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-
-  const [refreshingGeneral, setRefreshingGeneral] = useState(false);
-
-  // Category tracks drilldown
-  const [selectedCategoryForTracks, setSelectedCategoryForTracks] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [categoryTracks, setCategoryTracks] = useState<any[]>([]);
-  const [loadingCategoryTracks, setLoadingCategoryTracks] = useState(false);
-  const [categoryTracksLimit, setCategoryTracksLimit] = useState(10);
+  const [catTracksLoading, setCatTracksLoading] = useState(false);
 
-  useEffect(() => {
-    if (!selectedCategoryForTracks) {
-      setCategoryTracks([]);
-      return;
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/stats`, { headers: authH });
+      if (data.success) setStats(data.data);
+    } catch (err) {
+      console.error('Stats error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoadingCategoryTracks(true);
-    axios.get(`${API}/stats/category-tracks?categoryId=${selectedCategoryForTracks.id}`, { headers: authH })
-      .then(r => {
-        if (r.data.success) {
-          setCategoryTracks(r.data.data);
-        }
-      })
-      .catch(err => console.error(err))
-      .finally(() => setLoadingCategoryTracks(false));
-  }, [selectedCategoryForTracks]);
-
-  // Load general stats
-  const fetchGeneralStats = (isSilent = false) => {
-    if (!isSilent) setLoading(true);
-    else setRefreshingGeneral(true);
-    
-    axios.get(`${API}/stats`, { headers: authH })
-      .then(r => { if (r.data.success) setStats(r.data.data); })
-      .finally(() => {
-        if (!isSilent) setLoading(false);
-        else setRefreshingGeneral(false);
-      });
   };
 
-  useEffect(() => {
-    fetchGeneralStats();
-  }, []);
+  useEffect(() => { fetchStats(); }, []);
 
-  // Load play history stats
-  const fetchPlayHistory = () => {
-    setLoadingHistory(true);
-    let url = `${API}/stats/history?view=${viewMode}`;
-    if (selectedDate) {
-      const cleanDate = selectedDate.includes('T') ? selectedDate.split('T')[0] : (selectedDate.includes(' ') ? selectedDate.split(' ')[0] : selectedDate);
-      url += `&date=${cleanDate}`;
-    } else {
-      if (startDate) url += `&startDate=${startDate}`;
-      if (endDate) url += `&endDate=${endDate}`;
-    }
-
-    axios.get(url, { headers: authH })
-      .then(r => {
-        if (r.data.success) {
-          setHistoryData(r.data.data);
-        }
-      })
-      .catch(err => console.error(err))
-      .finally(() => setLoadingHistory(false));
+  const fetchCategoryTracks = async (cat: any) => {
+    setSelectedCategory(cat);
+    setCatTracksLoading(true);
+    try {
+      const catId = cat.categoryId ?? 'null';
+      const { data } = await axios.get(`${API}/stats/category-tracks?categoryId=${catId}`, { headers: authH });
+      if (data.success) setCategoryTracks(data.data);
+    } catch { setCategoryTracks([]); }
+    finally { setCatTracksLoading(false); }
   };
 
-  useEffect(() => {
-    fetchPlayHistory();
-  }, [viewMode, selectedDate, startDate, endDate]);
+  const maxDailyPlays = Math.max(1, ...(stats?.dailyPlays || []).map((d: any) => d.count));
 
-  if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>;
-  if (!stats)  return <p className="text-zinc-500 text-sm">{isVi ? 'Không thể tải thống kê' : 'Failed to load statistics'}</p>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
-  const statCards = [
-    { label: isVi ? 'Người dùng' : 'Users',   value: stats.totalUsers,     icon: <Users className="w-5 h-5" />,    color: 'from-blue-600 to-blue-500' },
-    { label: isVi ? 'Bài hát' : 'Songs',      value: stats.totalTracks,    icon: <Music className="w-5 h-5" />,    color: 'from-purple-600 to-pink-500' },
-    { label: isVi ? 'Tổng lượt nghe' : 'Total Plays', value: stats.totalPlays,    icon: <TrendingUp className="w-5 h-5" />,color: 'from-emerald-600 to-green-500' },
-    { label: isVi ? 'Yêu thích' : 'Favorites',    value: stats.totalFavorites, icon: <Heart className="w-5 h-5" />,    color: 'from-rose-600 to-pink-500' },
-    { label: isVi ? 'Đánh giá' : 'Ratings',     value: stats.totalRatings,   icon: <Star className="w-5 h-5" />,     color: 'from-amber-600 to-yellow-500' },
-    { label: isVi ? 'Điểm TB' : 'Avg Rating',      value: `${stats.avgRating}⭐`,icon: <Star className="w-5 h-5" />,    color: 'from-amber-500 to-orange-400' },
-  ];
-
-  const maxPlays = Math.max(...(stats.topTracks || []).map((t: any) => t.play_count || 0), 1);
-
-  // Compute max count for custom aggregated chart
-  const aggregatedList = historyData?.aggregated || [];
-  const maxAggregatedCount = Math.max(...aggregatedList.map((item: any) => item.count || 0), 1);
+  if (!stats) return (
+    <div className="text-center py-16 text-zinc-500 text-sm">
+      {isVi ? 'Không thể tải thống kê.' : 'Could not load statistics.'}
+      <button onClick={fetchStats} className="block mx-auto mt-3 text-amber-400 hover:text-amber-300 text-xs">
+        {isVi ? 'Thử lại' : 'Retry'}
+      </button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {statCards.map(s => (
-          <div key={s.label} className="rounded-xl border border-white/5 p-4 bg-white/[0.02] flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center flex-shrink-0`}>
-              {React.cloneElement(s.icon as any, { className: 'w-4 h-4 text-white' })}
-            </div>
-            <div>
-              <p className="text-lg font-bold text-white leading-tight">{s.value}</p>
-              <p className="text-[10px] text-zinc-500">{s.label}</p>
-            </div>
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <BarChart2 className="w-5 h-5 text-amber-400" />
+          {isVi ? 'Thống kê hệ thống' : 'System Statistics'}
+        </h3>
+        <button onClick={fetchStats} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all border border-white/5">
+          <RefreshCw className="w-3.5 h-3.5" /> {isVi ? 'Làm mới' : 'Refresh'}
+        </button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: isVi ? 'Người dùng' : 'Users', value: stats.totalUsers ?? 0, icon: '👤', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
+          { label: isVi ? 'Bài hát' : 'Tracks', value: stats.totalTracks ?? 0, icon: '🎵', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
+          { label: isVi ? 'Lượt nghe' : 'Total Plays', value: formatCount(stats.totalPlays ?? 0), icon: '▶️', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+          { label: isVi ? 'Yêu thích' : 'Favorites', value: stats.totalFavorites ?? 0, icon: '❤️', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+        ].map(card => (
+          <div key={card.label} className={`rounded-xl border p-4 ${card.bg}`}>
+            <div className="text-2xl mb-1">{card.icon}</div>
+            <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">{card.label}</p>
           </div>
         ))}
       </div>
-
-      {/* Play History Time Series & Date Selector Section */}
-      <div className="rounded-xl border border-white/5 p-5 bg-white/[0.02] space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/5 pb-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-purple-400" />
-            <div>
-              <h3 className="text-sm font-bold text-white">{isVi ? 'Thống kê lượt nghe chi tiết' : 'Detailed Play Statistics'}</h3>
-              <p className="text-xs text-zinc-500">{isVi ? 'Phân tích tần suất và số lượt phát nhạc' : 'Analyze play count and frequency'}</p>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* View Mode select */}
-            <select
-              value={viewMode}
-              onChange={(e) => {
-                setViewMode(e.target.value as any);
-                setSelectedDate(''); // reset specific date
-              }}
-              disabled={!!selectedDate}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500"
-            >
-              <option value="day">{isVi ? 'Theo ngày' : 'By Day'}</option>
-              <option value="month">{isVi ? 'Theo tháng' : 'By Month'}</option>
-              <option value="year">{isVi ? 'Theo năm' : 'By Year'}</option>
-            </select>
-
-            {/* Date range inputs (only when not showing specific date) */}
-            {!selectedDate && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  onClick={(e) => { try { e.currentTarget.showPicker(); } catch (_) {} }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                  placeholder={isVi ? "Từ ngày" : "Start date"}
-                />
-                <span className="text-zinc-600 text-xs">-</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  onClick={(e) => { try { e.currentTarget.showPicker(); } catch (_) {} }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                  placeholder={isVi ? "Đến ngày" : "End date"}
-                />
-                {(startDate || endDate) && (
-                  <button
-                    onClick={() => { setStartDate(''); setEndDate(''); }}
-                    className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
-                  >
-                    {isVi ? 'Xóa lọc' : 'Clear filter'}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Specific Date selector */}
-            <div className="flex items-center gap-2 border-l border-white/5 pl-3">
-              <span className="text-[11px] text-zinc-400">{isVi ? 'Chọn ngày cụ thể:' : 'Select specific date:'}</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                }}
-                onClick={(e) => { try { e.currentTarget.showPicker(); } catch (_) {} }}
-                className="bg-zinc-900 border border-purple-900/40 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-              />
-              {selectedDate && (
-                <button
-                  onClick={() => setSelectedDate('')}
-                  className="w-5 h-5 flex items-center justify-center rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs transition-colors"
-                  title={isVi ? "Quay lại thống kê chung" : "Back to general stats"}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Chart Content Area */}
-        {loadingHistory ? (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : historyData?.mode === 'specific_date' ? (
-          // Specific selected date report view
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-purple-950/10 border border-purple-900/20 p-4 rounded-xl flex flex-col justify-center">
-                <p className="text-xs text-purple-300 font-semibold">{isVi ? `Lượt nghe ngày ${formatDateLabel(selectedDate, 'day')}` : `Plays on ${formatDateLabel(selectedDate, 'day')}`}</p>
-                <p className="text-3xl font-extrabold text-white mt-1">{formatCount(historyData.totalPlays || 0)} <span className="text-sm font-normal text-zinc-400">{(historyData.totalPlays || 0) === 1 ? (isVi ? 'lượt nghe' : 'play') : (isVi ? 'lượt nghe' : 'plays')}</span></p>
-              </div>
-
-              {/* Hourly Stats Chart */}
-              <div className="col-span-2 bg-white/[0.01] border border-white/5 p-4 rounded-xl">
-                <h4 className="text-xs font-bold text-white mb-3 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-purple-400" /> {isVi ? 'Phân bố lượt nghe theo giờ' : 'Hourly Play Distribution'}
-                </h4>
-                {historyData.hourlyStats?.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-6 text-center">{isVi ? 'Không có dữ liệu lượt nghe cho ngày này.' : 'No play data for this day.'}</p>
-                ) : (
-                  <div className="flex items-end justify-between h-28 pt-2 px-2 gap-1 overflow-x-auto">
-                    {Array.from({ length: 24 }).map((_, hourNum) => {
-                      const hrStr = String(hourNum).padStart(2, '0');
-                      const match = historyData.hourlyStats.find((h: any) => h.hour === hrStr);
-                      const count = match ? match.count : 0;
-                      const maxHourCount = Math.max(...historyData.hourlyStats.map((h: any) => h.count), 1);
-                      const pct = (count / maxHourCount) * 100;
-                      return (
-                         <div key={hrStr} className="flex-1 flex flex-col items-center group">
-                          <div className="w-full relative flex justify-center h-20 items-end">
-                            <div
-                              style={{ height: `${pct}%` }}
-                              className="w-full max-w-[14px] bg-gradient-to-t from-purple-600 to-pink-500 rounded-t-sm group-hover:from-purple-500 group-hover:to-pink-400 transition-all duration-300"
-                              title={`${hourNum}h: ${formatPlaysShort(count, isVi)}`}
-                            />
-                            <span className="absolute -top-5 bg-zinc-950 text-white text-[9px] px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                              {formatPlaysShort(count, isVi)}
-                            </span>
-                          </div>
-                          <span className="text-[9px] text-zinc-500 mt-1.5">{hrStr}h</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Top Tracks for the day */}
-              <div className="bg-white/[0.01] border border-white/5 p-4 rounded-xl">
-                <h4 className="text-xs font-bold text-white mb-3">{isVi ? 'Top bài hát nghe nhiều nhất trong ngày' : 'Top played songs of the day'}</h4>
-                {historyData.topTracks?.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-6 text-center">{isVi ? 'Không có dữ liệu bài hát.' : 'No song data.'}</p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {historyData.topTracks.map((t: any, i: number) => (
-                      <div key={t.id} className="flex items-center justify-between gap-3 text-xs p-1.5 rounded-lg hover:bg-white/[0.02] transition-all">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-zinc-500 w-4 font-semibold">{i+1}</span>
-                          <img src={t.cover_url} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
-                          <div className="min-w-0">
-                            <p className="text-zinc-200 font-bold truncate">{t.title}</p>
-                            <p className="text-zinc-500 text-[10px] truncate">{t.artist}</p>
-                          </div>
-                        </div>
-                        <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">{formatPlaysShort(t.plays || 0, isVi)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Detailed logs for the day */}
-              <div className="bg-white/[0.01] border border-white/5 p-4 rounded-xl">
-                <h4 className="text-xs font-bold text-white mb-3">{isVi ? 'Nhật ký phát nhạc trong ngày' : 'Play log of the day'}</h4>
-                <div className="max-h-[420px] overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-                  {historyData.playsList?.length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-6 text-center">{isVi ? 'Chưa phát bài nào.' : 'No songs played yet.'}</p>
-                  ) : (
-                    historyData.playsList.map((p: any, i: number) => {
-                      const timeStr = p.played_at ? p.played_at.split(' ')[1]?.slice(0, 5) || '--:--' : '--:--';
-                      return (
-                        <div key={i} className="flex items-center justify-between gap-2 text-[11px] p-2 rounded-lg bg-zinc-950/30 hover:bg-zinc-900/30 transition-all border border-white/[0.01]">
-                          <span className="text-zinc-500 font-medium flex-shrink-0">{timeStr}</span>
-                          <span className="text-zinc-300 truncate flex-1 pl-1">
-                            <span className="text-zinc-400 font-semibold">{p.user_name || (isVi ? 'Khách' : 'Guest')}</span> {isVi ? 'đã nghe' : 'listened to'} <span className="text-purple-300 font-bold">{p.title}</span> - {p.artist}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Aggregated statistics chart view (Day / Month / Year)
-          <div className="space-y-4">
-            {aggregatedList.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-xs text-zinc-500">{isVi ? 'Không có dữ liệu thống kê trong khoảng thời gian này.' : 'No statistics data for this period.'}</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-xs text-zinc-500">{isVi ? 'Bấm vào các cột ngày để xem chi tiết danh sách phát của ngày đó.' : 'Click on date columns to see details.'}</p>
-                <div className="flex items-end justify-between h-44 pt-4 px-2 gap-2 overflow-x-auto min-w-max">
-                  {aggregatedList.map((item: any) => {
-                    const pct = (item.count / maxAggregatedCount) * 100;
-                    return (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onClick={() => {
-                          // If viewMode is day, allow drilling down into specific date
-                          if (viewMode === 'day') {
-                            const cleanDate = item.label.includes('T') ? item.label.split('T')[0] : (item.label.includes(' ') ? item.label.split(' ')[0] : item.label);
-                            setSelectedDate(cleanDate);
-                          }
-                        }}
-                        className={`flex-1 flex flex-col items-center group focus:outline-none transition-all ${
-                          viewMode === 'day' ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
-                        }`}
-                      >
-                        <div className="w-full relative flex justify-center h-32 items-end">
-                          <div
-                            style={{ height: `${pct}%` }}
-                            className="w-full max-w-[20px] bg-gradient-to-t from-purple-600 to-pink-500 rounded-t group-hover:from-purple-500 group-hover:to-pink-400 transition-all duration-300 shadow-lg shadow-purple-950/40"
-                          />
-                          <span className="absolute -top-6 bg-zinc-950 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                            {formatPlaysShort(item.count || 0, isVi)}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-purple-400 mt-2 font-bold whitespace-nowrap">{formatDateLabel(item.label, viewMode)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top tracks */}
-        <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-purple-400" /> {isVi ? 'Top bài nghe nhiều nhất' : 'Top Played Songs'}
-            </h3>
-            <button 
-              onClick={() => fetchGeneralStats(true)} 
-              className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all"
-              title={isVi ? "Làm mới" : "Refresh"}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshingGeneral ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-          <div className="space-y-3">
-            {(stats.topTracks || []).slice(0,7).map((t: any, i: number) => (
-              <div key={t.id} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-300 truncate max-w-[180px]">
-                    <span className="text-zinc-600 mr-1">{i+1}.</span>{t.title}
-                  </span>
-                  <span className="text-xs text-zinc-500 flex-shrink-0">{t.play_count}</span>
-                </div>
-                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full transition-all duration-700"
-                    style={{ width: `${((t.play_count||0)/maxPlays)*100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Genre stats */}
-        <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-amber-400" /> {isVi ? 'Thống kê theo danh mục' : 'Category Statistics'}
-            </h3>
-            <button 
-              onClick={() => fetchGeneralStats(true)} 
-              className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all"
-              title={isVi ? "Làm mới" : "Refresh"}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshingGeneral ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-            {(stats.genreStats || []).map((g: any) => (
-              <div 
-                key={g.genre} 
-                onClick={() => {
-                  setSelectedCategoryForTracks({
-                    id: g.categoryId || 'null',
-                    name: g.genre,
-                    color: g.color,
-                    count: g.count,
-                    plays: g.plays
-                  });
-                  setCategoryTracksLimit(10);
-                }}
-                className="flex items-center justify-between p-1 hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <span 
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: g.color || '#7c3aed' }} 
-                  />
-                  <span className="text-xs text-zinc-300 font-medium">{g.genre}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-500">{g.count} {isVi ? 'bài' : 'songs'}</span>
-                  <span className="text-xs text-zinc-600">·</span>
-                  <span className="text-xs text-amber-400 font-semibold">{formatPlaysShort(g.plays || 0, isVi)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent activity */}
-      <div className="rounded-xl border border-white/5 p-4 bg-white/[0.02]">
-        <h3 className="text-sm font-bold text-white mb-3">{isVi ? 'Hoạt động gần đây' : 'Recent Activity'}</h3>
-        <div className="space-y-2">
-          {(stats.recentActivity || []).slice(0,8).map((a: any, i: number) => {
-              // played_at is already stored as Vietnam time (UTC+7), parse as local
-              const raw = a.played_at?.replace(' ', 'T') ?? '';
-              const d = raw ? new Date(raw) : null;
-              const timeLabel = d && !isNaN(d.getTime())
-                ? d.toLocaleString(isVi ? 'vi-VN' : 'en-US', {
-                    day: '2-digit', month: '2-digit',
-                    hour: '2-digit', minute: '2-digit',
-                    hour12: false
-                  })
-                : '--:--';
+      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-5">
+        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-amber-400" />
+          {isVi ? 'Lượt nghe 7 ngày gần nhất' : 'Plays — Last 7 Days'}
+        </h4>
+        {stats.dailyPlays && stats.dailyPlays.length > 0 ? (
+          <div className="flex items-end gap-2 h-32">
+            {stats.dailyPlays.map((d: any, i: number) => {
+              const pct = Math.max(4, Math.round((d.count / maxDailyPlays) * 100));
+              const label = formatDateLabel(d.day, 'day');
               return (
-                <div key={i} className="flex items-center gap-3 text-xs">
-                  <span className="text-zinc-600 flex-shrink-0 min-w-[100px]">{timeLabel}</span>
-                  <span className="text-zinc-400 truncate">
-                    <span className="text-purple-400">{a.user_name || (isVi ? 'Khách' : 'Guest')}</span> {isVi ? 'nghe' : 'listened to'} <span className="text-zinc-200">{a.title}</span> - {a.artist}
-                  </span>
+                <div key={i} className="flex-1 flex flex-col items-center gap-1 group cursor-default">
+                  <span className="text-[9px] text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity">{d.count}</span>
+                  <div className="w-full rounded-t-lg bg-gradient-to-t from-amber-600 to-amber-400 group-hover:from-amber-500 group-hover:to-yellow-300 transition-all"
+                    style={{ height: `${pct}%` }} title={`${label}: ${d.count}`} />
+                  <span className="text-[9px] text-zinc-600 truncate w-full text-center">{label.slice(0, 5)}</span>
                 </div>
               );
             })}
-          {(stats.recentActivity||[]).length === 0 && <p className="text-xs text-zinc-600">{isVi ? 'Chưa có hoạt động nào' : 'No activity yet'}</p>}
-        </div>
+          </div>
+        ) : (
+          <div className="h-32 flex items-center justify-center text-zinc-600 text-sm">
+            {isVi ? 'Chưa có dữ liệu lượt nghe.' : 'No play data yet.'}
+          </div>
+        )}
       </div>
-
-      {/* Category Tracks Drilldown Modal */}
-      {selectedCategoryForTracks && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/[0.01]">
-              <div className="flex items-center gap-2">
-                <span 
-                  className="w-3 h-3 rounded-full flex-shrink-0 animate-pulse"
-                  style={{ backgroundColor: selectedCategoryForTracks.color || '#7c3aed' }} 
-                />
-                <h3 className="text-sm font-bold text-white">
-                  {isVi ? `Danh mục: ${selectedCategoryForTracks.name}` : `Category: ${selectedCategoryForTracks.name}`}
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedCategoryForTracks(null)}
-                className="w-6 h-6 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-4 overflow-y-auto flex-1 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-              <div className="flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02] p-3 rounded-lg border border-white/5">
-                <span>{isVi ? `Số lượng bài hát: ` : `Number of songs: `}<strong className="text-white">{selectedCategoryForTracks.count} {isVi ? 'bài' : 'songs'}</strong></span>
-                <span>{isVi ? `Tổng lượt nghe: ` : `Total plays: `}<strong className="text-amber-400">{formatPlaysShort(selectedCategoryForTracks.plays || 0, isVi)}</strong></span>
-              </div>
-
-              {loadingCategoryTracks ? (
-                <div className="flex justify-center py-8">
-                  <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
+          <h4 className="text-sm font-bold text-white mb-3">
+            🔥 {isVi ? 'Top bài nghe nhiều nhất' : 'Most Played Tracks'}
+          </h4>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {(stats.topTracks || []).slice(0, 8).map((t: any, i: number) => (
+              <div key={t.id} className="flex items-center gap-3">
+                <span className="text-[10px] text-zinc-600 w-5 text-right flex-shrink-0 font-bold">{i + 1}</span>
+                <img src={t.cover_url || 'https://via.placeholder.com/32'} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" alt={t.title} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-zinc-200 truncate">{t.title}</p>
+                  <p className="text-[10px] text-zinc-500 truncate">{t.artist}</p>
                 </div>
-              ) : categoryTracks.length === 0 ? (
-                <p className="text-xs text-zinc-500 py-8 text-center italic">{isVi ? 'Không có bài hát nào trong danh mục này.' : 'No songs in this category.'}</p>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">{isVi ? 'Danh sách bài hát (Xắp xếp theo lượt nghe)' : 'Song list (Sorted by play count)'}</p>
-                  {categoryTracks.slice(0, categoryTracksLimit).map((track: any, index: number) => (
-                    <div key={track.id} className="flex items-center justify-between gap-3 text-xs p-2 rounded-lg bg-zinc-900/40 hover:bg-zinc-850 border border-white/5 transition-all">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-zinc-500 w-4 font-semibold text-center">{index + 1}</span>
-                        <img src={track.cover_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-zinc-200 font-bold truncate">{track.title}</p>
-                          <p className="text-zinc-500 text-[10px] truncate">{track.artist}</p>
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
-                        {formatPlaysShort(track.plays || 0, isVi)}
-                      </span>
-                    </div>
-                  ))}
-
-                  {categoryTracks.length > categoryTracksLimit && (
-                    <button
-                      onClick={() => setCategoryTracksLimit(prev => prev + 10)}
-                      className="w-full py-2 mt-2 text-xs font-semibold text-purple-400 hover:text-purple-300 bg-purple-500/5 hover:bg-purple-500/10 rounded-lg transition-all border border-purple-500/10"
-                    >
-                      {isVi ? `Xem thêm (Còn ${categoryTracks.length - categoryTracksLimit} bài)` : `Load more (${categoryTracks.length - categoryTracksLimit} songs left)`}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {/* Footer */}
-            <div className="p-3 bg-white/[0.01] border-t border-white/5 flex justify-end">
-              <button
-                onClick={() => setSelectedCategoryForTracks(null)}
-                className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-semibold transition-colors"
-              >
-                {isVi ? 'Đóng' : 'Close'}
-              </button>
-            </div>
+                <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">{formatCount(t.play_count || 0)}</span>
+              </div>
+            ))}
+            {(!stats.topTracks || stats.topTracks.length === 0) && (
+              <p className="text-xs text-zinc-600 text-center py-6">{isVi ? 'Chưa có lượt nghe.' : 'No plays yet.'}</p>
+            )}
           </div>
         </div>
+        <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
+          <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-amber-400" />
+            {isVi ? 'Theo danh mục (click để xem)' : 'By Category (click for details)'}
+          </h4>
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {(stats.genreStats || []).map((g: any, i: number) => {
+              const maxPlays = Math.max(1, ...(stats.genreStats || []).map((x: any) => x.plays));
+              const pct = Math.round((g.plays / maxPlays) * 100);
+              return (
+                <button key={i} onClick={() => fetchCategoryTracks(g)}
+                  className={`w-full text-left rounded-lg p-2 transition-all hover:bg-white/5 ${selectedCategory?.genre === g.genre ? 'bg-amber-500/10 border border-amber-500/20' : ''}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-zinc-300 truncate">{g.genre}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[10px] text-zinc-500">{g.count} {isVi ? 'bài' : 'tracks'}</span>
+                      <span className="text-[10px] text-amber-400 font-bold">{formatCount(g.plays)}</span>
+                    </div>
+                  </div>
+                  <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: g.color || '#7c3aed' }} />
+                  </div>
+                </button>
+              );
+            })}
+            {(!stats.genreStats || stats.genreStats.length === 0) && (
+              <p className="text-xs text-zinc-600 text-center py-6">{isVi ? 'Chưa có danh mục.' : 'No categories.'}</p>
+            )}
+          </div>
+        </div>
+      </div>
+      {selectedCategory && (
+        <div className="bg-zinc-900/60 border border-amber-500/20 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-bold text-white">
+              {isVi ? 'Bài trong: ' : 'Tracks in: '}
+              <span style={{ color: selectedCategory.color || '#a78bfa' }}>{selectedCategory.genre}</span>
+            </h4>
+            <button onClick={() => { setSelectedCategory(null); setCategoryTracks([]); }}
+              className="text-zinc-500 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-white/5 transition-all">✕</button>
+          </div>
+          {catTracksLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {categoryTracks.map((t: any, i: number) => (
+                <div key={t.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03]">
+                  <span className="text-[10px] text-zinc-600 w-4">{i + 1}</span>
+                  <img src={t.cover_url || 'https://via.placeholder.com/28'} className="w-7 h-7 rounded-md object-cover flex-shrink-0" alt={t.title} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-zinc-200 truncate">{t.title}</p>
+                    <p className="text-[10px] text-zinc-500 truncate">{t.artist}</p>
+                  </div>
+                  <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">{formatCount(t.plays || 0)}</span>
+                </div>
+              ))}
+              {categoryTracks.length === 0 && (
+                <p className="text-xs text-zinc-600 text-center py-4">{isVi ? 'Chưa có bài hát.' : 'No tracks.'}</p>
+              )}
+            </div>
+          )}
+        </div>
       )}
+      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
+        <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-amber-400" />
+          {isVi ? 'Hoạt động gần đây' : 'Recent Listening Activity'}
+        </h4>
+        <div className="space-y-1 max-h-52 overflow-y-auto">
+          {(stats.recentActivity || []).map((a: any, i: number) => (
+            <div key={i} className="flex items-center gap-3 text-xs py-1.5 border-b border-white/[0.03] last:border-0">
+              <span className="text-zinc-600 flex-shrink-0 w-28 truncate text-[10px]">
+                {new Date(a.played_at).toLocaleString(isVi ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+              </span>
+              <span className="text-zinc-200 flex-1 truncate font-medium">{a.title}</span>
+              <span className="text-zinc-500 truncate max-w-[80px] hidden md:block">{a.artist}</span>
+              <span className="text-purple-400 flex-shrink-0 truncate max-w-[80px] text-[10px]">{a.user_name || 'Guest'}</span>
+            </div>
+          ))}
+          {(!stats.recentActivity || stats.recentActivity.length === 0) && (
+            <p className="text-xs text-zinc-600 text-center py-4">{isVi ? 'Chưa có hoạt động.' : 'No recent activity.'}</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Artists Tab ───────────────────────────────────────────────────
 function ArtistsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -1425,7 +1100,7 @@ function ArtistsTab({ authH }: any) {
         window.dispatchEvent(new CustomEvent('reload-artists'));
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi thêm nghệ sĩ' : 'An error occurred while adding the artist'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'CĂ³ lá»—i xáº£y ra khi thĂªm nghá»‡ sÄ©' : 'An error occurred while adding the artist'), 'error');
     }
   };
 
@@ -1433,16 +1108,16 @@ function ArtistsTab({ authH }: any) {
 
   const del = async (id: number) => {
     showConfirm(
-      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
-      isVi ? 'Bạn có chắc chắn muốn xóa nghệ sĩ tiêu biểu này?' : 'Are you sure you want to delete this featured artist?',
+      isVi ? 'XĂ¡c nháº­n xĂ³a' : 'Confirm Delete',
+      isVi ? 'Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a nghá»‡ sÄ© tiĂªu biá»ƒu nĂ y?' : 'Are you sure you want to delete this featured artist?',
       async () => {
         try {
           await axios.delete(`${API}/artists/${id}`, { headers: authH });
-          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa nghệ sĩ thành công.' : 'Artist deleted successfully.', 'success');
+          showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'ÄĂ£ xĂ³a nghá»‡ sÄ© thĂ nh cĂ´ng.' : 'Artist deleted successfully.', 'success');
           fetchArtists();
           window.dispatchEvent(new CustomEvent('reload-artists'));
         } catch (err: any) {
-          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa nghệ sĩ.' : 'Failed to delete artist.'), 'error');
+          showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ xĂ³a nghá»‡ sÄ©.' : 'Failed to delete artist.'), 'error');
         }
       }
     );
@@ -1450,59 +1125,59 @@ function ArtistsTab({ authH }: any) {
 
   return (
     <div className="space-y-6">
-      {/* Form thêm nghệ sĩ */}
+      {/* Form thĂªm nghá»‡ sÄ© */}
       <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <Plus className="w-5 h-5 text-purple-400" /> {isVi ? 'Thêm nghệ sĩ tiêu biểu mới' : 'Add New Featured Artist'}
+          <Plus className="w-5 h-5 text-purple-400" /> {isVi ? 'ThĂªm nghá»‡ sÄ© tiĂªu biá»ƒu má»›i' : 'Add New Featured Artist'}
         </h3>
         
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Tên nghệ sĩ' : 'Artist Name'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'TĂªn nghá»‡ sÄ©' : 'Artist Name'}</label>
               <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder={isVi ? "Ví dụ: The Weeknd" : "E.g., The Weeknd"}
+                placeholder={isVi ? "VĂ­ dá»¥: The Weeknd" : "E.g., The Weeknd"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
             
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Thể loại' : 'Genre'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Thá»ƒ loáº¡i' : 'Genre'}</label>
               <input required value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })}
-                placeholder={isVi ? "Ví dụ: R&B / Synthwave / Pop" : "E.g., R&B / Synthwave / Pop"}
+                placeholder={isVi ? "VĂ­ dá»¥: R&B / Synthwave / Pop" : "E.g., R&B / Synthwave / Pop"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Lượt nghe hàng tháng' : 'Monthly Listeners'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'LÆ°á»£t nghe hĂ ng thĂ¡ng' : 'Monthly Listeners'}</label>
               <input required value={form.listeners} onChange={e => setForm({ ...form, listeners: e.target.value })}
-                placeholder={isVi ? "Ví dụ: 115.4M" : "E.g., 115.4M"}
+                placeholder={isVi ? "VĂ­ dá»¥: 115.4M" : "E.g., 115.4M"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Bài hát nổi bật' : 'Popular Track'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'BĂ i hĂ¡t ná»•i báº­t' : 'Popular Track'}</label>
               <input required value={form.popular_track} onChange={e => setForm({ ...form, popular_track: e.target.value })}
-                placeholder={isVi ? "Ví dụ: Blinding Lights" : "E.g., Blinding Lights"}
+                placeholder={isVi ? "VĂ­ dá»¥: Blinding Lights" : "E.g., Blinding Lights"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Mô tả tiểu sử' : 'Bio description'}</label>
+            <label className="text-xs font-semibold text-zinc-400">{isVi ? 'MĂ´ táº£ tiá»ƒu sá»­' : 'Bio description'}</label>
             <textarea required rows={3} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })}
-              placeholder={isVi ? "Thông tin giới thiệu chi tiết về cuộc đời, sự nghiệp của ca sĩ..." : "Detailed introduction about the singer's life, career..."}
+              placeholder={isVi ? "ThĂ´ng tin giá»›i thiá»‡u chi tiáº¿t vá» cuá»™c Ä‘á»i, sá»± nghiá»‡p cá»§a ca sÄ©..." : "Detailed introduction about the singer's life, career..."}
               className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 resize-none" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Ảnh chân dung nghệ sĩ (Upload file)' : 'Artist portrait photo (Upload file)'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'áº¢nh chĂ¢n dung nghá»‡ sÄ© (Upload file)' : 'Artist portrait photo (Upload file)'}</label>
               <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)}
                 className="w-full text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Hoặc dán URL ảnh' : 'Or paste image URL'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Hoáº·c dĂ¡n URL áº£nh' : 'Or paste image URL'}</label>
               <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} disabled={!!file}
                 placeholder="http://example.com/image.png"
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 disabled:opacity-40" />
@@ -1510,15 +1185,15 @@ function ArtistsTab({ authH }: any) {
           </div>
 
           <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/20">
-            {isVi ? 'Thêm nghệ sĩ' : 'Add Artist'}
+            {isVi ? 'ThĂªm nghá»‡ sÄ©' : 'Add Artist'}
           </button>
         </form>
       </div>
 
-      {/* Danh sách nghệ sĩ */}
+      {/* Danh sĂ¡ch nghá»‡ sÄ© */}
       <div className="rounded-2xl border border-white/5 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sách nghệ sĩ tiêu biểu hiện có' : 'Featured Artist List'}</h3>
+          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sĂ¡ch nghá»‡ sÄ© tiĂªu biá»ƒu hiá»‡n cĂ³' : 'Featured Artist List'}</h3>
           <button onClick={fetchArtists} className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -1531,9 +1206,9 @@ function ArtistsTab({ authH }: any) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-zinc-200">{artist.name}</span>
-                  <span className="text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">{artist.listeners} {isVi ? 'lượt nghe/tháng' : 'listeners/month'}</span>
+                  <span className="text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">{artist.listeners} {isVi ? 'lÆ°á»£t nghe/thĂ¡ng' : 'listeners/month'}</span>
                 </div>
-                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">{isVi ? 'Thể loại:' : 'Genre:'}</span> {artist.genre} · <span className="text-zinc-500">{isVi ? 'Bài hát nổi bật:' : 'Popular track:'}</span> {artist.popular_track}</p>
+                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">{isVi ? 'Thá»ƒ loáº¡i:' : 'Genre:'}</span> {artist.genre} Â· <span className="text-zinc-500">{isVi ? 'BĂ i hĂ¡t ná»•i báº­t:' : 'Popular track:'}</span> {artist.popular_track}</p>
                 <p className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{artist.bio}</p>
               </div>
               <button onClick={() => del(artist.id)} className="opacity-0 group-hover:opacity-100 p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all flex-shrink-0">
@@ -1542,7 +1217,7 @@ function ArtistsTab({ authH }: any) {
             </div>
           ))}
           {artists.length === 0 && !loading && (
-            <div className="p-8 text-center text-zinc-600 text-sm">{isVi ? 'Chưa có nghệ sĩ nào. Vui lòng thêm bằng biểu mẫu trên.' : 'No artists yet. Please add using the form above.'}</div>
+            <div className="p-8 text-center text-zinc-600 text-sm">{isVi ? 'ChÆ°a cĂ³ nghá»‡ sÄ© nĂ o. Vui lĂ²ng thĂªm báº±ng biá»ƒu máº«u trĂªn.' : 'No artists yet. Please add using the form above.'}</div>
           )}
         </div>
       </div>
@@ -1550,7 +1225,7 @@ function ArtistsTab({ authH }: any) {
   );
 }
 
-// ── Albums Tab ───────────────────────────────────────────────────
+// â”€â”€ Albums Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AlbumsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -1628,7 +1303,7 @@ function AlbumsTab({ authH }: any) {
         window.dispatchEvent(new CustomEvent('reload-settings'));
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi lưu album' : 'An error occurred while saving the album'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'CĂ³ lá»—i xáº£y ra khi lÆ°u album' : 'An error occurred while saving the album'), 'error');
     }
   };
 
@@ -1636,16 +1311,16 @@ function AlbumsTab({ authH }: any) {
 
   const del = async (id: number) => {
     showConfirm(
-      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
-      isVi ? 'Bạn có chắc chắn muốn xóa album này? Các bài hát trong album sẽ không bị xóa nhưng sẽ không còn thuộc album này.' : 'Are you sure you want to delete this album? Songs in this album will not be deleted but will no longer belong to this album.',
+      isVi ? 'XĂ¡c nháº­n xĂ³a' : 'Confirm Delete',
+      isVi ? 'Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a album nĂ y? CĂ¡c bĂ i hĂ¡t trong album sáº½ khĂ´ng bá»‹ xĂ³a nhÆ°ng sáº½ khĂ´ng cĂ²n thuá»™c album nĂ y.' : 'Are you sure you want to delete this album? Songs in this album will not be deleted but will no longer belong to this album.',
       async () => {
         try {
           await axios.delete(`${API}/albums/${id}`, { headers: authH });
-          showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Đã xóa album thành công.' : 'Album deleted successfully.', 'success');
+          showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'ÄĂ£ xĂ³a album thĂ nh cĂ´ng.' : 'Album deleted successfully.', 'success');
           fetchAlbums();
           window.dispatchEvent(new CustomEvent('reload-settings'));
         } catch (err: any) {
-          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Không thể xóa album.' : 'Failed to delete album.'), 'error');
+          showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'KhĂ´ng thá»ƒ xĂ³a album.' : 'Failed to delete album.'), 'error');
         }
       }
     );
@@ -1689,61 +1364,61 @@ function AlbumsTab({ authH }: any) {
 
   return (
     <div className="space-y-6">
-      {/* Form thêm/sửa album */}
+      {/* Form thĂªm/sá»­a album */}
       <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
           {editing ? <Edit2 className="w-5 h-5 text-amber-400" /> : <Plus className="w-5 h-5 text-purple-400" />}
-          {editing ? (isVi ? 'Chỉnh sửa album' : 'Edit Album') : (isVi ? 'Tạo album mới' : 'Create New Album')}
+          {editing ? (isVi ? 'Chá»‰nh sá»­a album' : 'Edit Album') : (isVi ? 'Táº¡o album má»›i' : 'Create New Album')}
         </h3>
         
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Tên album' : 'Album Name'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'TĂªn album' : 'Album Name'}</label>
               <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder={isVi ? "Ví dụ: Starboy" : "E.g., Starboy"}
+                placeholder={isVi ? "VĂ­ dá»¥: Starboy" : "E.g., Starboy"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
             
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Tên ca sĩ' : 'Artist Name'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'TĂªn ca sÄ©' : 'Artist Name'}</label>
               <input required value={form.artist} onChange={e => setForm({ ...form, artist: e.target.value })}
-                placeholder={isVi ? "Ví dụ: The Weeknd" : "E.g., The Weeknd"}
+                placeholder={isVi ? "VĂ­ dá»¥: The Weeknd" : "E.g., The Weeknd"}
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700" />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Mô tả album' : 'Album Description'}</label>
+            <label className="text-xs font-semibold text-zinc-400">{isVi ? 'MĂ´ táº£ album' : 'Album Description'}</label>
             <textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder={isVi ? "Thông tin giới thiệu ngắn về album..." : "Short introduction about the album..."}
+              placeholder={isVi ? "ThĂ´ng tin giá»›i thiá»‡u ngáº¯n vá» album..." : "Short introduction about the album..."}
               className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 resize-none" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Ảnh bìa Album (Upload file)' : 'Album Cover Photo (Upload file)'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'áº¢nh bĂ¬a Album (Upload file)' : 'Album Cover Photo (Upload file)'}</label>
               <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)}
                 className="w-full text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer" />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Hoặc dán URL ảnh bìa' : 'Or paste cover URL'}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? 'Hoáº·c dĂ¡n URL áº£nh bĂ¬a' : 'Or paste cover URL'}</label>
               <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} disabled={!!file}
                 placeholder="http://example.com/cover.png"
                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-700 disabled:opacity-40" />
             </div>
           </div>
 
-          {/* Chọn bài hát vào album */}
+          {/* Chá»n bĂ i hĂ¡t vĂ o album */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-400">{isVi ? `Danh sách bài hát thuộc album (${form.trackIds.length})` : `Song list belonging to the album (${form.trackIds.length})`}</label>
+              <label className="text-xs font-semibold text-zinc-400">{isVi ? `Danh sĂ¡ch bĂ i hĂ¡t thuá»™c album (${form.trackIds.length})` : `Song list belonging to the album (${form.trackIds.length})`}</label>
               <input
                 type="text"
                 value={trackSearch}
                 onChange={e => setTrackSearch(e.target.value)}
-                placeholder={isVi ? "Tìm bài hát..." : "Search song..."}
+                placeholder={isVi ? "TĂ¬m bĂ i hĂ¡t..." : "Search song..."}
                 className="w-48 bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none placeholder-zinc-700"
               />
             </div>
@@ -1771,28 +1446,28 @@ function AlbumsTab({ authH }: any) {
                 );
               })}
               {filteredTracks.length === 0 && (
-                <div className="col-span-full py-6 text-center text-zinc-600 text-xs">{isVi ? 'Không tìm thấy bài hát nào' : 'No songs found'}</div>
+                <div className="col-span-full py-6 text-center text-zinc-600 text-xs">{isVi ? 'KhĂ´ng tĂ¬m tháº¥y bĂ i hĂ¡t nĂ o' : 'No songs found'}</div>
               )}
             </div>
           </div>
 
           <div className="flex gap-3">
             <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/20">
-              {editing ? (isVi ? 'Cập nhật Album' : 'Update Album') : (isVi ? 'Tạo Album' : 'Create Album')}
+              {editing ? (isVi ? 'Cáº­p nháº­t Album' : 'Update Album') : (isVi ? 'Táº¡o Album' : 'Create Album')}
             </button>
             {editing && (
               <button type="button" onClick={cancelEdit} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-sm transition-all">
-                {isVi ? 'Hủy' : 'Cancel'}
+                {isVi ? 'Há»§y' : 'Cancel'}
               </button>
             )}
           </div>
         </form>
       </div>
 
-      {/* Danh sách album */}
+      {/* Danh sĂ¡ch album */}
       <div className="rounded-2xl border border-white/5 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sách album hiện có' : 'Existing Albums'}</h3>
+          <h3 className="text-sm font-semibold text-zinc-300">{isVi ? 'Danh sĂ¡ch album hiá»‡n cĂ³' : 'Existing Albums'}</h3>
           <button onClick={fetchAlbums} className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -1805,9 +1480,9 @@ function AlbumsTab({ authH }: any) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-zinc-200">{album.name}</span>
-                  <span className="text-xs text-zinc-500">{isVi ? `bởi ${album.artist}` : `by ${album.artist}`}</span>
+                  <span className="text-xs text-zinc-500">{isVi ? `bá»Ÿi ${album.artist}` : `by ${album.artist}`}</span>
                 </div>
-                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">{isVi ? 'Mô tả:' : 'Description:'}</span> {album.description || (isVi ? 'Không có mô tả' : 'No description')} · <span className="text-zinc-500">{isVi ? 'Bài hát:' : 'Songs:'}</span> {album.tracks?.length || 0} {isVi ? 'bài' : 'songs'}</p>
+                <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">{isVi ? 'MĂ´ táº£:' : 'Description:'}</span> {album.description || (isVi ? 'KhĂ´ng cĂ³ mĂ´ táº£' : 'No description')} Â· <span className="text-zinc-500">{isVi ? 'BĂ i hĂ¡t:' : 'Songs:'}</span> {album.tracks?.length || 0} {isVi ? 'bĂ i' : 'songs'}</p>
                 {album.tracks && album.tracks.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {album.tracks.slice(0, 5).map((t: any) => (
@@ -1816,7 +1491,7 @@ function AlbumsTab({ authH }: any) {
                       </span>
                     ))}
                     {album.tracks.length > 5 && (
-                      <span className="text-[10px] text-zinc-500 px-1 py-0.5">+{album.tracks.length - 5} {isVi ? 'bài khác' : 'other songs'}</span>
+                      <span className="text-[10px] text-zinc-500 px-1 py-0.5">+{album.tracks.length - 5} {isVi ? 'bĂ i khĂ¡c' : 'other songs'}</span>
                     )}
                   </div>
                 )}
@@ -1832,7 +1507,7 @@ function AlbumsTab({ authH }: any) {
             </div>
           ))}
           {albums.length === 0 && !loading && (
-            <div className="p-8 text-center text-zinc-600 text-sm">{isVi ? 'Chưa có album nào. Vui lòng thêm bằng biểu mẫu trên.' : 'No albums yet. Please add using the form above.'}</div>
+            <div className="p-8 text-center text-zinc-600 text-sm">{isVi ? 'ChÆ°a cĂ³ album nĂ o. Vui lĂ²ng thĂªm báº±ng biá»ƒu máº«u trĂªn.' : 'No albums yet. Please add using the form above.'}</div>
           )}
         </div>
       </div>
@@ -1840,7 +1515,7 @@ function AlbumsTab({ authH }: any) {
   );
 }
 
-// ── Settings Tab ──────────────────────────────────────────────────
+// â”€â”€ Settings Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SettingsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -1878,7 +1553,7 @@ function SettingsTab({ authH }: any) {
         setYoutubeCookies(cookiesRes.data.value || '');
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi tải cấu hình.' : 'Failed to load configuration.'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'Lá»—i khi táº£i cáº¥u hĂ¬nh.' : 'Failed to load configuration.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -1906,11 +1581,11 @@ function SettingsTab({ authH }: any) {
       if (res.data.success) {
         setBackground(res.data.value);
         setBgFile(null);
-        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Cập nhật hình nền thành công!' : 'Backdrop updated successfully!', 'success');
+        showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'Cáº­p nháº­t hĂ¬nh ná»n thĂ nh cĂ´ng!' : 'Backdrop updated successfully!', 'success');
         window.dispatchEvent(new CustomEvent('reload-settings'));
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi cập nhật hình nền.' : 'Failed to update backdrop.'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'Lá»—i khi cáº­p nháº­t hĂ¬nh ná»n.' : 'Failed to update backdrop.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -1919,7 +1594,7 @@ function SettingsTab({ authH }: any) {
   const handleAddBannerSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!slideFile && !slideUrl.trim()) {
-      showAlert(isVi ? 'Chú ý' : 'Warning', isVi ? 'Vui lòng tải lên tệp ảnh hoặc điền link ảnh.' : 'Please upload an image file or enter an image URL.', 'warning');
+      showAlert(isVi ? 'ChĂº Ă½' : 'Warning', isVi ? 'Vui lĂ²ng táº£i lĂªn tá»‡p áº£nh hoáº·c Ä‘iá»n link áº£nh.' : 'Please upload an image file or enter an image URL.', 'warning');
       return;
     }
 
@@ -1940,11 +1615,11 @@ function SettingsTab({ authH }: any) {
         setBannerSlides([res.data.data, ...bannerSlides]);
         setSlideFile(null);
         setSlideUrl('');
-        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Thêm ảnh banner thành công!' : 'Banner image added successfully!', 'success');
+        showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'ThĂªm áº£nh banner thĂ nh cĂ´ng!' : 'Banner image added successfully!', 'success');
         window.dispatchEvent(new CustomEvent('reload-settings'));
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi thêm banner.' : 'Failed to add banner image.'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'Lá»—i khi thĂªm banner.' : 'Failed to add banner image.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -1952,19 +1627,19 @@ function SettingsTab({ authH }: any) {
 
   const handleDeleteBannerSlide = async (id: number) => {
     showConfirm(
-      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
-      isVi ? 'Bạn có chắc chắn muốn xóa ảnh banner này?' : 'Are you sure you want to delete this banner image?',
+      isVi ? 'XĂ¡c nháº­n xĂ³a' : 'Confirm Delete',
+      isVi ? 'Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a áº£nh banner nĂ y?' : 'Are you sure you want to delete this banner image?',
       async () => {
         setLoading(true);
         try {
           const res = await axios.delete(`${API}/settings/banner-slides/${id}`, { headers: authH });
           if (res.data.success) {
             setBannerSlides(bannerSlides.filter(s => s.id !== id));
-            showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Xóa ảnh banner thành công!' : 'Banner image deleted successfully!', 'success');
+            showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'XĂ³a áº£nh banner thĂ nh cĂ´ng!' : 'Banner image deleted successfully!', 'success');
             window.dispatchEvent(new CustomEvent('reload-settings'));
           }
         } catch (err: any) {
-          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi xóa banner.' : 'Failed to delete banner image.'), 'error');
+          showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'Lá»—i khi xĂ³a banner.' : 'Failed to delete banner image.'), 'error');
         } finally {
           setLoading(false);
         }
@@ -1978,10 +1653,10 @@ function SettingsTab({ authH }: any) {
     try {
       const res = await axios.post(`${API}/settings/youtube-cookies`, { value: youtubeCookies }, { headers: authH });
       if (res.data.success) {
-        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Cập nhật YouTube Cookies thành công!' : 'YouTube Cookies updated successfully!', 'success');
+        showAlert(isVi ? 'ThĂ nh cĂ´ng' : 'Success', isVi ? 'Cáº­p nháº­t YouTube Cookies thĂ nh cĂ´ng!' : 'YouTube Cookies updated successfully!', 'success');
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi cập nhật Cookies.' : 'Failed to update Cookies.'), 'error');
+      showAlert(isVi ? 'Tháº¥t báº¡i' : 'Failed', err.response?.data?.message || (isVi ? 'Lá»—i khi cáº­p nháº­t Cookies.' : 'Failed to update Cookies.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -1992,10 +1667,10 @@ function SettingsTab({ authH }: any) {
       {/* Background Section */}
       <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
-          🖼️ {isVi ? 'Cấu hình hình nền ca sĩ (Backdrop Background)' : 'Artist Backdrop Configuration'}
+          đŸ–¼ï¸ {isVi ? 'Cáº¥u hĂ¬nh hĂ¬nh ná»n ca sÄ© (Backdrop Background)' : 'Artist Backdrop Configuration'}
         </h3>
         <p className="text-xs text-zinc-500">
-          {isVi ? 'Hình nền hiển thị mờ ảo phía sau giao diện nghe nhạc. Mặc định là ảnh ca sĩ The Weeknd.' : 'The backdrop displayed blurred behind the music player. Default is The Weeknd.'}
+          {isVi ? 'HĂ¬nh ná»n hiá»ƒn thá»‹ má» áº£o phĂ­a sau giao diá»‡n nghe nháº¡c. Máº·c Ä‘á»‹nh lĂ  áº£nh ca sÄ© The Weeknd.' : 'The backdrop displayed blurred behind the music player. Default is The Weeknd.'}
         </p>
 
         {background && (
@@ -2003,7 +1678,7 @@ function SettingsTab({ authH }: any) {
             <img src={background} alt="Current backdrop" className="w-full h-full object-cover opacity-70" />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
             <span className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-0.5 rounded text-zinc-400">
-              {isVi ? 'Đang hiển thị' : 'Currently Displaying'}
+              {isVi ? 'Äang hiá»ƒn thá»‹' : 'Currently Displaying'}
             </span>
           </div>
         )}
@@ -2011,7 +1686,7 @@ function SettingsTab({ authH }: any) {
         <form onSubmit={handleUpdateBackground} className="space-y-3 max-w-xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Tải file ảnh lên' : 'Upload image file'}</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Táº£i file áº£nh lĂªn' : 'Upload image file'}</label>
               <input
                 type="file"
                 accept="image/*"
@@ -2025,7 +1700,7 @@ function SettingsTab({ authH }: any) {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoặc đường dẫn ảnh (URL)' : 'Or image URL'}</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoáº·c Ä‘Æ°á»ng dáº«n áº£nh (URL)' : 'Or image URL'}</label>
               <input
                 type="text"
                 placeholder="http://localhost:1005/..."
@@ -2041,7 +1716,7 @@ function SettingsTab({ authH }: any) {
             disabled={loading}
             className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50"
           >
-            {isVi ? 'Lưu hình nền mới' : 'Save New Backdrop'}
+            {isVi ? 'LÆ°u hĂ¬nh ná»n má»›i' : 'Save New Backdrop'}
           </button>
         </form>
       </div>
@@ -2049,26 +1724,26 @@ function SettingsTab({ authH }: any) {
       {/* Cookies Section */}
       <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
-          🔑 {isVi ? 'Cấu hình YouTube Cookies (Vượt chặn tải nhạc)' : 'YouTube Cookies (Bypass Bot Check)'}
+          đŸ”‘ {isVi ? 'Cáº¥u hĂ¬nh YouTube Cookies (VÆ°á»£t cháº·n táº£i nháº¡c)' : 'YouTube Cookies (Bypass Bot Check)'}
         </h3>
         <p className="text-xs text-zinc-500">
           {isVi 
-            ? 'Nhập nội dung tập tin Cookies (định dạng Netscape) để yt-dlp có thể vượt qua kiểm tra bot của YouTube trên Render.' 
+            ? 'Nháº­p ná»™i dung táº­p tin Cookies (Ä‘á»‹nh dáº¡ng Netscape) Ä‘á»ƒ yt-dlp cĂ³ thá»ƒ vÆ°á»£t qua kiá»ƒm tra bot cá»§a YouTube trĂªn Render.' 
             : 'Enter Cookies file content (Netscape format) to allow yt-dlp to bypass YouTube bot protection on Render.'}
         </p>
         <div className="text-xs text-amber-500/90 bg-amber-500/5 border border-amber-500/10 rounded-xl p-3 space-y-1">
-          <p className="font-bold">💡 {isVi ? 'Cách lấy Cookies:' : 'How to export Cookies:'}</p>
+          <p className="font-bold">đŸ’¡ {isVi ? 'CĂ¡ch láº¥y Cookies:' : 'How to export Cookies:'}</p>
           <ul className="list-disc pl-4 space-y-0.5 text-zinc-400">
-            <li>{isVi ? "Cài đặt tiện ích Chrome 'Get cookies.txt LOCALLY' hoặc 'Cookie-Editor'." : "Install Chrome extension 'Get cookies.txt LOCALLY' or 'Cookie-Editor'."}</li>
-            <li>{isVi ? 'Mở trang youtube.com (đảm bảo đã đăng nhập một tài khoản phụ).' : 'Go to youtube.com (make sure you are logged in on a dummy/secondary account).'}</li>
-            <li>{isVi ? 'Xuất Cookies dưới dạng Netscape/text rồi dán toàn bộ nội dung vào ô dưới đây.' : 'Export cookies as Netscape format, copy the full text, and paste below.'}</li>
+            <li>{isVi ? "CĂ i Ä‘áº·t tiá»‡n Ă­ch Chrome 'Get cookies.txt LOCALLY' hoáº·c 'Cookie-Editor'." : "Install Chrome extension 'Get cookies.txt LOCALLY' or 'Cookie-Editor'."}</li>
+            <li>{isVi ? 'Má»Ÿ trang youtube.com (Ä‘áº£m báº£o Ä‘Ă£ Ä‘Äƒng nháº­p má»™t tĂ i khoáº£n phá»¥).' : 'Go to youtube.com (make sure you are logged in on a dummy/secondary account).'}</li>
+            <li>{isVi ? 'Xuáº¥t Cookies dÆ°á»›i dáº¡ng Netscape/text rá»“i dĂ¡n toĂ n bá»™ ná»™i dung vĂ o Ă´ dÆ°á»›i Ä‘Ă¢y.' : 'Export cookies as Netscape format, copy the full text, and paste below.'}</li>
           </ul>
         </div>
 
         <form onSubmit={handleUpdateCookies} className="space-y-3">
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1">
-              {isVi ? 'Nội dung Cookies (Netscape Text)' : 'Cookies Content (Netscape Text)'}
+              {isVi ? 'Ná»™i dung Cookies (Netscape Text)' : 'Cookies Content (Netscape Text)'}
             </label>
             <textarea
               rows={8}
@@ -2083,7 +1758,7 @@ function SettingsTab({ authH }: any) {
             disabled={loading}
             className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50"
           >
-            {isVi ? 'Lưu cấu hình Cookies' : 'Save Cookies Configuration'}
+            {isVi ? 'LÆ°u cáº¥u hĂ¬nh Cookies' : 'Save Cookies Configuration'}
           </button>
         </form>
       </div>
@@ -2092,19 +1767,19 @@ function SettingsTab({ authH }: any) {
       <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-6">
         <div className="space-y-1">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            🎞️ {isVi ? 'Quản lý hình ảnh Banner Slideshow' : 'Banner Slideshow Management'}
+            đŸï¸ {isVi ? 'Quáº£n lĂ½ hĂ¬nh áº£nh Banner Slideshow' : 'Banner Slideshow Management'}
           </h3>
           <p className="text-xs text-zinc-500">
-            {isVi ? 'Thêm, xem danh sách và xóa các ảnh trình chiếu trên banner chào mừng "Xin chào, Dũ!".' : 'Add, view, and delete images on the welcoming slide banner "Hello, Du!".'}
+            {isVi ? 'ThĂªm, xem danh sĂ¡ch vĂ  xĂ³a cĂ¡c áº£nh trĂ¬nh chiáº¿u trĂªn banner chĂ o má»«ng "Xin chĂ o, DÅ©!".' : 'Add, view, and delete images on the welcoming slide banner "Hello, Du!".'}
           </p>
         </div>
 
         {/* Add Banner Form */}
         <form onSubmit={handleAddBannerSlide} className="bg-zinc-900/40 border border-white/5 rounded-xl p-4 space-y-3 max-w-xl">
-          <h4 className="text-xs font-bold text-zinc-300">{isVi ? 'Thêm ảnh banner mới' : 'Add New Banner Image'}</h4>
+          <h4 className="text-xs font-bold text-zinc-300">{isVi ? 'ThĂªm áº£nh banner má»›i' : 'Add New Banner Image'}</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Tải file ảnh lên' : 'Upload image file'}</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Táº£i file áº£nh lĂªn' : 'Upload image file'}</label>
               <input
                 type="file"
                 accept="image/*"
@@ -2118,7 +1793,7 @@ function SettingsTab({ authH }: any) {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoặc đường dẫn ảnh (URL)' : 'Or image URL'}</label>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">{isVi ? 'Hoáº·c Ä‘Æ°á»ng dáº«n áº£nh (URL)' : 'Or image URL'}</label>
               <input
                 type="text"
                 placeholder="http://localhost:1005/..."
@@ -2134,15 +1809,15 @@ function SettingsTab({ authH }: any) {
             disabled={loading}
             className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50"
           >
-            {isVi ? 'Thêm vào slideshow' : 'Add to Slideshow'}
+            {isVi ? 'ThĂªm vĂ o slideshow' : 'Add to Slideshow'}
           </button>
         </form>
 
         {/* Banner List */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold text-zinc-300">{isVi ? `Danh sách ảnh banner hiện tại (${bannerSlides.length})` : `Current banner image list (${bannerSlides.length})`}</h4>
+          <h4 className="text-xs font-bold text-zinc-300">{isVi ? `Danh sĂ¡ch áº£nh banner hiá»‡n táº¡i (${bannerSlides.length})` : `Current banner image list (${bannerSlides.length})`}</h4>
           {bannerSlides.length === 0 ? (
-            <p className="text-xs text-zinc-600">{isVi ? 'Chưa có ảnh banner nào. Hệ thống sẽ hiển thị các slide mặc định.' : 'No banner images yet. Default slides will be shown.'}</p>
+            <p className="text-xs text-zinc-600">{isVi ? 'ChÆ°a cĂ³ áº£nh banner nĂ o. Há»‡ thá»‘ng sáº½ hiá»ƒn thá»‹ cĂ¡c slide máº·c Ä‘á»‹nh.' : 'No banner images yet. Default slides will be shown.'}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {bannerSlides.map(slide => (
@@ -2164,238 +1839,6 @@ function SettingsTab({ authH }: any) {
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Stats Tab ─────────────────────────────────────────────────────
-function StatsTab({ authH }: any) {
-  const { i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<any>(null);
-  const [categoryTracks, setCategoryTracks] = useState<any[]>([]);
-  const [catTracksLoading, setCatTracksLoading] = useState(false);
-
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const { data } = await axios.get(`${API}/stats`, { headers: authH });
-      if (data.success) setStats(data.data);
-    } catch (err) {
-      console.error('Stats fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchStats(); }, []);
-
-  const fetchCategoryTracks = async (cat: any) => {
-    setSelectedCategory(cat);
-    setCatTracksLoading(true);
-    try {
-      const catId = cat.categoryId ?? 'null';
-      const { data } = await axios.get(`${API}/stats/category-tracks?categoryId=${catId}`, { headers: authH });
-      if (data.success) setCategoryTracks(data.data);
-    } catch { setCategoryTracks([]); }
-    finally { setCatTracksLoading(false); }
-  };
-
-  const maxDailyPlays = Math.max(1, ...(stats?.dailyPlays || []).map((d: any) => d.count));
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  if (!stats) return (
-    <div className="text-center py-16 text-zinc-500 text-sm">
-      {isVi ? 'Không thể tải thống kê.' : 'Could not load statistics.'}
-      <button onClick={fetchStats} className="block mx-auto mt-3 text-amber-400 hover:text-amber-300 text-xs">
-        {isVi ? 'Thử lại' : 'Retry'}
-      </button>
-    </div>
-  );
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <BarChart2 className="w-5 h-5 text-amber-400" />
-          {isVi ? 'Thống kê hệ thống' : 'System Statistics'}
-        </h3>
-        <button onClick={fetchStats} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all border border-white/5">
-          <RefreshCw className="w-3.5 h-3.5" /> {isVi ? 'Làm mới' : 'Refresh'}
-        </button>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: isVi ? 'Người dùng' : 'Users', value: stats.totalUsers ?? 0, icon: '👤', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-          { label: isVi ? 'Bài hát' : 'Tracks', value: stats.totalTracks ?? 0, icon: '🎵', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-          { label: isVi ? 'Lượt nghe' : 'Total Plays', value: formatCount(stats.totalPlays ?? 0), icon: '▶️', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-          { label: isVi ? 'Yêu thích' : 'Favorites', value: stats.totalFavorites ?? 0, icon: '❤️', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
-        ].map(card => (
-          <div key={card.label} className={`rounded-xl border p-4 ${card.bg}`}>
-            <div className="text-2xl mb-1">{card.icon}</div>
-            <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
-            <p className="text-xs text-zinc-500 mt-0.5">{card.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Daily plays bar chart */}
-      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-5">
-        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-amber-400" />
-          {isVi ? 'Lượt nghe 7 ngày gần nhất' : 'Plays — Last 7 Days'}
-        </h4>
-        {stats.dailyPlays && stats.dailyPlays.length > 0 ? (
-          <div className="flex items-end gap-2 h-32">
-            {stats.dailyPlays.map((d: any, i: number) => {
-              const pct = Math.max(4, Math.round((d.count / maxDailyPlays) * 100));
-              const label = formatDateLabel(d.day, 'day');
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1 group cursor-default">
-                  <span className="text-[9px] text-zinc-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">{d.count}</span>
-                  <div
-                    className="w-full rounded-t-lg bg-gradient-to-t from-amber-600 to-amber-400 group-hover:from-amber-500 group-hover:to-yellow-300 transition-all"
-                    style={{ height: `${pct}%` }}
-                    title={`${label}: ${d.count} ${isVi ? 'lượt' : 'plays'}`}
-                  />
-                  <span className="text-[9px] text-zinc-600 truncate w-full text-center">{label.slice(0, 5)}</span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="h-32 flex items-center justify-center text-zinc-600 text-sm">
-            {isVi ? 'Chưa có dữ liệu lượt nghe.' : 'No play data yet.'}
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Top tracks */}
-        <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
-          <h4 className="text-sm font-bold text-white mb-3">
-            🔥 {isVi ? 'Top bài nghe nhiều nhất' : 'Most Played Tracks'}
-          </h4>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {(stats.topTracks || []).slice(0, 8).map((t: any, i: number) => (
-              <div key={t.id} className="flex items-center gap-3">
-                <span className="text-[10px] text-zinc-600 w-5 text-right flex-shrink-0 font-bold">{i + 1}</span>
-                <img src={t.cover_url || 'https://via.placeholder.com/32'} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-zinc-200 truncate">{t.title}</p>
-                  <p className="text-[10px] text-zinc-500 truncate">{t.artist}</p>
-                </div>
-                <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">{formatCount(t.play_count || 0)}</span>
-              </div>
-            ))}
-            {(!stats.topTracks || stats.topTracks.length === 0) && (
-              <p className="text-xs text-zinc-600 text-center py-6">{isVi ? 'Chưa có lượt nghe nào.' : 'No plays yet.'}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Category breakdown */}
-        <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
-          <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-amber-400" />
-            {isVi ? 'Theo danh mục (click để xem chi tiết)' : 'By Category (click for details)'}
-          </h4>
-          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-            {(stats.genreStats || []).map((g: any, i: number) => {
-              const maxPlays = Math.max(1, ...(stats.genreStats || []).map((x: any) => x.plays));
-              const pct = Math.round((g.plays / maxPlays) * 100);
-              return (
-                <button key={i} onClick={() => fetchCategoryTracks(g)}
-                  className={`w-full text-left rounded-lg p-2 transition-all hover:bg-white/5 ${selectedCategory?.genre === g.genre ? 'bg-amber-500/10 border border-amber-500/20' : ''}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-zinc-300 truncate">{g.genre}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[10px] text-zinc-500">{g.count} {isVi ? 'bài' : 'tracks'}</span>
-                      <span className="text-[10px] text-amber-400 font-bold">{formatCount(g.plays)}</span>
-                    </div>
-                  </div>
-                  <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, backgroundColor: g.color || '#7c3aed' }} />
-                  </div>
-                </button>
-              );
-            })}
-            {(!stats.genreStats || stats.genreStats.length === 0) && (
-              <p className="text-xs text-zinc-600 text-center py-6">{isVi ? 'Chưa có danh mục nào.' : 'No categories yet.'}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Category tracks drill-down */}
-      {selectedCategory && (
-        <div className="bg-zinc-900/60 border border-amber-500/20 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-white">
-              {isVi ? 'Bài hát trong: ' : 'Tracks in: '}
-              <span style={{ color: selectedCategory.color || '#a78bfa' }}>{selectedCategory.genre}</span>
-            </h4>
-            <button onClick={() => { setSelectedCategory(null); setCategoryTracks([]); }}
-              className="text-zinc-500 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-white/5 transition-all">✕</button>
-          </div>
-          {catTracksLoading ? (
-            <div className="flex justify-center py-6">
-              <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
-            <div className="space-y-1.5 max-h-48 overflow-y-auto">
-              {categoryTracks.map((t: any, i: number) => (
-                <div key={t.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03]">
-                  <span className="text-[10px] text-zinc-600 w-4">{i + 1}</span>
-                  <img src={t.cover_url || 'https://via.placeholder.com/28'} className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-zinc-200 truncate">{t.title}</p>
-                    <p className="text-[10px] text-zinc-500 truncate">{t.artist}</p>
-                  </div>
-                  <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">{formatCount(t.plays || 0)}</span>
-                </div>
-              ))}
-              {categoryTracks.length === 0 && (
-                <p className="text-xs text-zinc-600 text-center py-4">{isVi ? 'Danh mục này chưa có bài hát.' : 'No tracks in this category.'}</p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Recent activity */}
-      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4">
-        <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-amber-400" />
-          {isVi ? 'Hoạt động nghe nhạc gần đây' : 'Recent Listening Activity'}
-        </h4>
-        <div className="space-y-1 max-h-52 overflow-y-auto">
-          {(stats.recentActivity || []).map((a: any, i: number) => (
-            <div key={i} className="flex items-center gap-3 text-xs py-1.5 border-b border-white/[0.03] last:border-0">
-              <span className="text-zinc-600 flex-shrink-0 w-28 truncate text-[10px]">
-                {new Date(a.played_at).toLocaleString(isVi ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-              </span>
-              <span className="text-zinc-200 flex-1 truncate font-medium">{a.title}</span>
-              <span className="text-zinc-500 truncate max-w-[80px] hidden md:block">{a.artist}</span>
-              <span className="text-purple-400 flex-shrink-0 truncate max-w-[80px] text-[10px]">{a.user_name || 'Guest'}</span>
-            </div>
-          ))}
-          {(!stats.recentActivity || stats.recentActivity.length === 0) && (
-            <p className="text-xs text-zinc-600 text-center py-4">{isVi ? 'Chưa có hoạt động nào.' : 'No recent activity.'}</p>
           )}
         </div>
       </div>
