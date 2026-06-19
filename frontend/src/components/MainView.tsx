@@ -301,11 +301,10 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
     <main ref={mainRef as any} className="flex-1 flex flex-col h-full overflow-y-auto pb-32 relative">
       <div className="relative w-full flex-1 flex flex-col min-h-full">
         {/* Sequential Background Images distributed vertically with spacing */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         {extendedBackdrops.map((url, index) => (
           <div
             key={url + index}
-            className="absolute left-0 right-0 h-[650px] bg-cover bg-center opacity-[0.20] transition-all duration-1000"
+            className="absolute left-0 right-0 h-[650px] bg-cover bg-center opacity-[0.20] transition-all duration-1000 z-0 pointer-events-none"
             style={{
               top: `${index * 1150}px`,
               backgroundImage: `url('${url}')`,
@@ -314,7 +313,6 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
             }}
           />
         ))}
-      </div>
 
       {/* Dynamic blurred ambient glow from playing song */}
       {currentTrack && (
