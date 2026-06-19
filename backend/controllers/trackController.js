@@ -555,62 +555,87 @@ const streamTrack = async (req, res) => {
       ];
       let streamUrl = null;
       let lastErr = null;
-      const STREAM_CLIENTS = ['tv', 'android_vr', 'web', 'ios'];
-      const configs = [];
-
-      if (hasCookies && cookieFilePath) {
-        configs.push({ client: 'tv', useCookies: true });
-        configs.push({ client: 'default', useCookies: true });
-        for (const client of STREAM_CLIENTS) {
-          if (client !== 'tv') {
-            configs.push({ client, useCookies: true });
-          }
-        }
-      } else {
-        configs.push({ client: 'tv', useCookies: false });
-        configs.push({ client: 'default', useCookies: false });
-        for (const client of STREAM_CLIENTS) {
-          if (client !== 'tv') {
-            configs.push({ client, useCookies: false });
-          }
-        }
-      }
-
       const attemptsErrors = [];
-      for (const config of configs) {
+
+      if (url.includes('soundcloud.com')) {
+        const args = [
+          ...baseFlags,
+          '-f', 'http_mp3_1_0/http_mp3/ba/best',
+          '-g',
+          url
+        ];
+        console.log(`[Stream] Direct SoundCloud resolution for url="${url}"...`);
         try {
-          const args = [...baseFlags];
-          if (config.client !== 'default') {
-            args.push('--extractor-args', `youtube:player_client=${config.client}`);
-          }
-          if (config.client === 'web' || config.client === 'default') {
-            args.push('--user-agent', userAgent);
-          }
-          args.push('-f', 'ba/18/22/best', '-g');
-
-          if (config.useCookies && cookieFilePath) {
-            args.push('--cookies', cookieFilePath);
-          }
-          args.push(url);
-
-          console.log(`[Stream] Trying client: ${config.client} (useCookies: ${config.useCookies})...`);
-          const { stdout } = await runYtDlp(args, 25000);
+          const { stdout } = await runYtDlp(args, 15000);
           if (stdout && stdout.trim()) {
             const resolvedUrl = stdout.trim().split('\n')[0];
             if (resolvedUrl && resolvedUrl.startsWith('http')) {
               streamUrl = resolvedUrl;
-              console.log(`[Stream] Successfully resolved stream using client: ${config.client}`);
-              break;
+              console.log(`[Stream] Direct SoundCloud stream resolved successfully`);
             }
           }
         } catch (err) {
-          console.warn(`[Stream] Client ${config.client} (useCookies: ${config.useCookies}) failed:`, err.message || err);
-          attemptsErrors.push({
-            client: config.client,
-            useCookies: config.useCookies,
-            error: err.message || err
-          });
+          console.warn('[Stream] Direct SoundCloud resolution failed:', err.message);
           lastErr = err;
+          attemptsErrors.push({ client: 'soundcloud_direct', error: err.message });
+        }
+      } else {
+        const STREAM_CLIENTS = ['tv', 'android_vr', 'web', 'ios'];
+        const configs = [];
+
+        if (hasCookies && cookieFilePath) {
+          configs.push({ client: 'tv', useCookies: true });
+          configs.push({ client: 'default', useCookies: true });
+          for (const client of STREAM_CLIENTS) {
+            if (client !== 'tv') {
+              configs.push({ client, useCookies: true });
+            }
+          }
+        } else {
+          configs.push({ client: 'tv', useCookies: false });
+          configs.push({ client: 'default', useCookies: false });
+          for (const client of STREAM_CLIENTS) {
+            if (client !== 'tv') {
+              configs.push({ client, useCookies: false });
+            }
+          }
+        }
+
+        for (const config of configs) {
+          try {
+            const args = [...baseFlags];
+            if (config.client !== 'default') {
+              args.push('--extractor-args', `youtube:player_client=${config.client}`);
+            }
+            if (config.client === 'web' || config.client === 'default') {
+              args.push('--user-agent', userAgent);
+            }
+            args.push('-f', 'ba/18/22/best', '-g');
+
+            if (config.useCookies && cookieFilePath) {
+              args.push('--cookies', cookieFilePath);
+            }
+            args.push(url);
+
+            console.log(`[Stream] Trying client: ${config.client} (useCookies: ${config.useCookies})...`);
+            const { stdout } = await runYtDlp(args, 25000);
+            if (stdout && stdout.trim()) {
+              const resolvedUrl = stdout.trim().split('\n')[0];
+              if (resolvedUrl && resolvedUrl.startsWith('http')) {
+                streamUrl = resolvedUrl;
+                console.log(`[Stream] Successfully resolved stream using client: ${config.client}`);
+                break;
+              }
+            }
+          } catch (err) {
+            console.warn(`[Stream] Client ${config.client} (useCookies: ${config.useCookies}) failed:`, err.message || err);
+            attemptsErrors.push({
+              client: config.client,
+              useCookies: config.useCookies,
+              error: err.message || err
+            });
+            lastErr = err;
+          }
         }
       }
 
