@@ -299,8 +299,9 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 
   return (
     <main ref={mainRef as any} className="flex-1 flex flex-col h-full overflow-y-auto pb-32 relative">
-      {/* Sequential Background Images distributed vertically with spacing */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      <div className="relative w-full flex-1 flex flex-col min-h-full">
+        {/* Sequential Background Images distributed vertically with spacing */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         {extendedBackdrops.map((url, index) => (
           <div
             key={url + index}
@@ -723,6 +724,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
       </div>
 
       <AddTrackModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+      </div>
     </main>
   );
 }
