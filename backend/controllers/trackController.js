@@ -517,6 +517,9 @@ const streamTrack = async (req, res) => {
       const cached = streamCache.get(track.id);
       if (cached && cached.expiresAt > now + 15000) { // 15 seconds buffer to accommodate short-lived Cobalt URLs
         console.log(`[Stream] Serving cached stream URL for track ${track.id} (Expires in ${Math.round((cached.expiresAt - now) / 1000)} seconds)`);
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         return res.redirect(302, cached.streamUrl);
       }
 
@@ -659,6 +662,32 @@ const streamTrack = async (req, res) => {
           if (expMatch) {
             const val = parseInt(expMatch[1]);
             expiresAt = val < 10000000000 ? val * 1000 : val;
+          } else {
+            // Check for CloudFront Policy (SoundCloud uses this)
+            const policyMatch = streamUrl.match(/[&?]Policy=([^&]+)/);
+            if (policyMatch && policyMatch[1]) {
+              try {
+                let base64 = policyMatch[1].replace(/-/g, '+').replace(/_/g, '/');
+                while (base64.length % 4) {
+                  base64 += '=';
+                }
+                const decoded = Buffer.from(base64, 'base64').toString('utf8');
+                const json = JSON.parse(decoded);
+                const epoch = json?.Statement?.[0]?.Condition?.DateLessThan?.['AWS:EpochTime'];
+                if (epoch && epoch > now / 1000) {
+                  // Buffer by 30 seconds to be safe
+                  expiresAt = (epoch - 30) * 1000;
+                  console.log(`[Stream] Extracted CloudFront policy expiry: ${new Date(expiresAt).toISOString()}`);
+                }
+              } catch (err) {
+                console.warn('[Stream] Failed to parse CloudFront Policy expiry:', err.message);
+                if (url.includes('soundcloud.com')) {
+                  expiresAt = now + 10 * 60 * 1000; // 10 minutes fallback
+                }
+              }
+            } else if (url.includes('soundcloud.com')) {
+              expiresAt = now + 10 * 60 * 1000; // 10 minutes fallback
+            }
           }
         }
         
@@ -668,6 +697,9 @@ const streamTrack = async (req, res) => {
         });
 
         console.log(`[Stream] Cached new stream URL for track ${track.id} (Expires at ${new Date(expiresAt).toISOString()})`);
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         return res.redirect(302, streamUrl);
       } else {
         console.error('[Stream] Failed to get YouTube stream URL:', lastErr?.message);
@@ -679,6 +711,9 @@ const streamTrack = async (req, res) => {
       }
     } else {
       const filename = path.basename(url);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       return res.redirect(302, `/uploads/audio/${filename}`);
     }
   } catch (err) {
