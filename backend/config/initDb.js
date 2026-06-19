@@ -197,6 +197,13 @@ const initDb = async () => {
       created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // ── Backdrops ─────────────────────────────────────────────────
+    await query(`CREATE TABLE IF NOT EXISTS backdrops (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      image_url   TEXT    NOT NULL,
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     // ── Albums ────────────────────────────────────────────────────
     await query(`CREATE TABLE IF NOT EXISTS albums (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -317,6 +324,20 @@ const initDb = async () => {
     if (bgSettingCount[0].c === 0) {
       await query("INSERT INTO settings (key, value) VALUES (?, ?)", ['background_image_url', 'http://localhost:1005/uploads/img/the_weeknd.png']);
       console.log('Background setting seeded.');
+    }
+
+    // ── Seed Backdrops ────────────────────────────────────────────
+    const backdropCount = await query("SELECT COUNT(*) as c FROM backdrops");
+    if (backdropCount[0].c === 0) {
+      const defaultBackdrops = [
+        'http://localhost:1005/uploads/img/the_weeknd.png',
+        'http://localhost:1005/uploads/img/banner_slide_2.png',
+        'http://localhost:1005/uploads/img/banner_slide_3.png'
+      ];
+      for (const url of defaultBackdrops) {
+        await query("INSERT INTO backdrops (image_url) VALUES (?)", [url]);
+      }
+      console.log('Default backdrops seeded.');
     }
 
     // ── Seed Tracks ──────────────────────────────────────────────

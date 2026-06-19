@@ -7,6 +7,7 @@ const upload = require('../middleware/upload');
 // Public endpoints
 router.get('/banner-slides', settingsController.getBannerSlides);
 router.get('/background', settingsController.getBackground);
+router.get('/backdrops', settingsController.getBackdrops);
 
 // Admin-only endpoints
 router.post(
@@ -30,6 +31,21 @@ router.post(
   requireAdmin,
   upload.single('cover'),
   settingsController.updateBackground
+);
+
+router.post(
+  '/backdrops',
+  requireAuth,
+  requireAdmin,
+  upload.single('cover'),
+  settingsController.createBackdrop
+);
+
+router.delete(
+  '/backdrops/:id',
+  requireAuth,
+  requireAdmin,
+  settingsController.deleteBackdrop
 );
 
 router.get(

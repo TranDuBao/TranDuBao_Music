@@ -33,7 +33,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const { user } = useAuthStore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState(getAbsoluteUrl('/uploads/img/the_weeknd.png'));
+  const [backdrops, setBackdrops] = useState<string[]>([getAbsoluteUrl('/uploads/img/the_weeknd.png')]);
   const [bannerSlides, setBannerSlides] = useState<string[]>([
     `${BACKEND_URL}/uploads/img/banner_slide_1.png`,
     `${BACKEND_URL}/uploads/img/banner_slide_2.png`,
@@ -70,10 +70,15 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 
   const fetchSettings = async () => {
     try {
-      const bgRes = await fetch(`${API_BASE}/settings/background`);
+      const bgRes = await fetch(`${API_BASE}/settings/backdrops`);
       const bgData = await bgRes.json();
-      if (bgData.success && bgData.value) {
-        setBackgroundImageUrl(getAbsoluteUrl(bgData.value));
+      if (bgData.success && bgData.data) {
+        const urls = bgData.data.map((item: any) => getAbsoluteUrl(item.image_url));
+        if (urls.length > 0) {
+          setBackdrops(urls);
+        } else {
+          setBackdrops([getAbsoluteUrl('/uploads/img/the_weeknd.png')]);
+        }
       }
 
       const slidesRes = await fetch(`${API_BASE}/settings/banner-slides`);
@@ -284,13 +289,29 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 
   return (
     <main ref={mainRef as any} className="flex-1 flex flex-col h-full overflow-y-auto pb-32 relative">
-      {/* Background Image - Fixed position, blurred and dynamic transition */}
-      <div
-        className="fixed inset-0 bg-cover bg-center opacity-[0.22] blur-[80px] pointer-events-none transition-all duration-1000 ease-in-out scale-110 z-0"
-        style={{ backgroundImage: `url('${currentTrack?.cover_url ? getAbsoluteUrl(currentTrack.cover_url) : backgroundImageUrl}')` }}
-      />
-      {/* Dark Overlay to fade background */}
-      <div className="fixed inset-0 bg-gradient-to-b from-zinc-950/20 via-zinc-950/80 to-zinc-950 pointer-events-none z-0" />
+      {/* Sequential Background Images distributed vertically with spacing */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        {backdrops.map((url, index) => (
+          <div
+            key={url + index}
+            className="absolute left-0 right-0 h-[650px] bg-cover bg-center opacity-[0.20] transition-all duration-1000"
+            style={{
+              top: `${index * 1150}px`,
+              backgroundImage: `url('${url}')`,
+              maskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)'
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Dynamic blurred ambient glow from playing song */}
+      {currentTrack && (
+        <div
+          className="fixed inset-0 bg-cover bg-center opacity-[0.10] blur-[100px] pointer-events-none transition-all duration-1000 ease-in-out scale-110 z-0"
+          style={{ backgroundImage: `url('${getAbsoluteUrl(currentTrack.cover_url)}')` }}
+        />
+      )}
 
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} setView={setView} />
 

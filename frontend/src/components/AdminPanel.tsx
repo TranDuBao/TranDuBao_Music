@@ -1627,12 +1627,12 @@ function AlbumsTab({ authH }: any) {
 function SettingsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
-  const [background, setBackground] = useState('');
+  const [backdrops, setBackdrops] = useState<any[]>([]);
   const [bannerSlides, setBannerSlides] = useState<any[]>([]);
   const [youtubeCookies, setYoutubeCookies] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Form states for background
+  // Form states for background (backdrop)
   const [bgFile, setBgFile] = useState<File | null>(null);
   const [bgUrl, setBgUrl] = useState('');
 
@@ -1645,10 +1645,9 @@ function SettingsTab({ authH }: any) {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const bgRes = await axios.get(`${API}/settings/background`);
+      const bgRes = await axios.get(`${API}/settings/backdrops`);
       if (bgRes.data.success) {
-        setBackground(bgRes.data.value);
-        setBgUrl(bgRes.data.value);
+        setBackdrops(bgRes.data.data || []);
       }
 
       const slidesRes = await axios.get(`${API}/settings/banner-slides`);
@@ -1671,32 +1670,60 @@ function SettingsTab({ authH }: any) {
     fetchSettings();
   }, []);
 
-  const handleUpdateBackground = async (e: React.FormEvent) => {
+  const handleAddBackdrop = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bgFile && !bgUrl.trim()) {
+      showAlert(isVi ? 'Chú ý' : 'Warning', isVi ? 'Vui lòng tải lên tệp ảnh hoặc điền link ảnh.' : 'Please upload an image file or enter an image URL.', 'warning');
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
       if (bgFile) {
         formData.append('cover', bgFile);
       } else {
-        formData.append('background_image_url', bgUrl);
+        formData.append('image_url', bgUrl);
       }
 
-      const res = await axios.post(`${API}/settings/background`, formData, {
+      const res = await axios.post(`${API}/settings/backdrops`, formData, {
         headers: { ...authH, 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data.success) {
-        setBackground(res.data.value);
+        setBackdrops([res.data.data, ...backdrops]);
         setBgFile(null);
-        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Cập nhật hình nền thành công!' : 'Backdrop updated successfully!', 'success');
+        setBgUrl('');
+        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Thêm ảnh nền thành công!' : 'Backdrop added successfully!', 'success');
         window.dispatchEvent(new CustomEvent('reload-settings'));
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi cập nhật hình nền.' : 'Failed to update backdrop.'), 'error');
+      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi thêm ảnh nền.' : 'Failed to add backdrop.'), 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteBackdrop = async (id: number) => {
+    showConfirm(
+      isVi ? 'Xác nhận xóa' : 'Confirm Delete',
+      isVi ? 'Bạn có chắc chắn muốn xóa ảnh nền này?' : 'Are you sure you want to delete this backdrop?',
+      async () => {
+        setLoading(true);
+        try {
+          const res = await axios.delete(`${API}/settings/backdrops/${id}`, { headers: authH });
+          if (res.data.success) {
+            setBackdrops(backdrops.filter(b => b.id !== id));
+            showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Xóa ảnh nền thành công!' : 'Backdrop deleted successfully!', 'success');
+            window.dispatchEvent(new CustomEvent('reload-settings'));
+          }
+        } catch (err: any) {
+          showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Lỗi khi xóa ảnh nền.' : 'Failed to delete backdrop.'), 'error');
+        } finally {
+          setLoading(false);
+        }
+      }
+    );
   };
 
   const handleAddBannerSlide = async (e: React.FormEvent) => {
@@ -1773,25 +1800,40 @@ function SettingsTab({ authH }: any) {
   return (
     <div className="space-y-6">
       {/* Background Section */}
-      <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          🖼️ {isVi ? 'Cấu hình hình nền ca sĩ (Backdrop Background)' : 'Artist Backdrop Configuration'}
-        </h3>
-        <p className="text-xs text-zinc-500">
-          {isVi ? 'Hình nền hiển thị mờ ảo phía sau giao diện nghe nhạc. Mặc định là ảnh ca sĩ The Weeknd.' : 'The backdrop displayed blurred behind the music player. Default is The Weeknd.'}
-        </p>
+      <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-6">
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            🖼️ {isVi ? 'Quản lý nhiều hình nền (Backdrop Backgrounds)' : 'Backdrop Backgrounds Management'}
+          </h3>
+          <p className="text-xs text-zinc-500">
+            {isVi 
+              ? 'Tải lên nhiều hình nền để hiển thị dọc theo độ dài của trang chủ, tự động tạo khoảng cách chuyển tiếp đẹp mắt.' 
+              : 'Upload multiple backdrops to display along the length of the homepage, automatically spacing out beautifully.'}
+          </p>
+        </div>
 
-        {background && (
-          <div className="relative w-full max-w-sm aspect-[21/9] rounded-xl overflow-hidden border border-white/10 bg-zinc-900">
-            <img src={getAbsoluteUrl(background)} alt="Current backdrop" className="w-full h-full object-cover opacity-70" />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-            <span className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-0.5 rounded text-zinc-400">
-              {isVi ? 'Đang hiển thị' : 'Currently Displaying'}
-            </span>
+        {/* List of current backdrops */}
+        {backdrops.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {backdrops.map((item) => (
+              <div key={item.id} className="group relative aspect-[16/9] rounded-xl overflow-hidden border border-white/10 bg-zinc-900 shadow-md">
+                <img src={getAbsoluteUrl(item.image_url)} alt="Backdrop" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button
+                    onClick={() => handleDeleteBackdrop(item.id)}
+                    className="p-2.5 bg-red-600 hover:bg-red-500 text-white rounded-full shadow-lg transition-transform transform scale-90 group-hover:scale-100 cursor-pointer"
+                    title={isVi ? 'Xóa hình nền này' : 'Delete this backdrop'}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        <form onSubmit={handleUpdateBackground} className="space-y-3 max-w-xl">
+        <form onSubmit={handleAddBackdrop} className="space-y-4 max-w-xl border-t border-white/5 pt-4">
+          <h4 className="text-xs font-bold text-zinc-400">{isVi ? 'Thêm hình nền mới' : 'Add New Backdrop'}</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ImageUploadWithCrop
               label={isVi ? 'Tải file ảnh lên' : 'Upload image file'}
@@ -1818,9 +1860,9 @@ function SettingsTab({ authH }: any) {
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50"
+            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50 cursor-pointer"
           >
-            {isVi ? 'Lưu hình nền mới' : 'Save New Backdrop'}
+            {isVi ? 'Thêm hình nền' : 'Add Backdrop'}
           </button>
         </form>
       </div>

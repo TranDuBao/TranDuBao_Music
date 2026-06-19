@@ -1,5 +1,5 @@
 const { query } = require('../config/db');
-const { uploadToCloudinary } = require('../config/cloudinary');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 
 const getBannerSlides = async (req, res) => {
   try {
@@ -124,12 +124,63 @@ const updateYoutubeCookies = async (req, res) => {
   }
 };
 
+const getBackdrops = async (req, res) => {
+  try {
+    const data = await query("SELECT * FROM backdrops ORDER BY id DESC");
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const createBackdrop = async (req, res) => {
+  try {
+    const { image_url: bodyUrl } = req.body;
+    let url = bodyUrl;
+
+    if (req.file) {
+      url = await uploadToCloudinary(req.file.path, 'music-stream/backgrounds');
+    }
+
+    if (!url) {
+      return res.status(400).json({ success: false, message: 'Please upload a file or provide an image URL.' });
+    }
+
+    const result = await query("INSERT INTO backdrops (image_url) VALUES (?)", [url]);
+    const id = result.insertId;
+
+    res.json({ success: true, data: { id, image_url: url }, message: 'Backdrop added successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteBackdrop = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const row = await query("SELECT image_url FROM backdrops WHERE id = ?", [id]);
+    if (row.length === 0) {
+      return res.status(404).json({ success: false, message: 'Backdrop not found.' });
+    }
+
+    await deleteFromCloudinary(row[0].image_url);
+    await query("DELETE FROM backdrops WHERE id = ?", [id]);
+    
+    res.json({ success: true, message: 'Backdrop deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getBannerSlides,
   createBannerSlide,
   deleteBannerSlide,
   getBackground,
   updateBackground,
+  getBackdrops,
+  createBackdrop,
+  deleteBackdrop,
   getYoutubeCookies,
   updateYoutubeCookies
 };
