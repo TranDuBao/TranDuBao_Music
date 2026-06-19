@@ -5,6 +5,8 @@ import { useMusicStore } from '../store/useMusicStore';
 import { useModalStore } from '../store/useModalStore';
 import Avatar from '../components/Avatar';
 import axios from 'axios';
+import ImageCropperModal from '../components/ImageCropperModal';
+
 import {
   User, Lock, Clock, Music, ListMusic, Camera, Save,
   CheckCircle2, AlertCircle, Trash2, Play, Heart, ChevronRight, Eye, EyeOff
@@ -79,16 +81,30 @@ function ProfileHeader({ user, token, authH }: any) {
   const { initAuth } = useAuthStore();
   const { showConfirm, showAlert } = useModalStore();
 
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState('');
+
   useEffect(() => {
     setAvatarUrl(user.avatar_url || '');
   }, [user.avatar_url]);
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const fd = new FormData();
-    fd.append('avatar', file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperSrc(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCroppedAvatar = async (croppedBlob: Blob) => {
+    setCropperOpen(false);
     setUploading(true);
+    const croppedFile = new File([croppedBlob], 'avatar.jpg', { type: 'image/jpeg' });
+    const fd = new FormData();
+    fd.append('avatar', croppedFile);
     try {
       const { data } = await axios.put(`${API}/auth/avatar`, fd, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
@@ -102,6 +118,7 @@ function ProfileHeader({ user, token, authH }: any) {
       showAlert('Lỗi', err.response?.data?.message || 'Không thể cập nhật ảnh đại diện', 'error');
     } finally {
       setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -183,6 +200,19 @@ function ProfileHeader({ user, token, authH }: any) {
           {user.bio ? `"${user.bio}"` : 'Thành viên yêu âm nhạc của MusicStream.'}
         </p>
       </div>
+
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        imageSrc={cropperSrc}
+        aspectRatio={1}
+        cropShape="round"
+        title="Cắt ảnh đại diện"
+        onCrop={handleCroppedAvatar}
+        onClose={() => {
+          setCropperOpen(false);
+          if (fileRef.current) fileRef.current.value = '';
+        }}
+      />
     </div>
   );
 }

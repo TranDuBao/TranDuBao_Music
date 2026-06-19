@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useModalStore } from '../store/useModalStore';
 import { X, Upload, Music2, Image, CheckCircle2, AlertCircle, Link2, Search, Play, Plus } from 'lucide-react';
 import axios from 'axios';
+import ImageUploadWithCrop from './ImageUploadWithCrop';
 import { API_BASE } from '../config';
 
 interface UploadModalProps {
@@ -431,16 +432,15 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Ảnh bìa</label>
-                  <div onClick={() => coverRef.current?.click()}
-                    className={`cursor-pointer flex items-center gap-2 bg-zinc-900 border rounded-lg px-3 py-2 text-sm transition-all ${coverFile ? 'border-green-500/50 text-green-300' : 'border-zinc-800 hover:border-zinc-700 text-zinc-500'}`}>
-                    <Image className="w-4 h-4" />
-                    <span className="truncate text-xs">{coverFile ? coverFile.name : 'Chọn ảnh bìa'}</span>
-                    <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={e => setCoverFile(e.target.files?.[0] || null)} />
-                  </div>
-                </div>
-                {coverFile && <img src={URL.createObjectURL(coverFile)} className="w-12 h-12 rounded-lg object-cover border border-white/10" alt="preview" />}
+                <ImageUploadWithCrop
+                  label="Ảnh bìa bài hát"
+                  aspectRatio={1}
+                  cropShape="rect"
+                  className="flex-1"
+                  placeholder="Chọn và cắt ảnh bìa bài hát..."
+                  onFileCropped={(croppedFile) => setCoverFile(croppedFile)}
+                />
+                {coverFile && <img src={URL.createObjectURL(coverFile)} className="w-12 h-12 rounded-lg object-cover border border-white/10 mt-5" alt="preview" />}
               </div>
 
               {status === 'success' && (
