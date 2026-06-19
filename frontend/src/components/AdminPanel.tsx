@@ -1098,6 +1098,7 @@ function ArtistsTab({ authH }: any) {
   const [file, setFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState<number | null>(null);
 
   const fetchArtists = async () => {
     setLoading(true);
@@ -1130,24 +1131,69 @@ function ArtistsTab({ authH }: any) {
         formData.append('image_url', imageUrl);
       }
 
-      const { data } = await axios.post(`${API}/artists`, formData, {
-        headers: {
-          ...authH,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      let res;
+      if (editing) {
+        res = await axios.put(`${API}/artists/${editing}`, formData, {
+          headers: {
+            ...authH,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } else {
+        res = await axios.post(`${API}/artists`, formData, {
+          headers: {
+            ...authH,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      }
 
-      if (data.success) {
-        showAlert(isVi ? 'Thành công' : 'Success', isVi ? 'Thêm nghệ sĩ thành công!' : 'Artist added successfully!', 'success');
+      if (res.data.success) {
+        showAlert(
+          isVi ? 'Thành công' : 'Success',
+          editing 
+            ? (isVi ? 'Cập nhật thông tin nghệ sĩ thành công!' : 'Artist updated successfully!') 
+            : (isVi ? 'Thêm nghệ sĩ thành công!' : 'Artist added successfully!'),
+          'success'
+        );
         setForm({ name: '', genre: '', listeners: '', popular_track: '', bio: '' });
         setFile(null);
         setImageUrl('');
+        setEditing(null);
         fetchArtists();
         window.dispatchEvent(new CustomEvent('reload-artists'));
       }
     } catch (err: any) {
-      showAlert(isVi ? 'Thất bại' : 'Failed', err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi thêm nghệ sĩ' : 'An error occurred while adding the artist'), 'error');
+      showAlert(
+        isVi ? 'Thất bại' : 'Failed',
+        err.response?.data?.message || (isVi ? 'Có lỗi xảy ra khi lưu nghệ sĩ' : 'An error occurred while saving the artist'),
+        'error'
+      );
     }
+  };
+
+  const handleEdit = (artist: any) => {
+    setEditing(artist.id);
+    setForm({
+      name: artist.name,
+      genre: artist.genre,
+      listeners: artist.listeners,
+      popular_track: artist.popular_track,
+      bio: artist.bio
+    });
+    setFile(null);
+    setImageUrl(artist.image_url || '');
+    const element = document.getElementById('artist-form-container');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setForm({ name: '', genre: '', listeners: '', popular_track: '', bio: '' });
+    setFile(null);
+    setImageUrl('');
   };
 
   const del = async (id: number) => {
@@ -1170,9 +1216,10 @@ function ArtistsTab({ authH }: any) {
   return (
     <div className="space-y-6">
       {/* Form thêm nghệ sĩ */}
-      <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-6 space-y-4">
+      <div id="artist-form-container" className="bg-zinc-900/60 border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <Plus className="w-5 h-5 text-purple-400" /> {isVi ? 'Thêm nghệ sĩ tiêu biểu mới' : 'Add New Featured Artist'}
+          {editing ? <Edit2 className="w-5 h-5 text-amber-400" /> : <Plus className="w-5 h-5 text-purple-400" />}
+          {editing ? (isVi ? 'Chỉnh sửa thông tin nghệ sĩ' : 'Edit Featured Artist') : (isVi ? 'Thêm nghệ sĩ tiêu biểu mới' : 'Add New Featured Artist')}
         </h3>
         
         <form onSubmit={save} className="space-y-4">
@@ -1228,9 +1275,16 @@ function ArtistsTab({ authH }: any) {
             </div>
           </div>
 
-          <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/20">
-            {isVi ? 'Thêm nghệ sĩ' : 'Add Artist'}
-          </button>
+          <div className="flex gap-3">
+            {editing && (
+              <button type="button" onClick={cancelEdit} className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl text-sm transition-all">
+                {isVi ? 'Hủy' : 'Cancel'}
+              </button>
+            )}
+            <button type="submit" className="flex-[2] py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/20">
+              {editing ? (isVi ? 'Lưu thay đổi' : 'Save Changes') : (isVi ? 'Thêm nghệ sĩ' : 'Add Artist')}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -1255,9 +1309,14 @@ function ArtistsTab({ authH }: any) {
                 <p className="text-xs text-zinc-400 truncate mt-0.5"><span className="text-zinc-500">{isVi ? 'Thể loại:' : 'Genre:'}</span> {artist.genre} · <span className="text-zinc-500">{isVi ? 'Bài hát nổi bật:' : 'Popular track:'}</span> {artist.popular_track}</p>
                 <p className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{artist.bio}</p>
               </div>
-              <button onClick={() => del(artist.id)} className="opacity-0 group-hover:opacity-100 p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all flex-shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                <button onClick={() => handleEdit(artist)} className="p-2 text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button onClick={() => del(artist.id)} className="p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
           {artists.length === 0 && !loading && (

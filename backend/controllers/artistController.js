@@ -57,8 +57,42 @@ const deleteArtist = async (req, res) => {
   }
 };
 
+const updateArtist = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, genre, listeners, bio, popular_track, image_url: bodyImageUrl } = req.body;
+    
+    if (!name || !genre || !listeners || !bio || !popular_track) {
+      return res.status(400).json({ success: false, message: 'Please provide name, genre, listeners, bio, and popular track.' });
+    }
+
+    const artist = await query('SELECT * FROM featured_artists WHERE id = ?', [id]);
+    if (!artist || artist.length === 0) {
+      return res.status(404).json({ success: false, message: 'Artist not found' });
+    }
+
+    let image_url = artist[0].image_url;
+    if (req.file) {
+      image_url = `/uploads/img/${req.file.filename}`;
+    } else if (bodyImageUrl !== undefined) {
+      image_url = bodyImageUrl;
+    }
+
+    await query(
+      'UPDATE featured_artists SET name = ?, genre = ?, listeners = ?, bio = ?, image_url = ?, popular_track = ? WHERE id = ?',
+      [name, genre, listeners, bio, image_url, popular_track, id]
+    );
+
+    const updated = await query('SELECT * FROM featured_artists WHERE id = ?', [id]);
+    res.json({ success: true, data: updated[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getAllArtists,
   createArtist,
-  deleteArtist
+  deleteArtist,
+  updateArtist
 };

@@ -16,6 +16,7 @@ router.post(
   artistController.createArtist
 );
 
+router.put('/:id', requireAuth, requireAdmin, upload.single('cover'), artistController.updateArtist);
 router.delete('/:id', requireAuth, requireAdmin, artistController.deleteArtist);
 
 module.exports = router;
