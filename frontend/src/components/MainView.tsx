@@ -50,13 +50,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   const [albums, setAlbums] = useState<Album[]>([]);
 
   const extendedBackdrops = React.useMemo(() => {
-    if (backdrops.length === 0) return [];
-    const list: string[] = [];
-    const count = Math.max(6, backdrops.length);
-    for (let i = 0; i < count; i++) {
-      list.push(backdrops[i % backdrops.length]);
-    }
-    return list;
+    return backdrops;
   }, [backdrops]);
 
   useEffect(() => {
