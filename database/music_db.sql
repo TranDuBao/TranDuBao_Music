@@ -147,6 +147,14 @@ CREATE TABLE IF NOT EXISTS settings (
     `value`     TEXT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ── Visits ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS visits (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    ip            VARCHAR(45)  DEFAULT NULL,
+    user_agent    TEXT         DEFAULT NULL,
+    visited_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ── Seed: Users ──────────────────────
 -- bcrypt hashes for admin123 and user123
 INSERT IGNORE INTO users (id, name, email, password_hash, role, bio) VALUES

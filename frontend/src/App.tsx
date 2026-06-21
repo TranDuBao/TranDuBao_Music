@@ -9,6 +9,7 @@ import PlayerBar from './components/PlayerBar';
 import LoginPage from './pages/LoginPage';
 import UploadModal from './components/UploadModal';
 import UserProfilePage from './pages/UserProfilePage';
+import { API_BASE } from './config';
 
 // ── OAuth Callback Handler ─────────────────────────────────────────
 function OAuthCallback() {
@@ -99,7 +100,10 @@ function AppInitializer() {
 
   useEffect(() => {
     initTheme();
-    initAuth().finally(() => setReady(true));
+    initAuth().finally(() => {
+      setReady(true);
+      fetch(`${API_BASE}/visits/log`, { method: 'POST' }).catch(() => {});
+    });
   }, []);
 
   if (!ready) {

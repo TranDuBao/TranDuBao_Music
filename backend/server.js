@@ -76,10 +76,12 @@ app.use('/api', require('./routes/interactionRoutes'));
 
 // Admin stats
 const { requireAuth, requireAdmin } = require('./middleware/auth');
-const { getStats, getPlayHistoryStats, getCategoryTracksStats } = require('./controllers/statsController');
+const { getStats, getPlayHistoryStats, getCategoryTracksStats, logVisit, getVisitsStats } = require('./controllers/statsController');
 app.get('/api/stats', requireAuth, requireAdmin, getStats);
 app.get('/api/stats/history', requireAuth, requireAdmin, getPlayHistoryStats);
 app.get('/api/stats/category-tracks', requireAuth, requireAdmin, getCategoryTracksStats);
+app.post('/api/visits/log', logVisit);
+app.get('/api/stats/visits', requireAuth, requireAdmin, getVisitsStats);
 
 // Health check
 app.get('/api/health', (req, res) =>

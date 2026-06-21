@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
-import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, RefreshCw, Plus, Edit2, Star, Heart, TrendingUp, Lock, Unlock, Disc, Calendar, Clock, GripVertical } from 'lucide-react';
+import { Shield, Users, Music, FolderOpen, BarChart2, Trash2, Crown, UserIcon, RefreshCw, Plus, Edit2, Star, Heart, TrendingUp, Lock, Unlock, Disc, Calendar, Clock, GripVertical, Globe, Activity, Eye } from 'lucide-react';
 import axios from 'axios';
 import { useModalStore } from '../store/useModalStore';
 import ImageUploadWithCrop from './ImageUploadWithCrop';
@@ -844,6 +844,7 @@ function CategoriesTab({ authH }: any) {
 }
 
 // ── Stats Tab ─────────────────────────────────────────────────────
+// ── Stats Tab ─────────────────────────────────────────────────────
 function StatsTab({ authH }: any) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -852,6 +853,23 @@ function StatsTab({ authH }: any) {
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [categoryTracks, setCategoryTracks] = useState<any[]>([]);
   const [catLoading, setCatLoading] = useState(false);
+
+  // Plays history state
+  const [historyView, setHistoryView] = useState<'day' | 'month' | 'year'>('day');
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+  const [historyDetails, setHistoryDetails] = useState<any>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  // Custom date filter state
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  // Website visits state
+  const [visitsView, setVisitsView] = useState<'day' | 'month'>('day');
+  const [visitsData, setVisitsData] = useState<any[]>([]);
+  const [visitsLoading, setVisitsLoading] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -865,7 +883,90 @@ function StatsTab({ authH }: any) {
     }
   };
 
-  useEffect(() => { fetchStats(); }, []);
+  const fetchHistoryStats = async (view: 'day' | 'month' | 'year', start?: string, end?: string) => {
+    setHistoryLoading(true);
+    try {
+      let url = `${API}/stats/history?view=${view}`;
+      if (start && end) {
+        url += `&startDate=${start}&endDate=${end}`;
+      }
+      const { data } = await axios.get(url, { headers: authH });
+      if (data.success) {
+        setHistoryData(data.data.aggregated || []);
+        // Reset details when view changes
+        setSelectedPeriod(null);
+        setHistoryDetails(null);
+      }
+    } catch (err) {
+      console.error('History stats error:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const fetchVisitsStats = async (view: 'day' | 'month') => {
+    setVisitsLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/stats/visits?view=${view}`, { headers: authH });
+      if (data.success) {
+        setVisitsData(data.data || []);
+      }
+    } catch (err) {
+      console.error('Visits stats error:', err);
+    } finally {
+      setVisitsLoading(false);
+    }
+  };
+
+  const fetchPeriodDetails = async (periodLabel: string) => {
+    setSelectedPeriod(periodLabel);
+    setDetailsLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/stats/history?date=${periodLabel}`, { headers: authH });
+      if (data.success) {
+        setHistoryDetails(data.data);
+      }
+    } catch (err) {
+      console.error('Period details error:', err);
+      setHistoryDetails(null);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleClearFilter = () => {
+    setCustomStartDate('');
+    setCustomEndDate('');
+    fetchHistoryStats(historyView);
+  };
+
+  const refreshAll = () => {
+    setCustomStartDate('');
+    setCustomEndDate('');
+    fetchStats();
+    fetchHistoryStats(historyView);
+    fetchVisitsStats(visitsView);
+    setSelectedPeriod(null);
+    setHistoryDetails(null);
+  };
+
+  useEffect(() => {
+    fetchStats();
+    fetchHistoryStats(historyView);
+    fetchVisitsStats(visitsView);
+  }, []);
+
+  const handleHistoryViewChange = (view: 'day' | 'month' | 'year') => {
+    setHistoryView(view);
+    setCustomStartDate('');
+    setCustomEndDate('');
+    fetchHistoryStats(view);
+  };
+
+  const handleVisitsViewChange = (view: 'day' | 'month') => {
+    setVisitsView(view);
+    fetchVisitsStats(view);
+  };
 
   const fetchCategoryTracks = async (cat: any) => {
     setSelectedCategory(cat);
@@ -887,23 +988,29 @@ function StatsTab({ authH }: any) {
   if (!stats) return (
     <div className="text-center py-20 space-y-3">
       <p className="text-zinc-500 text-sm">{isVi ? 'Không thể tải thống kê.' : 'Could not load statistics.'}</p>
-      <button onClick={fetchStats} className="text-amber-400 hover:text-amber-300 text-xs underline">
+      <button onClick={refreshAll} className="text-amber-400 hover:text-amber-300 text-xs underline">
         {isVi ? 'Thử lại' : 'Retry'}
       </button>
     </div>
   );
 
-  const maxDaily = Math.max(1, ...(stats.dailyPlays || []).map((d: any) => Number(d.count)));
+  // Plays history chart math
+  const maxHistory = Math.max(1, ...historyData.map((d: any) => Number(d.count)));
+
+  // Visitor stats math
+  const maxVisitsVal = Math.max(1, ...visitsData.map((v: any) => Math.max(Number(v.unique_visitors), Number(v.total_visits))));
+  const totalVisitsCount = visitsData.reduce((acc, curr) => acc + Number(curr.total_visits), 0);
+  const totalUniqueVisitors = visitsData.reduce((acc, curr) => acc + Number(curr.unique_visitors), 0);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <BarChart2 className="w-5 h-5 text-amber-400" />
+          <BarChart2 className="w-5 h-5 text-amber-400 animate-pulse" />
           {isVi ? 'Thống kê hệ thống' : 'System Statistics'}
         </h3>
-        <button onClick={fetchStats} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/5 border border-white/5 transition-all">
+        <button onClick={refreshAll} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/5 border border-white/5 transition-all">
           <RefreshCw className="w-3.5 h-3.5" />
           {isVi ? 'Làm mới' : 'Refresh'}
         </button>
@@ -912,12 +1019,12 @@ function StatsTab({ authH }: any) {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
-          { label: isVi ? 'Người dùng' : 'Users', value: stats.totalUsers ?? 0, icon: '👤', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-          { label: isVi ? 'Bài hát' : 'Tracks', value: stats.totalTracks ?? 0, icon: '🎵', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-          { label: isVi ? 'Lượt nghe' : 'Total Plays', value: formatCount(Number(stats.totalPlays ?? 0)), icon: '▶️', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-          { label: isVi ? 'Yêu thích' : 'Favorites', value: stats.totalFavorites ?? 0, icon: '❤️', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+          { label: isVi ? 'Người dùng' : 'Users', value: stats.totalUsers ?? 0, icon: '👤', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20 shadow-[0_4px_20px_rgba(59,130,246,0.05)]' },
+          { label: isVi ? 'Bài hát' : 'Tracks', value: stats.totalTracks ?? 0, icon: '🎵', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20 shadow-[0_4px_20px_rgba(168,85,247,0.05)]' },
+          { label: isVi ? 'Lượt nghe' : 'Total Plays', value: formatCount(Number(stats.totalPlays ?? 0)), icon: '▶️', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' },
+          { label: isVi ? 'Yêu thích' : 'Favorites', value: stats.totalFavorites ?? 0, icon: '❤️', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20 shadow-[0_4px_20px_rgba(244,63,94,0.05)]' },
         ] as const).map(card => (
-          <div key={card.label} className={`rounded-xl border p-4 ${card.bg}`}>
+          <div key={card.label} className={`rounded-xl border p-4 transition-all duration-300 hover:scale-[1.02] ${card.bg}`}>
             <div className="text-2xl mb-1">{card.icon}</div>
             <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
             <p className="text-xs text-zinc-500 mt-0.5">{card.label}</p>
@@ -925,36 +1032,424 @@ function StatsTab({ authH }: any) {
         ))}
       </div>
 
-      {/* 7-day bar chart */}
-      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-5">
-        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-amber-400" />
-          {isVi ? 'Lượt nghe 7 ngày gần nhất' : 'Plays — Last 7 Days'}
-        </h4>
-        {(stats.dailyPlays || []).length > 0 ? (
-          <div className="flex items-end gap-2 h-32">
-            {(stats.dailyPlays || []).map((d: any, i: number) => {
-              const cnt = Number(d.count);
-              const pct = Math.max(4, Math.round((cnt / maxDaily) * 100));
-              const label = formatDateLabel(String(d.day || ''), 'day');
-              return (
-                <div key={i} className="flex-1 h-full flex flex-col items-center gap-1 group cursor-default">
-                  <span className="text-[9px] text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">{cnt}</span>
-                  <div className="w-full flex-1 flex items-end">
-                    <div
-                      className="w-full rounded-t-lg bg-gradient-to-t from-amber-600 to-amber-400 group-hover:from-amber-500 group-hover:to-yellow-300 transition-all"
-                      style={{ height: `${pct}%` }}
-                      title={`${label}: ${cnt}`}
-                    />
+      {/* Plays History Section */}
+      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-5 shadow-xl relative overflow-hidden backdrop-blur-md">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-violet-600/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col gap-4 mb-5 border-b border-white/5 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-indigo-400" />
+                {isVi ? 'Biểu đồ hoạt động nghe nhạc' : 'Music Streaming Activities'}
+              </h4>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                {isVi ? 'Bấm vào cột mốc để xem báo cáo chi tiết hoặc chọn lọc ngày tùy ý' : 'Click on any bar to drill down or filter by custom dates'}
+              </p>
+            </div>
+            <div className="flex items-center bg-zinc-950 p-1 rounded-lg border border-white/5 self-start sm:self-auto">
+              {(['day', 'month', 'year'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => handleHistoryViewChange(v)}
+                  className={`text-[10px] px-2.5 py-1 rounded-md font-semibold transition-all ${
+                    historyView === v
+                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {v === 'day' ? (isVi ? 'Ngày' : 'Day') : v === 'month' ? (isVi ? 'Tháng' : 'Month') : (isVi ? 'Năm' : 'Year')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Date Picker Inputs */}
+          <div className="flex flex-wrap items-center gap-2.5 text-xs">
+            <span className="text-zinc-400 text-[10px] font-semibold">{isVi ? 'Lọc theo ngày tự chọn:' : 'Custom date filter:'}</span>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={e => setCustomStartDate(e.target.value)}
+                className="bg-zinc-950 border border-white/10 rounded px-2 py-1 text-white text-[10px] focus:outline-none focus:border-indigo-500/50"
+              />
+              <span className="text-zinc-600 text-[10px]">—</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={e => setCustomEndDate(e.target.value)}
+                className="bg-zinc-950 border border-white/10 rounded px-2 py-1 text-white text-[10px] focus:outline-none focus:border-indigo-500/50"
+              />
+            </div>
+            <button
+              onClick={() => fetchHistoryStats(historyView, customStartDate, customEndDate)}
+              disabled={!customStartDate || !customEndDate}
+              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-[10px] font-bold px-3 py-1 rounded transition-all"
+            >
+              {isVi ? 'Lọc' : 'Filter'}
+            </button>
+            {(customStartDate || customEndDate) && (
+              <button
+                onClick={handleClearFilter}
+                className="text-zinc-400 hover:text-white text-[10px] underline px-1 py-1"
+              >
+                {isVi ? 'Xóa lọc' : 'Clear'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {historyLoading ? (
+          <div className="h-36 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : historyData.length > 0 ? (
+          <div className="relative h-44 flex flex-col justify-end">
+            {/* Gridlines */}
+            <div className="absolute inset-x-0 bottom-6 top-2 flex flex-col justify-between pointer-events-none opacity-20">
+              <div className="w-full border-t border-dashed border-white/40" />
+              <div className="w-full border-t border-dashed border-white/40" />
+              <div className="w-full border-t border-dashed border-white/40" />
+            </div>
+
+            <div className="flex items-end gap-2.5 h-36 z-10">
+              {historyData.map((d: any, i: number) => {
+                const cnt = Number(d.count);
+                const pct = Math.max(5, Math.round((cnt / maxHistory) * 100));
+                const label = formatDateLabel(String(d.label || ''), historyView);
+                const isSelected = selectedPeriod === d.label;
+
+                return (
+                  <div
+                    key={i}
+                    onClick={() => fetchPeriodDetails(d.label)}
+                    className="flex-1 h-full flex flex-col items-center gap-1 group cursor-pointer"
+                  >
+                    <span className={`text-[9px] font-bold transition-all duration-300 ${
+                      isSelected ? 'text-indigo-400 scale-110' : 'text-zinc-400 opacity-0 group-hover:opacity-100'
+                    }`}>
+                      {cnt}
+                    </span>
+                    <div className="w-full flex-1 flex items-end justify-center">
+                      <div
+                        className={`w-3 md:w-4 rounded-t-md transition-all duration-300 bg-gradient-to-t ${
+                          isSelected
+                            ? 'from-indigo-400 to-fuchsia-400 shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-indigo-300/20'
+                            : 'from-indigo-600 to-violet-500 group-hover:from-indigo-500 group-hover:to-violet-400 hover:shadow-[0_0_12px_rgba(99,102,241,0.5)] border border-transparent'
+                        }`}
+                        style={{ height: `${pct}%` }}
+                        title={`${label}: ${cnt} ${isVi ? 'lượt nghe' : 'plays'}`}
+                      />
+                    </div>
+                    <span className={`text-[9px] truncate w-full text-center transition-colors ${
+                      isSelected ? 'text-indigo-400 font-bold' : 'text-zinc-500 group-hover:text-zinc-300'
+                    }`}>
+                      {label.length > 7 ? label.slice(0, 5) : label}
+                    </span>
                   </div>
-                  <span className="text-[9px] text-zinc-600 truncate w-full text-center">{label.slice(0, 5)}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ) : (
-          <div className="h-32 flex items-center justify-center text-zinc-600 text-sm">
-            {isVi ? 'Chưa có dữ liệu.' : 'No data yet.'}
+          <div className="h-36 flex items-center justify-center text-zinc-600 text-sm">
+            {isVi ? 'Chưa có dữ liệu lượt nghe.' : 'No play data yet.'}
+          </div>
+        )}
+      </div>
+
+      {/* Plays Drill-down Details Card */}
+      {selectedPeriod && (
+        <div className="bg-zinc-900/60 border border-violet-500/20 rounded-xl p-5 shadow-xl relative overflow-hidden backdrop-blur-md transition-all duration-300 animate-fadeIn">
+          <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-pink-400 animate-pulse" />
+              <h4 className="text-sm font-bold text-white">
+                {isVi ? 'Chi tiết hoạt động: ' : 'Activity Details: '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-rose-300">
+                  {formatDateLabel(selectedPeriod, historyView)}
+                </span>
+              </h4>
+            </div>
+            <button
+              onClick={() => { setSelectedPeriod(null); setHistoryDetails(null); }}
+              className="text-zinc-500 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5 transition-all"
+            >
+              ✕ {isVi ? 'Đóng' : 'Close'}
+            </button>
+          </div>
+
+          {detailsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : historyDetails ? (
+            <div className="space-y-6">
+              {/* Top details cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Total plays */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400 font-bold">
+                    ▶
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500">{isVi ? 'Tổng lượt nghe' : 'Total Plays'}</p>
+                    <p className="text-lg font-bold text-white">{historyDetails.totalPlays ?? 0}</p>
+                  </div>
+                </div>
+
+                {/* Date range descriptor */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold">
+                    📅
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500">{isVi ? 'Thời gian' : 'Period'}</p>
+                    <p className="text-sm font-bold text-white capitalize">
+                      {historyView === 'day' ? (isVi ? 'Ngày đơn lẻ' : 'Single Day') : historyView === 'month' ? (isVi ? 'Toàn bộ tháng' : 'Entire Month') : (isVi ? 'Toàn bộ năm' : 'Entire Year')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Unique played tracks count */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 font-bold">
+                    🎵
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500">{isVi ? 'Số bài hát phát sinh' : 'Unique Tracks Played'}</p>
+                    <p className="text-lg font-bold text-white">{(historyDetails.topTracks || []).length}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detail graphs & tables grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Distribution chart */}
+                <div className="bg-white/[0.01] border border-white/5 rounded-xl p-4">
+                  <h5 className="text-xs font-bold text-zinc-300 mb-3 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-pink-400" />
+                    {historyDetails.distributionLabel === 'hour'
+                      ? (isVi ? 'Biểu đồ phân bổ theo giờ' : 'Hourly Distribution')
+                      : historyDetails.distributionLabel === 'day'
+                        ? (isVi ? 'Biểu đồ phân bổ theo ngày' : 'Daily Distribution')
+                        : (isVi ? 'Biểu đồ phân bổ theo tháng' : 'Monthly Distribution')}
+                  </h5>
+                  {historyDetails.distributionStats && historyDetails.distributionStats.length > 0 ? (
+                    <div className="flex items-end gap-1.5 h-32 pt-4">
+                      {(() => {
+                        const maxDist = Math.max(1, ...historyDetails.distributionStats.map((x: any) => Number(x.count)));
+                        return historyDetails.distributionStats.map((item: any, idx: number) => {
+                          const distPct = Math.max(6, Math.round((Number(item.count) / maxDist) * 100));
+                          let label = item.period;
+                          if (historyDetails.distributionLabel === 'hour') label = `${item.period}h`;
+                          else if (historyDetails.distributionLabel === 'day') label = label.slice(8, 10) + '/' + label.slice(5, 7);
+                          else if (historyDetails.distributionLabel === 'month') label = label.slice(5, 7);
+                          
+                          return (
+                            <div key={idx} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default">
+                              <span className="text-[8px] text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {item.count}
+                              </span>
+                              <div className="w-full flex-1 flex items-end justify-center">
+                                <div
+                                  className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-pink-600 to-rose-400 group-hover:from-pink-500 group-hover:to-orange-400 transition-all"
+                                  style={{ height: `${distPct}%` }}
+                                  title={`${label}: ${item.count}`}
+                                />
+                              </div>
+                              <span className="text-[8px] text-zinc-500 truncate w-full text-center">
+                                {label}
+                              </span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-zinc-600 text-xs py-8 text-center">{isVi ? 'Không có dữ liệu phân bổ.' : 'No distribution data.'}</p>
+                  )}
+                </div>
+
+                {/* Top tracks during this period */}
+                <div className="bg-white/[0.01] border border-white/5 rounded-xl p-4">
+                  <h5 className="text-xs font-bold text-zinc-300 mb-3 flex items-center gap-1.5">
+                    🔥 {isVi ? 'Top bài nghe nhiều nhất thời kỳ này' : 'Most Played Tracks in this Period'}
+                  </h5>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {(historyDetails.topTracks || []).map((t: any, i: number) => (
+                      <div key={t.id} className="flex items-center gap-2.5">
+                        <span className="text-[9px] text-zinc-600 w-4 text-right flex-shrink-0 font-bold">{i + 1}</span>
+                        {t.cover_url ? (
+                          <img src={getAbsoluteUrl(t.cover_url)} className="w-7 h-7 rounded object-cover flex-shrink-0" alt="" />
+                        ) : (
+                          <div className="w-7 h-7 rounded bg-zinc-800 flex-shrink-0 flex items-center justify-center">
+                            <Music className="w-3 h-3 text-zinc-600" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-semibold text-zinc-200 truncate">{t.title}</p>
+                          <p className="text-[9px] text-zinc-500 truncate">{t.artist}</p>
+                        </div>
+                        <span className="text-[10px] text-pink-400 font-bold flex-shrink-0">{t.plays} {isVi ? 'lượt' : 'plays'}</span>
+                      </div>
+                    ))}
+                    {!(historyDetails.topTracks || []).length && (
+                      <p className="text-xs text-zinc-600 text-center py-8">{isVi ? 'Chưa có bài hát nào được phát.' : 'No tracks played.'}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity log list */}
+              <div className="bg-white/[0.01] border border-white/5 rounded-xl p-4">
+                <h5 className="text-xs font-bold text-zinc-300 mb-3 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                  {isVi ? 'Nhật ký lượt nghe thời kỳ này' : 'Play Activity Log in this Period'}
+                </h5>
+                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                  {(historyDetails.playsList || []).map((a: any, i: number) => (
+                    <div key={i} className="flex items-center gap-3 py-1.5 border-b border-white/[0.02] last:border-0 text-[11px]">
+                      <span className="text-zinc-500 flex-shrink-0 w-24 truncate">
+                        {new Date(a.played_at).toLocaleTimeString(isVi ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(a.played_at).toLocaleDateString(isVi ? 'vi-VN' : 'en-US', { day: '2-digit', month: '2-digit' })}
+                      </span>
+                      <span className="text-zinc-300 flex-1 truncate font-medium">{a.title}</span>
+                      <span className="text-zinc-500 truncate max-w-[90px] hidden sm:block">{a.artist}</span>
+                      <span className="text-purple-400 flex-shrink-0 truncate max-w-[80px]">{a.user_name || 'Guest'}</span>
+                    </div>
+                  ))}
+                  {!(historyDetails.playsList || []).length && (
+                    <p className="text-xs text-zinc-600 text-center py-6">{isVi ? 'Chưa có nhật ký.' : 'No activity logs.'}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center py-6 text-zinc-500 text-xs">{isVi ? 'Không thể tải chi tiết.' : 'Could not fetch details.'}</p>
+          )}
+        </div>
+      )}
+
+      {/* Website Traffic Statistics Section */}
+      <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-5 shadow-xl relative overflow-hidden backdrop-blur-md">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-600/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div>
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-emerald-400" />
+              {isVi ? 'Thống kê lượng người truy cập Web' : 'Website Traffic Statistics'}
+            </h4>
+            <p className="text-[10px] text-zinc-500 mt-0.5">
+              {isVi ? 'Phân tích số khách và tổng số lượt truy cập' : 'Analysis of unique visitors and total page visits'}
+            </p>
+          </div>
+          <div className="flex items-center bg-zinc-950 p-1 rounded-lg border border-white/5 self-start sm:self-auto">
+            {(['day', 'month'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => handleVisitsViewChange(v)}
+                className={`text-[10px] px-2.5 py-1 rounded-md font-semibold transition-all ${
+                  visitsView === v
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {v === 'day' ? (isVi ? 'Ngày' : 'Day') : (isVi ? 'Tháng' : 'Month')}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Traffic small summary cards */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+              <Eye className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] text-zinc-500">{isVi ? 'Tổng lượt truy cập' : 'Total Page Visits'}</p>
+              <p className="text-sm font-bold text-white">{totalVisitsCount}</p>
+            </div>
+          </div>
+          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] text-zinc-500">{isVi ? 'Số khách duy nhất (IP)' : 'Unique Visitors (IP)'}</p>
+              <p className="text-sm font-bold text-white">{totalUniqueVisitors}</p>
+            </div>
+          </div>
+        </div>
+
+        {visitsLoading ? (
+          <div className="h-36 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : visitsData.length > 0 ? (
+          <div className="relative h-44 flex flex-col justify-end pt-4">
+            {/* Gridlines */}
+            <div className="absolute inset-x-0 bottom-6 top-2 flex flex-col justify-between pointer-events-none opacity-20">
+              <div className="w-full border-t border-dashed border-white/40" />
+              <div className="w-full border-t border-dashed border-white/40" />
+              <div className="w-full border-t border-dashed border-white/40" />
+            </div>
+
+            <div className="flex items-end gap-3 h-32 z-10 px-2">
+              {visitsData.map((v: any, i: number) => {
+                const uniqCount = Number(v.unique_visitors);
+                const totalCount = Number(v.total_visits);
+                
+                const uniqPct = Math.max(6, Math.round((uniqCount / maxVisitsVal) * 100));
+                const totalPct = Math.max(6, Math.round((totalCount / maxVisitsVal) * 100));
+                const label = formatDateLabel(String(v.label || ''), visitsView === 'day' ? 'day' : 'month');
+
+                return (
+                  <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default relative">
+                    {/* Hover tooltip text */}
+                    <div className="absolute bottom-full mb-1 bg-zinc-950/95 border border-white/10 rounded-lg p-2 text-[9px] shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap space-y-0.5">
+                      <p className="font-bold text-white">{label}</p>
+                      <p className="text-teal-400">{isVi ? `Khách duy nhất: ${uniqCount}` : `Unique: ${uniqCount}`}</p>
+                      <p className="text-indigo-400">{isVi ? `Tổng lượt xem: ${totalCount}` : `Total: ${totalCount}`}</p>
+                    </div>
+
+                    <div className="w-full flex-1 flex items-end justify-center gap-1.5 h-full">
+                      {/* Unique Visitors Bar (Teal) */}
+                      <div
+                        className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-teal-600 to-emerald-400 group-hover:from-teal-500 group-hover:to-green-300 transition-all shadow-[0_0_8px_rgba(20,184,166,0.15)]"
+                        style={{ height: `${uniqPct}%` }}
+                      />
+                      {/* Total Visits Bar (Indigo) */}
+                      <div
+                        className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-indigo-600 to-blue-400 group-hover:from-indigo-500 group-hover:to-cyan-400 transition-all shadow-[0_0_8px_rgba(99,102,241,0.15)]"
+                        style={{ height: `${totalPct}%` }}
+                      />
+                    </div>
+
+                    <span className="text-[9px] text-zinc-500 group-hover:text-zinc-300 truncate w-full text-center mt-1">
+                      {label.length > 7 ? label.slice(0, 5) : label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legend indicators */}
+            <div className="flex items-center justify-center gap-4 mt-3 text-[10px] text-zinc-400">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-gradient-to-tr from-teal-600 to-emerald-400" />
+                <span>{isVi ? 'Số người truy cập (IP)' : 'Unique Visitors (IP)'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-gradient-to-tr from-indigo-600 to-blue-400" />
+                <span>{isVi ? 'Tổng số lượt truy cập' : 'Total Visits'}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-36 flex items-center justify-center text-zinc-600 text-sm">
+            {isVi ? 'Chưa có dữ liệu truy cập.' : 'No traffic data yet.'}
           </div>
         )}
       </div>
@@ -1072,11 +1567,11 @@ function StatsTab({ authH }: any) {
         </h4>
         <div className="space-y-1 max-h-52 overflow-y-auto">
           {(stats.recentActivity || []).map((a: any, i: number) => (
-            <div key={i} className="flex items-center gap-3 py-1.5 border-b border-white/[0.03] last:border-0">
+            <div key={i} className="flex items-center gap-3 py-1.5 border-b border-white/[0.03] last:border-0 text-xs">
               <span className="text-[10px] text-zinc-600 flex-shrink-0 w-28 truncate">
                 {new Date(a.played_at).toLocaleString(isVi ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
               </span>
-              <span className="text-xs text-zinc-200 flex-1 truncate font-medium">{a.title}</span>
+              <span className="text-zinc-200 flex-1 truncate font-medium">{a.title}</span>
               <span className="text-[10px] text-zinc-500 truncate max-w-[80px] hidden md:block">{a.artist}</span>
               <span className="text-[10px] text-purple-400 flex-shrink-0 truncate max-w-[80px]">{a.user_name || 'Guest'}</span>
             </div>

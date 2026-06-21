@@ -64,6 +64,23 @@ const initDb = async () => {
         // Ensure position column exists for banner_slides in MySQL
         try { await query("ALTER TABLE banner_slides ADD COLUMN position INT DEFAULT 0"); } catch (_) {}
 
+        // ── Migration: Ensure 'visits' table exists for MySQL ──
+        try {
+          const visitsTable = await query("SHOW TABLES LIKE 'visits'");
+          if (!visitsTable || visitsTable.length === 0) {
+            console.log('Migrating: Creating visits table for MySQL...');
+            await query(`CREATE TABLE IF NOT EXISTS visits (
+              id          INT AUTO_INCREMENT PRIMARY KEY,
+              ip          VARCHAR(45) DEFAULT NULL,
+              user_agent  TEXT DEFAULT NULL,
+              visited_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+            console.log('Migrating: Created visits table for MySQL.');
+          }
+        } catch (migErr) {
+          console.error('Failed to migrate visits table for MySQL:', migErr.message);
+        }
+
         // Auto-fix PHP $2y$ password hashes for seeded users if they exist in DB
         try {
           const phpUsers = await query("SELECT id, email FROM users WHERE password_hash LIKE '$2y$%'");
@@ -258,6 +275,24 @@ const initDb = async () => {
       key         TEXT PRIMARY KEY,
       value       TEXT    NOT NULL
     )`);
+
+    // ── Visits ────────────────────────────────────────────────────
+    await query(`CREATE TABLE IF NOT EXISTS visits (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      ip          TEXT,
+      user_agent  TEXT,
+      visited_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Ensure visits table exists in existing SQLite tables (migration)
+    try {
+      await query(`CREATE TABLE IF NOT EXISTS visits (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip          TEXT,
+        user_agent  TEXT,
+        visited_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+    } catch (_) { }
 
     // ── Seed Admin ───────────────────────────────────────────────
     const adminCount = await query("SELECT COUNT(*) as c FROM users WHERE role='admin'");

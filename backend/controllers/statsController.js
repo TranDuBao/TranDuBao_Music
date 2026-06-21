@@ -86,52 +86,74 @@ const getPlayHistoryStats = async (req, res) => {
       // Clean date string to avoid timezone parsing issues in SQL
       const cleanDate = date.includes('T') ? date.split('T')[0] : (date.includes(' ') ? date.split(' ')[0] : date);
 
-      // 1. Detailed statistics for a specific selected date
+      let whereClause = "DATE(played_at) = DATE(?)";
+      let hourlySelect = dbType === 'mysql'
+        ? "DATE_FORMAT(played_at, '%H')"
+        : "strftime('%H', played_at)";
+      let hourlyLabel = "hour";
+
+      if (cleanDate.length === 7) {
+        // Year-Month (e.g. 2026-06)
+        whereClause = dbType === 'mysql' 
+          ? "DATE_FORMAT(played_at, '%Y-%m') = ?" 
+          : "strftime('%Y-%m', played_at) = ?";
+        hourlySelect = dbType === 'mysql'
+          ? "DATE_FORMAT(played_at, '%Y-%m-%d')"
+          : "strftime('%Y-%m-%d', played_at)";
+        hourlyLabel = "day";
+      } else if (cleanDate.length === 4) {
+        // Year (e.g. 2026)
+        whereClause = dbType === 'mysql' 
+          ? "DATE_FORMAT(played_at, '%Y') = ?" 
+          : "strftime('%Y', played_at) = ?";
+        hourlySelect = dbType === 'mysql'
+          ? "DATE_FORMAT(played_at, '%Y-%m')"
+          : "strftime('%Y-%m', played_at)";
+        hourlyLabel = "month";
+      }
+
+      // 1. Detailed statistics for a specific selected date/month/year
       const [totalCount] = await query(`
         SELECT COUNT(*) as count 
         FROM play_history 
-        WHERE DATE(played_at) = DATE(?)`, [cleanDate]);
+        WHERE ${whereClause}`, [cleanDate]);
 
-      // Hourly distribution
-      const hourlySql = dbType === 'mysql'
-        ? `SELECT DATE_FORMAT(played_at, '%H') as hour, COUNT(*) as count
-           FROM play_history
-           WHERE DATE(played_at) = DATE(?)
-           GROUP BY hour
-           ORDER BY hour ASC`
-        : `SELECT strftime('%H', played_at) as hour, COUNT(*) as count
-           FROM play_history
-           WHERE DATE(played_at) = DATE(?)
-           GROUP BY hour
-           ORDER BY hour ASC`;
-      const hourlyStats = await query(hourlySql, [cleanDate]);
+      // Distribution stats (hourly, daily, or monthly depending on period)
+      const distributionStats = await query(`
+        SELECT ${hourlySelect} as period, COUNT(*) as count
+        FROM play_history
+        WHERE ${whereClause}
+        GROUP BY period
+        ORDER BY period ASC`, [cleanDate]);
 
-      // Top tracks for that day
+      // Top tracks for that period
       const topTracks = await query(`
         SELECT t.id, t.title, t.artist, t.cover_url, COUNT(*) as plays
         FROM play_history ph
         JOIN tracks t ON ph.track_id = t.id
-        WHERE DATE(ph.played_at) = DATE(?)
+        WHERE ${whereClause.replace(/played_at/g, 'ph.played_at')}
         GROUP BY t.id, t.title, t.artist, t.cover_url
         ORDER BY plays DESC
         LIMIT 10`, [cleanDate]);
 
-      // Activity list on that day
+      // Activity list on that period
       const playsList = await query(`
         SELECT ph.played_at, t.title, t.artist, u.name as user_name
         FROM play_history ph
         JOIN tracks t ON ph.track_id = t.id
         LEFT JOIN users u ON ph.user_id = u.id
-        WHERE DATE(ph.played_at) = DATE(?)
-        ORDER BY ph.played_at DESC`, [cleanDate]);
+        WHERE ${whereClause.replace(/played_at/g, 'ph.played_at')}
+        ORDER BY ph.played_at DESC
+        LIMIT 100`, [cleanDate]);
 
       return res.json({
         success: true,
         data: {
           mode: 'specific_date',
-          date,
+          date: cleanDate,
           totalPlays: totalCount.count,
-          hourlyStats,
+          distributionStats,
+          distributionLabel: hourlyLabel,
           topTracks,
           playsList
         }
@@ -202,4 +224,47 @@ const getCategoryTracksStats = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getPlayHistoryStats, getCategoryTracksStats };
+const logVisit = async (req, res) => {
+  try {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+    const userAgent = req.headers['user-agent'] || null;
+    await query("INSERT INTO visits (ip, user_agent) VALUES (?, ?)", [ip, userAgent]);
+    res.json({ success: true, message: 'Visit logged successfully' });
+  } catch (error) {
+    console.error('[logVisit] ERROR:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getVisitsStats = async (req, res) => {
+  try {
+    const { view = 'day', startDate, endDate } = req.query;
+    let selectExpr = dbType === 'mysql' ? "DATE(visited_at)" : "date(visited_at)";
+    let dateFilter = "";
+    const params = [];
+
+    if (startDate && endDate) {
+      dateFilter = "WHERE DATE(visited_at) BETWEEN DATE(?) AND DATE(?)";
+      params.push(startDate, endDate);
+    }
+
+    if (view === 'month') {
+      selectExpr = dbType === 'mysql' ? "DATE_FORMAT(visited_at, '%Y-%m')" : "strftime('%Y-%m', visited_at)";
+    }
+
+    const rows = await query(`
+      SELECT ${selectExpr} as label, COUNT(DISTINCT ip) as unique_visitors, COUNT(*) as total_visits
+      FROM visits
+      ${dateFilter}
+      GROUP BY label
+      ORDER BY label ASC
+    `, params);
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('[getVisitsStats] ERROR:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { getStats, getPlayHistoryStats, getCategoryTracksStats, logVisit, getVisitsStats };
