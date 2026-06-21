@@ -43,7 +43,7 @@ if (dbType === 'mysql') {
 
   query = async (sql, params = []) => {
     try {
-      const [results] = await pool.execute(sql, params);
+      const [results] = await pool.query(sql, params);
       if (Array.isArray(results)) {
         return results;
       }
