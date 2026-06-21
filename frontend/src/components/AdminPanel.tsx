@@ -938,13 +938,15 @@ function StatsTab({ authH }: any) {
               const pct = Math.max(4, Math.round((cnt / maxDaily) * 100));
               const label = formatDateLabel(String(d.day || ''), 'day');
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1 group cursor-default">
+                <div key={i} className="flex-1 h-full flex flex-col items-center gap-1 group cursor-default">
                   <span className="text-[9px] text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">{cnt}</span>
-                  <div
-                    className="w-full rounded-t-lg bg-gradient-to-t from-amber-600 to-amber-400 group-hover:from-amber-500 group-hover:to-yellow-300 transition-all"
-                    style={{ height: `${pct}%` }}
-                    title={`${label}: ${cnt}`}
-                  />
+                  <div className="w-full flex-1 flex items-end">
+                    <div
+                      className="w-full rounded-t-lg bg-gradient-to-t from-amber-600 to-amber-400 group-hover:from-amber-500 group-hover:to-yellow-300 transition-all"
+                      style={{ height: `${pct}%` }}
+                      title={`${label}: ${cnt}`}
+                    />
+                  </div>
                   <span className="text-[9px] text-zinc-600 truncate w-full text-center">{label.slice(0, 5)}</span>
                 </div>
               );
