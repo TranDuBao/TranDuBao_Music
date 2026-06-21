@@ -191,7 +191,11 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
       const albumTrackIds = new Set(selectedAlbum.tracks?.map((t: any) => t.id) || []);
       list = list.filter(t => albumTrackIds.has(t.id));
     } else if (selectedArtist) {
-      list = list.filter(t => t.artist.toLowerCase().includes(selectedArtist.toLowerCase()));
+      const artistLower = selectedArtist.toLowerCase();
+      list = list.filter(t => 
+        t.artist.toLowerCase().includes(artistLower) || 
+        t.title.toLowerCase().includes(artistLower)
+      );
     }
     return list;
   }, [activeTracks, selectedArtist, selectedAlbum]);
