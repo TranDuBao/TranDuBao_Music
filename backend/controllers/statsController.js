@@ -82,33 +82,41 @@ const getPlayHistoryStats = async (req, res) => {
   try {
     const { view = 'day', date, startDate, endDate } = req.query;
 
+    const playedAtVn = dbType === 'mysql'
+      ? "DATE_ADD(played_at, INTERVAL 7 HOUR)"
+      : "datetime(played_at, '+7 hours')";
+
+    const phPlayedAtVn = dbType === 'mysql'
+      ? "DATE_ADD(ph.played_at, INTERVAL 7 HOUR)"
+      : "datetime(ph.played_at, '+7 hours')";
+
     if (date) {
       // Clean date string to avoid timezone parsing issues in SQL
       const cleanDate = date.includes('T') ? date.split('T')[0] : (date.includes(' ') ? date.split(' ')[0] : date);
 
-      let whereClause = "DATE(played_at) = DATE(?)";
+      let whereClause = `DATE(${playedAtVn}) = DATE(?)`;
       let hourlySelect = dbType === 'mysql'
-        ? "DATE_FORMAT(played_at, '%H')"
-        : "strftime('%H', played_at)";
+        ? `DATE_FORMAT(${playedAtVn}, '%H')`
+        : `strftime('%H', ${playedAtVn})`;
       let hourlyLabel = "hour";
 
       if (cleanDate.length === 7) {
         // Year-Month (e.g. 2026-06)
         whereClause = dbType === 'mysql' 
-          ? "DATE_FORMAT(played_at, '%Y-%m') = ?" 
-          : "strftime('%Y-%m', played_at) = ?";
+          ? `DATE_FORMAT(${playedAtVn}, '%Y-%m') = ?` 
+          : `strftime('%Y-%m', ${playedAtVn}) = ?`;
         hourlySelect = dbType === 'mysql'
-          ? "DATE_FORMAT(played_at, '%Y-%m-%d')"
-          : "strftime('%Y-%m-%d', played_at)";
+          ? `DATE_FORMAT(${playedAtVn}, '%Y-%m-%d')`
+          : `strftime('%Y-%m-%d', ${playedAtVn})`;
         hourlyLabel = "day";
       } else if (cleanDate.length === 4) {
         // Year (e.g. 2026)
         whereClause = dbType === 'mysql' 
-          ? "DATE_FORMAT(played_at, '%Y') = ?" 
-          : "strftime('%Y', played_at) = ?";
+          ? `DATE_FORMAT(${playedAtVn}, '%Y') = ?` 
+          : `strftime('%Y', ${playedAtVn}) = ?`;
         hourlySelect = dbType === 'mysql'
-          ? "DATE_FORMAT(played_at, '%Y-%m')"
-          : "strftime('%Y-%m', played_at)";
+          ? `DATE_FORMAT(${playedAtVn}, '%Y-%m')`
+          : `strftime('%Y-%m', ${playedAtVn})`;
         hourlyLabel = "month";
       }
 
@@ -138,7 +146,7 @@ const getPlayHistoryStats = async (req, res) => {
 
       // Activity list on that period
       const playsList = await query(`
-        SELECT ph.played_at, t.title, t.artist, u.name as user_name
+        SELECT ${phPlayedAtVn} as played_at, t.title, t.artist, u.name as user_name
         FROM play_history ph
         JOIN tracks t ON ph.track_id = t.id
         LEFT JOIN users u ON ph.user_id = u.id
@@ -161,19 +169,19 @@ const getPlayHistoryStats = async (req, res) => {
     }
 
     // 2. Aggregated statistics (Day / Month / Year)
-    let selectExpr = "DATE(played_at)";
+    let selectExpr = `DATE(${playedAtVn})`;
     let dateFilter = "";
     const params = [];
 
     if (startDate && endDate) {
-      dateFilter = "WHERE DATE(played_at) BETWEEN DATE(?) AND DATE(?)";
+      dateFilter = `WHERE DATE(${playedAtVn}) BETWEEN DATE(?) AND DATE(?)`;
       params.push(startDate, endDate);
     }
 
     if (view === 'month') {
-      selectExpr = dbType === 'mysql' ? "DATE_FORMAT(played_at, '%Y-%m')" : "strftime('%Y-%m', played_at)";
+      selectExpr = dbType === 'mysql' ? `DATE_FORMAT(${playedAtVn}, '%Y-%m')` : `strftime('%Y-%m', ${playedAtVn})`;
     } else if (view === 'year') {
-      selectExpr = dbType === 'mysql' ? "DATE_FORMAT(played_at, '%Y')" : "strftime('%Y', played_at)";
+      selectExpr = dbType === 'mysql' ? `DATE_FORMAT(${playedAtVn}, '%Y')` : `strftime('%Y', ${playedAtVn})`;
     }
 
     const aggregated = await query(`
@@ -239,17 +247,20 @@ const logVisit = async (req, res) => {
 const getVisitsStats = async (req, res) => {
   try {
     const { view = 'day', startDate, endDate } = req.query;
-    let selectExpr = dbType === 'mysql' ? "DATE(visited_at)" : "date(visited_at)";
+    const visitedAtVn = dbType === 'mysql'
+      ? "DATE_ADD(visited_at, INTERVAL 7 HOUR)"
+      : "datetime(visited_at, '+7 hours')";
+    let selectExpr = dbType === 'mysql' ? `DATE(${visitedAtVn})` : `date(${visitedAtVn})`;
     let dateFilter = "";
     const params = [];
 
     if (startDate && endDate) {
-      dateFilter = "WHERE DATE(visited_at) BETWEEN DATE(?) AND DATE(?)";
+      dateFilter = `WHERE DATE(${visitedAtVn}) BETWEEN DATE(?) AND DATE(?)`;
       params.push(startDate, endDate);
     }
 
     if (view === 'month') {
-      selectExpr = dbType === 'mysql' ? "DATE_FORMAT(visited_at, '%Y-%m')" : "strftime('%Y-%m', visited_at)";
+      selectExpr = dbType === 'mysql' ? `DATE_FORMAT(${visitedAtVn}, '%Y-%m')` : `strftime('%Y-%m', ${visitedAtVn})`;
     }
 
     const rows = await query(`
