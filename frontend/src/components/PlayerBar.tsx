@@ -150,10 +150,10 @@ export default function PlayerBar() {
 
         {/* Timeline Slider */}
         <div className="absolute top-0 left-0 right-0 sm:relative sm:top-auto sm:left-auto sm:right-auto sm:w-full flex items-center gap-3 px-0 sm:px-0">
-          <span className="text-[10px] font-semibold text-zinc-500 w-8 text-right hidden sm:inline-block">
+          <span className="text-[10px] font-semibold text-zinc-500 w-8 text-right hidden sm:inline-block leading-none select-none">
             {formatTime(progress)}
           </span>
-          <div className="flex-1 relative group py-0 sm:py-2">
+          <div className="flex-1 relative group py-0 sm:py-2 flex items-center">
             <input
               type="range"
               min="0"
@@ -164,10 +164,10 @@ export default function PlayerBar() {
               style={{
                 background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${progressPercent}%, #27272a ${progressPercent}%, #27272a 100%)`
               }}
-              className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer outline-none transition-all accent-purple-500 disabled:opacity-30 rounded-none sm:rounded-full"
+              className="w-full music-slider"
             />
           </div>
-          <span className="text-[10px] font-semibold text-zinc-500 w-8 hidden sm:inline-block">
+          <span className="text-[10px] font-semibold text-zinc-500 w-8 hidden sm:inline-block leading-none select-none">
             {formatTime(duration)}
           </span>
         </div>
@@ -182,7 +182,7 @@ export default function PlayerBar() {
         >
           {volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </button>
-        <div className="w-24 py-2">
+        <div className="w-24 py-2 flex items-center">
           <input
             type="range"
             min="0"
@@ -194,7 +194,7 @@ export default function PlayerBar() {
             style={{
               background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${volumePercent}%, #27272a ${volumePercent}%, #27272a 100%)`
             }}
-            className="w-full h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer outline-none transition-all accent-purple-500 disabled:opacity-30"
+            className="w-full music-slider"
           />
         </div>
       </div>

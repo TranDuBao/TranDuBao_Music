@@ -165,3 +165,60 @@ html.light .theme-dark-always .from-zinc-950 {
 html.light .theme-dark-always .via-zinc-950\/85 {
   --tw-gradient-stops: var(--tw-gradient-from), rgba(11, 11, 15, 0.85) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
 }
+
+/* ── Custom Range Slider ────────────────────────────────────────── */
+input[type="range"].music-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #27272a;
+  height: 4px;
+  border-radius: 9999px;
+  cursor: pointer;
+  outline: none;
+  margin: 0;
+}
+
+input[type="range"].music-slider::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 4px;
+}
+
+input[type="range"].music-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #a855f7;
+  margin-top: -4px; /* Center on 4px track: (4 - 12)/2 = -4px */
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+input[type="range"].music-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+  background-color: #f3e8ff;
+}
+
+/* Firefox support */
+input[type="range"].music-slider::-moz-range-track {
+  background: transparent;
+  height: 4px;
+}
+
+input[type="range"].music-slider::-moz-range-thumb {
+  height: 10px;
+  width: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #a855f7;
+  transition: transform 0.15s ease;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+  box-sizing: border-box;
+}
+
+input[type="range"].music-slider:hover::-moz-range-thumb {
+  transform: scale(1.25);
+}
+
