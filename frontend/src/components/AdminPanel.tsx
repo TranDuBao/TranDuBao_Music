@@ -1065,38 +1065,38 @@ function StatsTab({ authH }: any) {
           </div>
 
           {/* Custom Date Picker Inputs */}
-          <div className="flex flex-wrap items-center gap-2.5 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 text-xs">
             <span className="text-zinc-400 text-[10px] font-semibold">{isVi ? 'Lọc theo ngày tự chọn:' : 'Custom date filter:'}</span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 type="date"
                 value={customStartDate}
                 onChange={e => setCustomStartDate(e.target.value)}
-                className="bg-zinc-950 border border-white/10 rounded px-2 py-1 text-white text-[10px] focus:outline-none focus:border-indigo-500/50"
+                className="bg-zinc-950 border border-white/10 rounded px-2.5 py-1.5 text-white text-xs sm:text-[10px] focus:outline-none focus:border-indigo-500/50"
               />
               <span className="text-zinc-600 text-[10px]">—</span>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={e => setCustomEndDate(e.target.value)}
-                className="bg-zinc-950 border border-white/10 rounded px-2 py-1 text-white text-[10px] focus:outline-none focus:border-indigo-500/50"
+                className="bg-zinc-950 border border-white/10 rounded px-2.5 py-1.5 text-white text-xs sm:text-[10px] focus:outline-none focus:border-indigo-500/50"
               />
-            </div>
-            <button
-              onClick={() => fetchHistoryStats(historyView, customStartDate, customEndDate)}
-              disabled={!customStartDate || !customEndDate}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-[10px] font-bold px-3 py-1 rounded transition-all"
-            >
-              {isVi ? 'Lọc' : 'Filter'}
-            </button>
-            {(customStartDate || customEndDate) && (
               <button
-                onClick={handleClearFilter}
-                className="text-zinc-400 hover:text-white text-[10px] underline px-1 py-1"
+                onClick={() => fetchHistoryStats(historyView, customStartDate, customEndDate)}
+                disabled={!customStartDate || !customEndDate}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-[10px] font-bold px-3 py-1.5 sm:py-1 rounded transition-all cursor-pointer"
               >
-                {isVi ? 'Xóa lọc' : 'Clear'}
+                {isVi ? 'Lọc' : 'Filter'}
               </button>
-            )}
+              {(customStartDate || customEndDate) && (
+                <button
+                  onClick={handleClearFilter}
+                  className="text-zinc-400 hover:text-white text-xs sm:text-[10px] underline px-1 py-1 cursor-pointer"
+                >
+                  {isVi ? 'Xóa lọc' : 'Clear'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1113,43 +1113,45 @@ function StatsTab({ authH }: any) {
               <div className="w-full border-t border-dashed border-white/40" />
             </div>
 
-            <div className="flex items-end gap-2.5 h-36 z-10">
-              {historyData.map((d: any, i: number) => {
-                const cnt = Number(d.count);
-                const pct = Math.max(5, Math.round((cnt / maxHistory) * 100));
-                const label = formatDateLabel(String(d.label || ''), historyView);
-                const isSelected = selectedPeriod === d.label;
+            <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              <div className="min-w-[600px] sm:min-w-0 flex items-end gap-2.5 h-36 z-10">
+                {historyData.map((d: any, i: number) => {
+                  const cnt = Number(d.count);
+                  const pct = Math.max(5, Math.round((cnt / maxHistory) * 100));
+                  const label = formatDateLabel(String(d.label || ''), historyView);
+                  const isSelected = selectedPeriod === d.label;
 
-                return (
-                  <div
-                    key={i}
-                    onClick={() => fetchPeriodDetails(d.label)}
-                    className="flex-1 h-full flex flex-col items-center gap-1 group cursor-pointer"
-                  >
-                    <span className={`text-[9px] font-bold transition-all duration-300 ${
-                      isSelected ? 'text-indigo-400 scale-110' : 'text-zinc-400 opacity-0 group-hover:opacity-100'
-                    }`}>
-                      {cnt}
-                    </span>
-                    <div className="w-full flex-1 flex items-end justify-center">
-                      <div
-                        className={`w-3 md:w-4 rounded-t-md transition-all duration-300 bg-gradient-to-t ${
-                          isSelected
-                            ? 'from-indigo-400 to-fuchsia-400 shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-indigo-300/20'
-                            : 'from-indigo-600 to-violet-500 group-hover:from-indigo-500 group-hover:to-violet-400 hover:shadow-[0_0_12px_rgba(99,102,241,0.5)] border border-transparent'
-                        }`}
-                        style={{ height: `${pct}%` }}
-                        title={`${label}: ${cnt} ${isVi ? 'lượt nghe' : 'plays'}`}
-                      />
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => fetchPeriodDetails(d.label)}
+                      className="flex-1 h-full flex flex-col items-center gap-1 group cursor-pointer"
+                    >
+                      <span className={`text-[9px] font-bold transition-all duration-300 ${
+                        isSelected ? 'text-indigo-400 scale-110' : 'text-zinc-400 opacity-0 group-hover:opacity-100'
+                      }`}>
+                        {cnt}
+                      </span>
+                      <div className="w-full flex-1 flex items-end justify-center">
+                        <div
+                          className={`w-3 md:w-4 rounded-t-md transition-all duration-300 bg-gradient-to-t ${
+                            isSelected
+                              ? 'from-indigo-400 to-fuchsia-400 shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-indigo-300/20'
+                              : 'from-indigo-600 to-violet-500 group-hover:from-indigo-500 group-hover:to-violet-400 hover:shadow-[0_0_12px_rgba(99,102,241,0.5)] border border-transparent'
+                          }`}
+                          style={{ height: `${pct}%` }}
+                          title={`${label}: ${cnt} ${isVi ? 'lượt nghe' : 'plays'}`}
+                        />
+                      </div>
+                      <span className={`text-[9px] truncate w-full text-center transition-colors ${
+                        isSelected ? 'text-indigo-400 font-bold' : 'text-zinc-500 group-hover:text-zinc-300'
+                      }`}>
+                        {label.length > 7 ? label.slice(0, 5) : label}
+                      </span>
                     </div>
-                    <span className={`text-[9px] truncate w-full text-center transition-colors ${
-                      isSelected ? 'text-indigo-400 font-bold' : 'text-zinc-500 group-hover:text-zinc-300'
-                    }`}>
-                      {label.length > 7 ? label.slice(0, 5) : label}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         ) : (
@@ -1236,36 +1238,37 @@ function StatsTab({ authH }: any) {
                         ? (isVi ? 'Biểu đồ phân bổ theo ngày' : 'Daily Distribution')
                         : (isVi ? 'Biểu đồ phân bổ theo tháng' : 'Monthly Distribution')}
                   </h5>
-                  {historyDetails.distributionStats && historyDetails.distributionStats.length > 0 ? (
-                    <div className="flex items-end gap-1.5 h-32 pt-4">
-                      {(() => {
-                        const maxDist = Math.max(1, ...historyDetails.distributionStats.map((x: any) => Number(x.count)));
-                        return historyDetails.distributionStats.map((item: any, idx: number) => {
-                          const distPct = Math.max(6, Math.round((Number(item.count) / maxDist) * 100));
-                          let label = item.period;
-                          if (historyDetails.distributionLabel === 'hour') label = `${item.period}h`;
-                          else if (historyDetails.distributionLabel === 'day') label = label.slice(8, 10) + '/' + label.slice(5, 7);
-                          else if (historyDetails.distributionLabel === 'month') label = label.slice(5, 7);
-                          
-                          return (
-                            <div key={idx} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default">
-                              <span className="text-[8px] text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {item.count}
-                              </span>
-                              <div className="w-full flex-1 flex items-end justify-center">
-                                <div
-                                  className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-pink-600 to-rose-400 group-hover:from-pink-500 group-hover:to-orange-400 transition-all"
-                                  style={{ height: `${distPct}%` }}
-                                  title={`${label}: ${item.count}`}
-                                />
+                    <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                      <div className="min-w-[480px] sm:min-w-0 flex items-end gap-1.5 h-32 pt-4">
+                        {(() => {
+                          const maxDist = Math.max(1, ...historyDetails.distributionStats.map((x: any) => Number(x.count)));
+                          return historyDetails.distributionStats.map((item: any, idx: number) => {
+                            const distPct = Math.max(6, Math.round((Number(item.count) / maxDist) * 100));
+                            let label = item.period;
+                            if (historyDetails.distributionLabel === 'hour') label = `${item.period}h`;
+                            else if (historyDetails.distributionLabel === 'day') label = label.slice(8, 10) + '/' + label.slice(5, 7);
+                            else if (historyDetails.distributionLabel === 'month') label = label.slice(5, 7);
+                            
+                            return (
+                              <div key={idx} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default">
+                                <span className="text-[8px] text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {item.count}
+                                </span>
+                                <div className="w-full flex-1 flex items-end justify-center">
+                                  <div
+                                    className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-pink-600 to-rose-400 group-hover:from-pink-500 group-hover:to-orange-400 transition-all"
+                                    style={{ height: `${distPct}%` }}
+                                    title={`${label}: ${item.count}`}
+                                  />
+                                </div>
+                                <span className="text-[8px] text-zinc-500 truncate w-full text-center">
+                                  {label}
+                                </span>
                               </div>
-                              <span className="text-[8px] text-zinc-500 truncate w-full text-center">
-                                {label}
-                              </span>
-                            </div>
-                          );
-                        });
-                      })()}
+                            );
+                          });
+                        })()}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-zinc-600 text-xs py-8 text-center">{isVi ? 'Không có dữ liệu phân bổ.' : 'No distribution data.'}</p>
@@ -1396,43 +1399,45 @@ function StatsTab({ authH }: any) {
               <div className="w-full border-t border-dashed border-white/40" />
             </div>
 
-            <div className="flex items-end gap-3 h-32 z-10 px-2">
-              {visitsData.map((v: any, i: number) => {
-                const uniqCount = Number(v.unique_visitors);
-                const totalCount = Number(v.total_visits);
-                
-                const uniqPct = Math.max(6, Math.round((uniqCount / maxVisitsVal) * 100));
-                const totalPct = Math.max(6, Math.round((totalCount / maxVisitsVal) * 100));
-                const label = formatDateLabel(String(v.label || ''), visitsView === 'day' ? 'day' : 'month');
+            <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              <div className="min-w-[600px] sm:min-w-0 flex items-end gap-3 h-32 z-10 px-2">
+                {visitsData.map((v: any, i: number) => {
+                  const uniqCount = Number(v.unique_visitors);
+                  const totalCount = Number(v.total_visits);
+                  
+                  const uniqPct = Math.max(6, Math.round((uniqCount / maxVisitsVal) * 100));
+                  const totalPct = Math.max(6, Math.round((totalCount / maxVisitsVal) * 100));
+                  const label = formatDateLabel(String(v.label || ''), visitsView === 'day' ? 'day' : 'month');
 
-                return (
-                  <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default relative">
-                    {/* Hover tooltip text */}
-                    <div className="absolute bottom-full mb-1 bg-zinc-950/95 border border-white/10 rounded-lg p-2 text-[9px] shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap space-y-0.5">
-                      <p className="font-bold text-white">{label}</p>
-                      <p className="text-teal-400">{isVi ? `Khách duy nhất: ${uniqCount}` : `Unique: ${uniqCount}`}</p>
-                      <p className="text-indigo-400">{isVi ? `Tổng lượt xem: ${totalCount}` : `Total: ${totalCount}`}</p>
+                  return (
+                    <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default relative">
+                      {/* Hover tooltip text */}
+                      <div className="absolute bottom-full mb-1 bg-zinc-950/95 border border-white/10 rounded-lg p-2 text-[9px] shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap space-y-0.5">
+                        <p className="font-bold text-white">{label}</p>
+                        <p className="text-teal-400">{isVi ? `Khách duy nhất: ${uniqCount}` : `Unique: ${uniqCount}`}</p>
+                        <p className="text-indigo-400">{isVi ? `Tổng lượt xem: ${totalCount}` : `Total: ${totalCount}`}</p>
+                      </div>
+
+                      <div className="w-full flex-1 flex items-end justify-center gap-1.5 h-full">
+                        {/* Unique Visitors Bar (Teal) */}
+                        <div
+                          className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-teal-600 to-emerald-400 group-hover:from-teal-500 group-hover:to-green-300 transition-all shadow-[0_0_8px_rgba(20,184,166,0.15)]"
+                          style={{ height: `${uniqPct}%` }}
+                        />
+                        {/* Total Visits Bar (Indigo) */}
+                        <div
+                          className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-indigo-600 to-blue-400 group-hover:from-indigo-500 group-hover:to-cyan-400 transition-all shadow-[0_0_8px_rgba(99,102,241,0.15)]"
+                          style={{ height: `${totalPct}%` }}
+                        />
+                      </div>
+
+                      <span className="text-[9px] text-zinc-500 group-hover:text-zinc-300 truncate w-full text-center mt-1">
+                        {label.length > 7 ? label.slice(0, 5) : label}
+                      </span>
                     </div>
-
-                    <div className="w-full flex-1 flex items-end justify-center gap-1.5 h-full">
-                      {/* Unique Visitors Bar (Teal) */}
-                      <div
-                        className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-teal-600 to-emerald-400 group-hover:from-teal-500 group-hover:to-green-300 transition-all shadow-[0_0_8px_rgba(20,184,166,0.15)]"
-                        style={{ height: `${uniqPct}%` }}
-                      />
-                      {/* Total Visits Bar (Indigo) */}
-                      <div
-                        className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-indigo-600 to-blue-400 group-hover:from-indigo-500 group-hover:to-cyan-400 transition-all shadow-[0_0_8px_rgba(99,102,241,0.15)]"
-                        style={{ height: `${totalPct}%` }}
-                      />
-                    </div>
-
-                    <span className="text-[9px] text-zinc-500 group-hover:text-zinc-300 truncate w-full text-center mt-1">
-                      {label.length > 7 ? label.slice(0, 5) : label}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             {/* Legend indicators */}
