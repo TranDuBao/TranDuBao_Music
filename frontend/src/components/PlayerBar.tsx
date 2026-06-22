@@ -54,12 +54,12 @@ export default function PlayerBar() {
   const volumePercent = volume * 100;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-24 bg-zinc-950/80 backdrop-blur-xl border-t border-white/5 flex items-center justify-between px-6 z-40 select-none">
+    <div className="fixed bottom-0 left-0 right-0 h-20 sm:h-24 bg-zinc-950/80 backdrop-blur-xl border-t border-white/5 flex items-center justify-between px-4 sm:px-6 z-40 select-none">
       {/* 1. Left: Current song info */}
-      <div className="flex items-center gap-3.5 w-[30%] min-w-[200px]">
+      <div className="flex items-center gap-2.5 flex-1 sm:flex-initial sm:w-[30%] min-w-0">
         {currentTrack ? (
           <>
-            <div className="w-14 h-14 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center">
               <img
                 src={getAbsoluteUrl(currentTrack.cover_url)}
                 alt={currentTrack.title}
@@ -69,38 +69,38 @@ export default function PlayerBar() {
               />
               {isPlaying && (
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 bg-zinc-950 rounded-full border border-purple-400" />
+                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 bg-zinc-950 rounded-full border border-purple-400" />
                 </div>
               )}
             </div>
             <div className="min-w-0">
-              <h4 className="text-sm font-bold text-white truncate hover:text-purple-400 cursor-pointer">
+              <h4 className="text-xs sm:text-sm font-bold text-white truncate hover:text-purple-400 cursor-pointer">
                 {currentTrack.title}
               </h4>
-              <p className="text-xs text-zinc-400 truncate mt-0.5">{currentTrack.artist}</p>
+              <p className="text-[10px] sm:text-xs text-zinc-400 truncate mt-0.5">{currentTrack.artist}</p>
             </div>
           </>
         ) : (
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-xl bg-zinc-900 border border-dashed border-white/5 flex items-center justify-center">
-              <Disc className="w-6 h-6 text-zinc-700" />
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-zinc-900 border border-dashed border-white/5 flex-shrink-0 flex items-center justify-center">
+              <Disc className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-700" />
             </div>
             <div>
-              <h4 className="text-sm font-medium text-zinc-500">{t('player.noSong')}</h4>
-              <p className="text-xs text-zinc-600 mt-0.5">{t('player.selectSong')}</p>
+              <h4 className="text-xs sm:text-sm font-medium text-zinc-500">{t('player.noSong')}</h4>
+              <p className="text-[10px] sm:text-xs text-zinc-600 mt-0.5">{t('player.selectSong')}</p>
             </div>
           </div>
         )}
       </div>
 
       {/* 2. Center: Controls & Timeline */}
-      <div className="flex flex-col items-center gap-2.5 w-[40%] max-w-[500px]">
+      <div className="flex flex-col items-center gap-1 sm:gap-2.5 flex-shrink-0 sm:w-[40%] sm:max-w-[500px]">
         {/* Control Buttons */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 sm:gap-5">
           <button 
             onClick={toggleShuffle}
             disabled={!currentTrack}
-            className={`transition-all p-1 disabled:opacity-30 ${isShuffle ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`} 
+            className={`transition-all p-1 disabled:opacity-30 hidden sm:block ${isShuffle ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`} 
             title="Shuffle"
           >
             <Shuffle className="w-4 h-4" />
@@ -109,36 +109,36 @@ export default function PlayerBar() {
           <button
             onClick={playPrevious}
             disabled={!currentTrack}
-            className="text-zinc-400 hover:text-white transition-all disabled:opacity-30 disabled:hover:text-zinc-400 p-1"
+            className="text-zinc-400 hover:text-white transition-all disabled:opacity-30 p-1"
           >
-            <SkipBack className="w-5 h-5 fill-current" />
+            <SkipBack className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
           </button>
           
           <button
             onClick={togglePlay}
             disabled={!currentTrack}
-            className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md disabled:opacity-50 disabled:hover:scale-100"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md disabled:opacity-50"
           >
             {isPlaying ? (
-              <Pause className="w-5 h-5 fill-current ml-0" />
+              <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
             ) : (
-              <Play className="w-5 h-5 fill-current ml-0.5" />
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
             )}
           </button>
 
           <button
             onClick={playNext}
             disabled={!currentTrack}
-            className="text-zinc-400 hover:text-white transition-all disabled:opacity-30 disabled:hover:text-zinc-400 p-1"
+            className="text-zinc-400 hover:text-white transition-all disabled:opacity-30 p-1"
           >
-            <SkipForward className="w-5 h-5 fill-current" />
+            <SkipForward className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
           </button>
 
           <button 
             onClick={toggleRepeat}
             disabled={!currentTrack}
-            className={`transition-all p-1 disabled:opacity-30 ${repeatMode !== 'none' ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`} 
-            title={`Repeat: ${repeatMode === 'none' ? 'Off' : repeatMode === 'all' ? 'All' : 'One'}`}
+            className={`transition-all p-1 disabled:opacity-30 hidden sm:block ${repeatMode !== 'none' ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`} 
+            title="Repeat"
           >
             {repeatMode === 'one' ? (
               <Repeat1 className="w-4 h-4" />
@@ -149,11 +149,11 @@ export default function PlayerBar() {
         </div>
 
         {/* Timeline Slider */}
-        <div className="w-full flex items-center gap-3">
-          <span className="text-[10px] font-semibold text-zinc-500 w-8 text-right">
+        <div className="absolute top-0 left-0 right-0 sm:relative sm:top-auto sm:left-auto sm:right-auto sm:w-full flex items-center gap-3 px-0 sm:px-0">
+          <span className="text-[10px] font-semibold text-zinc-500 w-8 text-right hidden sm:inline-block">
             {formatTime(progress)}
           </span>
-          <div className="flex-1 relative group py-2">
+          <div className="flex-1 relative group py-0 sm:py-2">
             <input
               type="range"
               min="0"
@@ -164,17 +164,17 @@ export default function PlayerBar() {
               style={{
                 background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${progressPercent}%, #27272a ${progressPercent}%, #27272a 100%)`
               }}
-              className="w-full h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer outline-none transition-all accent-purple-500 disabled:opacity-30"
+              className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer outline-none transition-all accent-purple-500 disabled:opacity-30 rounded-none sm:rounded-full"
             />
           </div>
-          <span className="text-[10px] font-semibold text-zinc-500 w-8">
+          <span className="text-[10px] font-semibold text-zinc-500 w-8 hidden sm:inline-block">
             {formatTime(duration)}
           </span>
         </div>
       </div>
 
       {/* 3. Right: Volume and actions */}
-      <div className="flex items-center gap-3.5 w-[30%] justify-end min-w-[150px]">
+      <div className="hidden sm:flex items-center gap-3.5 sm:w-[30%] justify-end min-w-0">
         <button
           onClick={toggleMute}
           disabled={!currentTrack}

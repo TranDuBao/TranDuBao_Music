@@ -15,9 +15,11 @@ interface SidebarProps {
   view: 'all' | 'mine' | 'admin' | 'profile';
   setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void;
   onUploadClick: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ view, setView, onUploadClick }: SidebarProps) {
+export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose }: SidebarProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { playlists, currentPlaylist, setCurrentPlaylist, createPlaylist, deletePlaylist } = useMusicStore();
@@ -43,15 +45,19 @@ export default function Sidebar({ view, setView, onUploadClick }: SidebarProps) 
   const handleNavClick = (v: 'all' | 'mine' | 'admin' | 'profile') => {
     setView(v);
     setCurrentPlaylist(null);
+    if (onClose) onClose();
   };
 
   return (
-    <aside className="w-64 panel-glass border-r border-white/5 flex flex-col h-full select-none">
+    <aside className={`fixed md:relative inset-y-0 left-0 z-40 w-64 panel-glass border-r border-white/5 flex flex-col h-full select-none transform transition-transform duration-300 ease-in-out ${
+      isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+    }`}>
       {/* Brand */}
       <button
         onClick={() => {
           setView('all');
           setCurrentPlaylist(null);
+          if (onClose) onClose();
         }}
         className="p-5 flex items-center gap-3 border-b border-white/5 w-full text-left hover:bg-white/[0.02] transition-all"
       >
@@ -65,10 +71,10 @@ export default function Sidebar({ view, setView, onUploadClick }: SidebarProps) 
       {/* User Profile */}
       {user && (
         <div className="px-4 py-3 flex items-center gap-2.5 border-b border-white/5 bg-white/[0.01]">
-          <button onClick={() => setView('profile')} className="hover:ring-2 ring-purple-500/50 rounded-full transition-all">
+          <button onClick={() => { setView('profile'); if (onClose) onClose(); }} className="hover:ring-2 ring-purple-500/50 rounded-full transition-all">
             <Avatar src={user.avatar_url} name={user.name} className="w-8 h-8" />
           </button>
-          <button onClick={() => setView('profile')} className="min-w-0 flex-1 text-left hover:opacity-80 transition-all">
+          <button onClick={() => { setView('profile'); if (onClose) onClose(); }} className="min-w-0 flex-1 text-left hover:opacity-80 transition-all">
             <p className="text-xs font-semibold text-zinc-200 truncate">{user.name}</p>
             <p className="text-[10px] text-zinc-500 truncate">{user.role === 'admin' ? '👑 Admin' : '🎵 User'}</p>
           </button>
@@ -146,7 +152,7 @@ export default function Sidebar({ view, setView, onUploadClick }: SidebarProps) 
                 return (
                   <div key={pl.id} className={`group flex items-center rounded-lg transition-all ${active ? 'bg-purple-600/10' : 'hover:bg-white/5'}`}>
                     <button
-                      onClick={() => setCurrentPlaylist(pl)}
+                      onClick={() => { setCurrentPlaylist(pl); if (onClose) onClose(); }}
                       className={`flex-1 flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-left ${active ? 'text-purple-400' : 'text-zinc-400 group-hover:text-zinc-200'}`}
                     >
                       <ListMusic className="w-3.5 h-3.5 flex-shrink-0" />

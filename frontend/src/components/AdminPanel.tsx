@@ -1238,6 +1238,7 @@ function StatsTab({ authH }: any) {
                         ? (isVi ? 'Biểu đồ phân bổ theo ngày' : 'Daily Distribution')
                         : (isVi ? 'Biểu đồ phân bổ theo tháng' : 'Monthly Distribution')}
                   </h5>
+                  {historyDetails.distributionStats && historyDetails.distributionStats.length > 0 ? (
                     <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                       <div className="min-w-[480px] sm:min-w-0 flex items-end gap-1.5 h-32 pt-4">
                         {(() => {

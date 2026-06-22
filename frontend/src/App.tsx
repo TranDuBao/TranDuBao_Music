@@ -43,6 +43,7 @@ function AppShell() {
   const { user } = useAuthStore();
   const [view, setView] = useState<'all' | 'mine' | 'admin' | 'profile'>('all');
   const [showUpload, setShowUpload] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchTracks();
@@ -65,8 +66,17 @@ function AppShell() {
       <div className="absolute top-0 left-1/4 w-[40rem] h-[40rem] bg-purple-950/10 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[32rem] h-[32rem] bg-indigo-950/15 rounded-full blur-3xl translate-y-1/3 pointer-events-none" />
 
-      <Sidebar view={view} setView={setView} onUploadClick={() => setShowUpload(true)} />
-      <MainView view={view} setView={setView} onUploadClick={() => setShowUpload(true)} />
+      <Sidebar view={view} setView={setView} onUploadClick={() => setShowUpload(true)} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
+      {/* Mobile overlay backdrop */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" 
+          onClick={() => setIsSidebarOpen(false)} 
+        />
+      )}
+
+      <MainView view={view} setView={setView} onUploadClick={() => setShowUpload(true)} toggleSidebar={() => setIsSidebarOpen(v => !v)} />
       <PlayerBar />
       <UploadModal isOpen={showUpload} onClose={() => setShowUpload(false)} />
     </div>

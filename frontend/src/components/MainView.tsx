@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMusicStore } from '../store/useMusicStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
-import { Search, Plus, Music, Play, ChevronLeft, ChevronRight, Flame, TrendingUp, ArrowUpDown, Shuffle } from 'lucide-react';
+import { Search, Plus, Music, Play, ChevronLeft, ChevronRight, Flame, TrendingUp, ArrowUpDown, Shuffle, Menu } from 'lucide-react';
 import Avatar from './Avatar';
 import TrackRow from './TrackRow';
 import AddTrackModal from './AddTrackModal';
@@ -25,9 +25,10 @@ interface MainViewProps {
   view: 'all' | 'mine' | 'admin' | 'profile';
   setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void;
   onUploadClick: () => void;
+  toggleSidebar?: () => void;
 }
 
-export default function MainView({ view, setView, onUploadClick }: MainViewProps) {
+export default function MainView({ view, setView, onUploadClick, toggleSidebar }: MainViewProps) {
   const { t, i18n } = useTranslation();
   const { tracks, currentPlaylist, currentPlaylistTracks, searchQuery, setSearchQuery, fetchTracks, playTrack, currentTrack } = useMusicStore();
   const { user } = useAuthStore();
@@ -276,7 +277,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   if (view === 'profile') {
     return (
       <main className="flex-1 flex flex-col h-full overflow-y-auto pb-32">
-        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} />
+        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} toggleSidebar={toggleSidebar} />
         <div className="p-8 max-w-5xl w-full mx-auto">
           <UserProfilePage />
         </div>
@@ -287,7 +288,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
   if (view === 'admin') {
     return (
       <main className="flex-1 flex flex-col h-full overflow-y-auto pb-32">
-        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} />
+        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} toggleSidebar={toggleSidebar} />
         <div className="p-8 max-w-5xl w-full mx-auto">
           <AdminPanel />
         </div>
@@ -320,7 +321,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
         />
       )}
 
-      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} setView={setView} />
+      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} setView={setView} toggleSidebar={toggleSidebar} />
 
       <div className="p-8 max-w-5xl w-full mx-auto space-y-8 relative z-10">
         {/* Hero Banner with Auto-rotating 5 animated video background */}
@@ -726,7 +727,7 @@ export default function MainView({ view, setView, onUploadClick }: MainViewProps
 }
 
 // Reusable header subcomponent
-function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPlaceholder }: { searchQuery: string; setSearchQuery: (v: string) => void; disableSearch: boolean; setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void; searchPlaceholder?: string }) {
+function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPlaceholder, toggleSidebar }: { searchQuery: string; setSearchQuery: (v: string) => void; disableSearch: boolean; setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void; searchPlaceholder?: string; toggleSidebar?: () => void }) {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -738,18 +739,29 @@ function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPla
   };
 
   return (
-    <header className="px-5 py-3 flex items-center justify-between border-b border-white/5 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30 shadow-md">
-      {/* Search */}
-      <div className="relative w-72">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
-        <input
-          type="text"
-          placeholder={searchPlaceholder || (disableSearch ? t('tracks.searchDisabledInPlaylist') : t('tracks.searchPlaceholder'))}
-          disabled={disableSearch}
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="w-full bg-zinc-900/80 border border-white/5 rounded-full pl-10 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 transition-all disabled:opacity-40"
-        />
+    <header className="px-5 py-3 flex items-center justify-between border-b border-white/5 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30 shadow-md gap-4">
+      {/* Search & Menu */}
+      <div className="flex items-center gap-3 flex-1 max-w-[280px] sm:max-w-[360px]">
+        {toggleSidebar && (
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden p-2 text-zinc-400 hover:text-white rounded-xl bg-zinc-900/80 border border-white/5 transition-all cursor-pointer flex-shrink-0"
+            title="Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+        <div className="relative w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+          <input
+            type="text"
+            placeholder={searchPlaceholder || (disableSearch ? t('tracks.searchDisabledInPlaylist') : t('tracks.searchPlaceholder'))}
+            disabled={disableSearch}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-zinc-900/80 border border-white/5 rounded-full pl-10 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 transition-all disabled:opacity-40"
+          />
+        </div>
       </div>
 
       {/* Right controls */}
