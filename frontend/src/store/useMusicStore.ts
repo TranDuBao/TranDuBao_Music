@@ -71,7 +71,7 @@ interface MusicStore {
 
   // Player control actions
   initAudio: () => void;
-  playTrack: (track: Track, customQueue?: Track[]) => void;
+  playTrack: (track: Track, customQueue?: Track[], forceIndex?: number) => void;
   togglePlay: () => void;
   setVolume: (volume: number) => void;
   setProgress: (time: number) => void;
@@ -504,13 +504,13 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
   },
 
-  playTrack: (track, customQueue) => {
+  playTrack: (track, customQueue, forceIndex) => {
     const { audio, initAudio } = get();
     initAudio();
 
     const activeAudio = get().audio;
     let playQueue = [...(customQueue || get().tracks)];
-    let index = playQueue.findIndex(t => t.id === track.id);
+    let index = forceIndex !== undefined ? forceIndex : playQueue.findIndex(t => t.id === track.id);
     if (index === -1) {
       playQueue.push(track);
       index = playQueue.length - 1;
@@ -716,14 +716,14 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           nextIndex = Math.floor(Math.random() * queue.length);
         }
       }
-      playTrack(queue[nextIndex], queue);
+      playTrack(queue[nextIndex], queue, nextIndex);
     } else {
       const nextIndex = queueIndex + 1;
       if (nextIndex < queue.length) {
-        playTrack(queue[nextIndex], queue);
+        playTrack(queue[nextIndex], queue, nextIndex);
       } else {
         if (repeatMode === 'all') {
-          playTrack(queue[0], queue);
+          playTrack(queue[0], queue, 0);
         } else {
           const { audio } = get();
           if (audio) {
@@ -755,13 +755,13 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           prevIndex = Math.floor(Math.random() * queue.length);
         }
       }
-      playTrack(queue[prevIndex], queue);
+      playTrack(queue[prevIndex], queue, prevIndex);
     } else {
       let prevIndex = queueIndex - 1;
       if (prevIndex < 0) {
         prevIndex = queue.length - 1;
       }
-      playTrack(queue[prevIndex], queue);
+      playTrack(queue[prevIndex], queue, prevIndex);
     }
   },
 
