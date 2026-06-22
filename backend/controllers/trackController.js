@@ -492,7 +492,7 @@ const importTrack = async (req, res) => {
           console.error('[Import] Both oEmbed and yt-dlp fallback failed:', fallbackErr.message);
           return res.status(400).json({
             success: false,
-            message: `Không thể lấy thông tin bài hát từ URL. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
+            message: `Không thể lấy thông tin bài hát từ URL. Chi tiết: oEmbed (${err.message}) | Fallback (${fallbackErr.message})`
           });
         }
       }
