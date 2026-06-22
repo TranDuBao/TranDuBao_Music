@@ -374,7 +374,16 @@ function HistoryTab({ authH }: any) {
 
   useEffect(() => {
     axios.get(`${API}/history`, { headers: authH })
-      .then(r => { if (r.data.success) setHistory(r.data.data); })
+      .then(r => {
+        if (r.data.success) {
+          const mapped = r.data.data.map((h: any) => ({
+            ...h,
+            id: h.track_id,
+            history_id: h.id
+          }));
+          setHistory(mapped);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -390,7 +399,7 @@ function HistoryTab({ authH }: any) {
 
       <div className="divide-y divide-white/[0.03] max-h-[400px] overflow-y-auto pr-1">
         {history.map((h, i) => (
-          <div key={h.id} className="flex items-center gap-4 py-3 group hover:bg-white/[0.02] px-2 rounded-xl transition-all">
+          <div key={h.history_id || h.id} className="flex items-center gap-4 py-3 group hover:bg-white/[0.02] px-2 rounded-xl transition-all">
             <span className="text-xs text-zinc-600 w-5 text-center font-bold">{i+1}</span>
             <img src={getAbsoluteUrl(h.cover_url) || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover border border-white/5" />
             <div className="flex-1 min-w-0">
