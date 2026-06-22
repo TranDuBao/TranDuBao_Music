@@ -509,8 +509,13 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     initAudio();
 
     const activeAudio = get().audio;
-    const playQueue = customQueue || get().tracks;
-    const index = playQueue.findIndex(t => t.id === track.id);
+    let playQueue = [...(customQueue || get().tracks)];
+    let index = playQueue.findIndex(t => t.id === track.id);
+    if (index === -1) {
+      playQueue.push(track);
+      index = playQueue.length - 1;
+    }
+
 
     // Stop standard audio
     if (activeAudio) {

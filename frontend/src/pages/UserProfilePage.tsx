@@ -399,7 +399,7 @@ function HistoryTab({ authH }: any) {
             </div>
             <p className="text-[10px] text-zinc-600 hidden sm:block">{new Date(h.played_at).toLocaleString('vi-VN')}</p>
             <button
-              onClick={() => playTrack(h)}
+              onClick={() => playTrack(h, history)}
               className="w-8 h-8 rounded-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 flex items-center justify-center hover:scale-105 transition-all opacity-0 group-hover:opacity-100"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
@@ -459,7 +459,7 @@ function UploadsTab({ authH }: any) {
               
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => playTrack(t)}
+                  onClick={() => playTrack(t, tracks)}
                   className="w-8 h-8 rounded-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 flex items-center justify-center"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
@@ -545,7 +545,7 @@ function PlaylistsTab({ authH }: any) {
                         <p className="text-[10px] text-zinc-500 truncate mt-0.5">{t.artist}</p>
                       </div>
                       <button
-                        onClick={() => playTrack(t)}
+                        onClick={() => playTrack(t, tracks[pl.id])}
                         className="w-7 h-7 rounded-full bg-purple-600/10 text-purple-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105"
                       >
                         <Play className="w-3 h-3 fill-current" />
