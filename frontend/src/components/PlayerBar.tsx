@@ -60,14 +60,12 @@ export default function PlayerBar() {
         {currentTrack ? (
           <>
             <div className={`w-10 h-10 sm:w-14 sm:h-14 overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center transition-all duration-500 ${
-              isPlaying ? 'rounded-full' : 'rounded-lg sm:rounded-xl'
+              isPlaying ? 'rounded-full rotate-animation' : 'rounded-lg sm:rounded-xl'
             }`}>
               <img
                 src={getAbsoluteUrl(currentTrack.cover_url)}
                 alt={currentTrack.title}
-                className={`w-full h-full object-cover transition-all duration-500 ${
-                  isPlaying ? 'rotate-animation rounded-full' : ''
-                }`}
+                className="w-full h-full object-cover rounded-full"
               />
               {isPlaying && (
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
