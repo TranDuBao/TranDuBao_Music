@@ -489,10 +489,10 @@ const importTrack = async (req, res) => {
             throw new Error('Empty stdout from yt-dlp');
           }
         } catch (fallbackErr) {
-          console.error('[Import] Both oEmbed and yt-dlp fallback failed:', fallbackErr.message);
+          console.error(`[Import] Both oEmbed and yt-dlp fallback failed. First: ${err.message}, Fallback: ${fallbackErr.message}`);
           return res.status(400).json({
             success: false,
-            message: `Không thể lấy thông tin bài hát từ URL. Chi tiết: oEmbed (${err.message}) | Fallback (${fallbackErr.message})`
+            message: 'Hệ thống đang bận hoặc gặp lỗi, vui lòng thử lại thao tác này sau ít phút!'
           });
         }
       }
