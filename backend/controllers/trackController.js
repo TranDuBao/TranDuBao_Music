@@ -425,6 +425,8 @@ const importTrack = async (req, res) => {
 
     // ── oEmbed Extraction (no API key, instant) ──────────────
     let title, artist, cover_url, duration;
+    let oembedSuccess = false;
+
     try {
       let oembedUrl;
       if (isYouTube) {
@@ -446,27 +448,53 @@ const importTrack = async (req, res) => {
       artist   = data.author_name    || 'Unknown Artist';
       cover_url = data.thumbnail_url || '';
       duration = 180; // oEmbed doesn't return duration — frontend gets it from player or backend extracts
+      oembedSuccess = true;
       console.log(`[Import] oEmbed OK: "${title}" by "${artist}"`);
     } catch (err) {
-      console.warn('[Import] oEmbed failed, trying yt-dlp fallback:', err.message);
-      try {
-        const { stdout } = await runYtDlp(['--dump-json', '--no-playlist', '--no-warnings', url], 15000);
-        if (stdout && stdout.trim()) {
-          const data = JSON.parse(stdout.trim());
-          title = data.title || 'Imported Audio';
-          artist = data.uploader || data.artist || 'Unknown Artist';
-          cover_url = data.thumbnail || '';
-          duration = Math.floor(Number(data.duration)) || 180;
-          console.log(`[Import] yt-dlp metadata fallback OK: "${title}" by "${artist}"`);
-        } else {
-          throw new Error('Empty stdout from yt-dlp');
+      console.warn('[Import] First oEmbed failed, trying noembed.com fallback:', err.message);
+      
+      if (isYouTube) {
+        try {
+          const noembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
+          console.log(`[Import] Querying noembed.com fallback: ${noembedUrl}`);
+          const noRes = await fetch(noembedUrl);
+          if (noRes.ok) {
+            const data = await noRes.json();
+            if (data && data.title) {
+              title = data.title || 'Imported Audio';
+              artist = data.author_name || 'Unknown Artist';
+              cover_url = data.thumbnail_url || '';
+              duration = 180;
+              oembedSuccess = true;
+              console.log(`[Import] noembed.com fallback OK: "${title}" by "${artist}"`);
+            }
+          }
+        } catch (noembedErr) {
+          console.warn('[Import] noembed.com fallback failed:', noembedErr.message);
         }
-      } catch (fallbackErr) {
-        console.error('[Import] Both oEmbed and yt-dlp fallback failed:', fallbackErr.message);
-        return res.status(400).json({
-          success: false,
-          message: `Không thể lấy thông tin bài hát từ URL. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
-        });
+      }
+
+      if (!oembedSuccess) {
+        console.warn('[Import] Trying yt-dlp metadata fallback...');
+        try {
+          const { stdout } = await runYtDlp(['--dump-json', '--no-playlist', '--no-warnings', url], 15000);
+          if (stdout && stdout.trim()) {
+            const data = JSON.parse(stdout.trim());
+            title = data.title || 'Imported Audio';
+            artist = data.uploader || data.artist || 'Unknown Artist';
+            cover_url = data.thumbnail || '';
+            duration = Math.floor(Number(data.duration)) || 180;
+            console.log(`[Import] yt-dlp metadata fallback OK: "${title}" by "${artist}"`);
+          } else {
+            throw new Error('Empty stdout from yt-dlp');
+          }
+        } catch (fallbackErr) {
+          console.error('[Import] Both oEmbed and yt-dlp fallback failed:', fallbackErr.message);
+          return res.status(400).json({
+            success: false,
+            message: `Không thể lấy thông tin bài hát từ URL. Hãy kiểm tra lại URL. Chi tiết: ${err.message}`
+          });
+        }
       }
     }
 

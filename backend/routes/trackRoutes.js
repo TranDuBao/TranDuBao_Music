@@ -35,14 +35,52 @@ router.get('/youtube-meta', async (req, res) => {
   try {
     const { url } = req.query;
     if (!url) return res.status(400).json({ success: false, message: 'url required' });
-    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-    const response = await fetch(oembedUrl);
-    if (!response.ok) throw new Error('oEmbed failed: ' + response.status);
-    const data = await response.json();
+    
+    let title, artist, thumbnail;
+    let success = false;
+    
+    // 1. Try YouTube official oEmbed
+    try {
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      const response = await fetch(oembedUrl);
+      if (response.ok) {
+        const data = await response.json();
+        title = data.title;
+        artist = data.author_name || 'Unknown Artist';
+        thumbnail = data.thumbnail_url || '';
+        success = true;
+      }
+    } catch (err) {
+      console.warn('[youtube-meta] Official YouTube oEmbed failed:', err.message);
+    }
+    
+    // 2. Try noembed.com fallback
+    if (!success) {
+      try {
+        const noembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
+        const response = await fetch(noembedUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.title) {
+            title = data.title;
+            artist = data.author_name || 'Unknown Artist';
+            thumbnail = data.thumbnail_url || '';
+            success = true;
+          }
+        }
+      } catch (err) {
+        console.warn('[youtube-meta] noembed.com failed:', err.message);
+      }
+    }
+    
+    if (!success) {
+      throw new Error('Không thể lấy thông tin bài hát từ oEmbed hoặc noembed.');
+    }
+    
     res.json({ success: true, data: {
-      title: data.title,
-      artist: data.author_name || 'Unknown Artist',
-      thumbnail: data.thumbnail_url || '',
+      title,
+      artist,
+      thumbnail,
       duration: 180
     }});
   } catch (err) {
