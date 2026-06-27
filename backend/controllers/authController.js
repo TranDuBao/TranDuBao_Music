@@ -6,6 +6,16 @@ const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 
+// Helper: build callback URL safely — never produce "undefined" in the path
+const getCallbackUrl = (path) => {
+  const base = (process.env.BACKEND_URL || '').trim().replace(/\/+$/, '');
+  if (!base || base === 'undefined') {
+    // Fallback: derive from request host at runtime (set in strategy callbackURL as relative)
+    return path; // relative path — Passport will resolve against the incoming request
+  }
+  return `${base}${path}`;
+};
+
 // ── Passport Google Strategy ─────────────────────────────────────
 const setupGoogleStrategy = () => {
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === 'your_google_client_id_here') {
@@ -17,7 +27,8 @@ const setupGoogleStrategy = () => {
     {
       clientID:     process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL:  `${process.env.BACKEND_URL}/api/auth/google/callback`,
+      callbackURL:  getCallbackUrl('/api/auth/google/callback'),
+      proxy: true, // trust X-Forwarded-Proto from Render/Vercel reverse proxies
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -50,8 +61,9 @@ const setupFacebookStrategy = () => {
     {
       clientID:     process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL:  `${process.env.BACKEND_URL}/api/auth/facebook/callback`,
+      callbackURL:  getCallbackUrl('/api/auth/facebook/callback'),
       profileFields: ['id', 'displayName', 'email', 'picture.type(large)'],
+      proxy: true,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
