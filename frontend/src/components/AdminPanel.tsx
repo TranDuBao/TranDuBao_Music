@@ -870,6 +870,9 @@ function StatsTab({ authH }: any) {
   const [visitsView, setVisitsView] = useState<'day' | 'month'>('day');
   const [visitsData, setVisitsData] = useState<any[]>([]);
   const [visitsLoading, setVisitsLoading] = useState(false);
+  const [selectedVisitsPeriod, setSelectedVisitsPeriod] = useState<string | null>(null);
+  const [visitsDetails, setVisitsDetails] = useState<any>(null);
+  const [visitsDetailsLoading, setVisitsDetailsLoading] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -918,6 +921,22 @@ function StatsTab({ authH }: any) {
     }
   };
 
+  const fetchVisitsPeriodDetails = async (periodLabel: string) => {
+    setSelectedVisitsPeriod(periodLabel);
+    setVisitsDetailsLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/stats/visits?date=${periodLabel}`, { headers: authH });
+      if (data.success) {
+        setVisitsDetails(data.data);
+      }
+    } catch (err) {
+      console.error('Visits period details error:', err);
+      setVisitsDetails(null);
+    } finally {
+      setVisitsDetailsLoading(false);
+    }
+  };
+
   const fetchPeriodDetails = async (periodLabel: string) => {
     setSelectedPeriod(periodLabel);
     setDetailsLoading(true);
@@ -948,6 +967,8 @@ function StatsTab({ authH }: any) {
     fetchVisitsStats(visitsView);
     setSelectedPeriod(null);
     setHistoryDetails(null);
+    setSelectedVisitsPeriod(null);
+    setVisitsDetails(null);
   };
 
   useEffect(() => {
@@ -966,6 +987,8 @@ function StatsTab({ authH }: any) {
   const handleVisitsViewChange = (view: 'day' | 'month') => {
     setVisitsView(view);
     fetchVisitsStats(view);
+    setSelectedVisitsPeriod(null);
+    setVisitsDetails(null);
   };
 
   const fetchCategoryTracks = async (cat: any) => {
@@ -1001,6 +1024,14 @@ function StatsTab({ authH }: any) {
   const maxVisitsVal = Math.max(1, ...visitsData.map((v: any) => Math.max(Number(v.unique_visitors), Number(v.total_visits))));
   const totalVisitsCount = visitsData.reduce((acc, curr) => acc + Number(curr.total_visits), 0);
   const totalUniqueVisitors = visitsData.reduce((acc, curr) => acc + Number(curr.unique_visitors), 0);
+
+  // Today / This month stats helper
+  const vnTime = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const todayLabel = vnTime.toISOString().slice(0, 10);
+  const currentMonthLabel = vnTime.toISOString().slice(0, 7);
+  const currentPeriodRecord = visitsData.find((v: any) => v.label === (visitsView === 'day' ? todayLabel : currentMonthLabel));
+  const currentPeriodVisits = currentPeriodRecord ? Number(currentPeriodRecord.total_visits) : 0;
+  const currentPeriodUnique = currentPeriodRecord ? Number(currentPeriodRecord.unique_visitors) : 0;
 
   return (
     <div className="space-y-6">
@@ -1345,7 +1376,7 @@ function StatsTab({ authH }: any) {
               {isVi ? 'Thống kê lượng người truy cập Web' : 'Website Traffic Statistics'}
             </h4>
             <p className="text-[10px] text-zinc-500 mt-0.5">
-              {isVi ? 'Phân tích số khách và tổng số lượt truy cập' : 'Analysis of unique visitors and total page visits'}
+              {isVi ? 'Phân tích số khách và tổng số lượt truy cập (Bấm vào cột mốc để xem chi tiết)' : 'Analysis of unique visitors and total page visits (Click on any bar to drill down)'}
             </p>
           </div>
           <div className="flex items-center bg-zinc-950 p-1 rounded-lg border border-white/5 self-start sm:self-auto">
@@ -1373,7 +1404,12 @@ function StatsTab({ authH }: any) {
             </div>
             <div>
               <p className="text-[10px] text-zinc-500">{isVi ? 'Tổng lượt truy cập' : 'Total Page Visits'}</p>
-              <p className="text-sm font-bold text-white">{totalVisitsCount}</p>
+              <div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
+                <span className="text-sm font-bold text-white">{totalVisitsCount}</span>
+                <span className="text-[9px] text-zinc-500">
+                  ({visitsView === 'day' ? (isVi ? 'Hôm nay' : 'Today') : (isVi ? 'Tháng này' : 'This Month')}: <strong className="text-emerald-400">{currentPeriodVisits}</strong>)
+                </span>
+              </div>
             </div>
           </div>
           <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 flex items-center gap-2.5">
@@ -1382,7 +1418,12 @@ function StatsTab({ authH }: any) {
             </div>
             <div>
               <p className="text-[10px] text-zinc-500">{isVi ? 'Số khách duy nhất (IP)' : 'Unique Visitors (IP)'}</p>
-              <p className="text-sm font-bold text-white">{totalUniqueVisitors}</p>
+              <div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
+                <span className="text-sm font-bold text-white">{totalUniqueVisitors}</span>
+                <span className="text-[9px] text-zinc-500">
+                  ({visitsView === 'day' ? (isVi ? 'Hôm nay' : 'Today') : (isVi ? 'Tháng này' : 'This Month')}: <strong className="text-teal-400">{currentPeriodUnique}</strong>)
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1409,9 +1450,21 @@ function StatsTab({ authH }: any) {
                   const uniqPct = Math.max(6, Math.round((uniqCount / maxVisitsVal) * 100));
                   const totalPct = Math.max(6, Math.round((totalCount / maxVisitsVal) * 100));
                   const label = formatDateLabel(String(v.label || ''), visitsView === 'day' ? 'day' : 'month');
+                  const isSelected = selectedVisitsPeriod === v.label;
 
                   return (
-                    <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default relative">
+                    <div
+                      key={i}
+                      onClick={() => fetchVisitsPeriodDetails(v.label)}
+                      className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-pointer relative"
+                    >
+                      {/* Count label above the bar */}
+                      <span className={`text-[8px] font-bold transition-all duration-300 ${
+                        isSelected ? 'text-emerald-400 scale-110' : 'text-zinc-400 opacity-0 group-hover:opacity-100'
+                      }`}>
+                        {totalCount}
+                      </span>
+
                       {/* Hover tooltip text */}
                       <div className="absolute bottom-full mb-1 bg-zinc-950/95 border border-white/10 rounded-lg p-2 text-[9px] shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap space-y-0.5">
                         <p className="font-bold text-white">{label}</p>
@@ -1422,17 +1475,27 @@ function StatsTab({ authH }: any) {
                       <div className="w-full flex-1 flex items-end justify-center gap-1.5 h-full">
                         {/* Unique Visitors Bar (Teal) */}
                         <div
-                          className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-teal-600 to-emerald-400 group-hover:from-teal-500 group-hover:to-green-300 transition-all shadow-[0_0_8px_rgba(20,184,166,0.15)]"
+                          className={`w-1.5 md:w-2 rounded-t-sm transition-all duration-300 bg-gradient-to-t ${
+                            isSelected
+                              ? 'from-teal-400 to-emerald-300 shadow-[0_0_12px_rgba(20,184,166,0.5)] border border-teal-300/20'
+                              : 'from-teal-600 to-emerald-400 group-hover:from-teal-500 group-hover:to-green-300 shadow-[0_0_8px_rgba(20,184,166,0.15)]'
+                          }`}
                           style={{ height: `${uniqPct}%` }}
                         />
                         {/* Total Visits Bar (Indigo) */}
                         <div
-                          className="w-1.5 md:w-2 rounded-t-sm bg-gradient-to-t from-indigo-600 to-blue-400 group-hover:from-indigo-500 group-hover:to-cyan-400 transition-all shadow-[0_0_8px_rgba(99,102,241,0.15)]"
+                          className={`w-1.5 md:w-2 rounded-t-sm transition-all duration-300 bg-gradient-to-t ${
+                            isSelected
+                              ? 'from-indigo-400 to-blue-300 shadow-[0_0_12px_rgba(99,102,241,0.5)] border border-indigo-300/20'
+                              : 'from-indigo-600 to-blue-400 group-hover:from-indigo-500 group-hover:to-cyan-400 shadow-[0_0_8px_rgba(99,102,241,0.15)]'
+                          }`}
                           style={{ height: `${totalPct}%` }}
                         />
                       </div>
 
-                      <span className="text-[9px] text-zinc-500 group-hover:text-zinc-300 truncate w-full text-center mt-1">
+                      <span className={`text-[9px] truncate w-full text-center mt-1 transition-colors ${
+                        isSelected ? 'text-emerald-400 font-bold' : 'text-zinc-500 group-hover:text-zinc-300'
+                      }`}>
                         {label.length > 7 ? label.slice(0, 5) : label}
                       </span>
                     </div>
@@ -1459,6 +1522,134 @@ function StatsTab({ authH }: any) {
           </div>
         )}
       </div>
+
+      {/* Visits Drill-down Details Card */}
+      {selectedVisitsPeriod && (
+        <div className="bg-zinc-900/60 border border-emerald-500/20 rounded-xl p-5 shadow-xl relative overflow-hidden backdrop-blur-md transition-all duration-300 animate-fadeIn">
+          <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400 animate-pulse" />
+              <h4 className="text-sm font-bold text-white">
+                {isVi ? 'Chi tiết lượt truy cập: ' : 'Traffic Details: '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+                  {formatDateLabel(selectedVisitsPeriod, visitsView)}
+                </span>
+              </h4>
+            </div>
+            <button
+              onClick={() => { setSelectedVisitsPeriod(null); setVisitsDetails(null); }}
+              className="text-zinc-500 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5 transition-all"
+            >
+              ✕ {isVi ? 'Đóng' : 'Close'}
+            </button>
+          </div>
+
+          {visitsDetailsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : visitsDetails ? (
+            <div className="space-y-6">
+              {/* Top details cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Total Visits */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold">
+                    👁
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500">{isVi ? 'Tổng lượt xem' : 'Total Visits'}</p>
+                    <p className="text-lg font-bold text-white">
+                      {visitsDetails.distributionStats ? visitsDetails.distributionStats.reduce((acc: number, curr: any) => acc + Number(curr.total_visits), 0) : 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Unique Visitors */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400 font-bold">
+                    👥
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500">{isVi ? 'Khách duy nhất (IP)' : 'Unique Visitors'}</p>
+                    <p className="text-lg font-bold text-white">
+                      {visitsDetails.distributionStats ? visitsDetails.distributionStats.reduce((acc: number, curr: any) => acc + Number(curr.unique_visitors), 0) : 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Date range descriptor */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold">
+                    📅
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500">{isVi ? 'Thời gian' : 'Period'}</p>
+                    <p className="text-sm font-bold text-white capitalize">
+                      {visitsView === 'day' ? (isVi ? 'Ngày đơn lẻ' : 'Single Day') : (isVi ? 'Toàn bộ tháng' : 'Entire Month')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hourly distribution chart */}
+              <div className="bg-white/[0.01] border border-white/5 rounded-xl p-4">
+                <h5 className="text-xs font-bold text-zinc-300 mb-3 flex items-center gap-1.5">
+                  📊 {isVi ? 'Biểu đồ phân bổ lượt truy cập trong ngày' : 'Traffic Distribution during the day'}
+                </h5>
+                {visitsDetails.distributionStats && visitsDetails.distributionStats.length > 0 ? (
+                  <div>
+                    {/* Hourly bar chart container */}
+                    <div className="h-32 flex items-end gap-1.5 pt-4 px-2">
+                      {(() => {
+                        const distMax = Math.max(1, ...visitsDetails.distributionStats.map((item: any) => Math.max(Number(item.unique_visitors), Number(item.total_visits))));
+                        return visitsDetails.distributionStats.map((item: any, idx: number) => {
+                          const uniqCount = Number(item.unique_visitors);
+                          const totalCount = Number(item.total_visits);
+                          const uniqPct = Math.max(6, Math.round((uniqCount / distMax) * 100));
+                          const totalPct = Math.max(6, Math.round((totalCount / distMax) * 100));
+                          let label = String(item.period);
+                          
+                          if (visitsDetails.distributionLabel === 'hour') label = label + 'h';
+                          else if (visitsDetails.distributionLabel === 'day') label = label.slice(8, 10) + '/' + label.slice(5, 7);
+                          
+                          return (
+                            <div key={idx} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-default relative">
+                              {/* Small count labels on top */}
+                              <span className="text-[7px] text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap absolute bottom-full mb-1 bg-zinc-950 px-1 rounded z-10 border border-white/5">
+                                U:{uniqCount} T:{totalCount}
+                              </span>
+                              <div className="w-full flex-1 flex items-end justify-center gap-0.5">
+                                <div
+                                  className="w-1 md:w-1.5 rounded-t-sm bg-gradient-to-t from-teal-600 to-emerald-400 group-hover:from-teal-500 group-hover:to-green-300 transition-all"
+                                  style={{ height: `${uniqPct}%` }}
+                                  title={`${label} - Khách duy nhất: ${uniqCount}`}
+                                />
+                                <div
+                                  className="w-1 md:w-1.5 rounded-t-sm bg-gradient-to-t from-indigo-600 to-blue-400 group-hover:from-indigo-500 group-hover:to-cyan-400 transition-all"
+                                  style={{ height: `${totalPct}%` }}
+                                  title={`${label} - Tổng lượt xem: ${totalCount}`}
+                                />
+                              </div>
+                              <span className="text-[8px] text-zinc-500 truncate w-full text-center">
+                                {label}
+                              </span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-zinc-600 text-xs py-8 text-center">{isVi ? 'Không có dữ liệu phân bổ.' : 'No distribution data.'}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-center py-6 text-zinc-500 text-xs">{isVi ? 'Không thể tải chi tiết.' : 'Could not fetch details.'}</p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Top tracks */}

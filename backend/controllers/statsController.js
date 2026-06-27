@@ -246,10 +246,51 @@ const logVisit = async (req, res) => {
 
 const getVisitsStats = async (req, res) => {
   try {
-    const { view = 'day', startDate, endDate } = req.query;
+    const { view = 'day', date, startDate, endDate } = req.query;
     const visitedAtVn = dbType === 'mysql'
       ? "DATE_ADD(visited_at, INTERVAL 7 HOUR)"
       : "datetime(visited_at, '+7 hours')";
+
+    if (date) {
+      const cleanDate = date.includes('T') ? date.split('T')[0] : (date.includes(' ') ? date.split(' ')[0] : date);
+
+      let whereClause = `DATE(${visitedAtVn}) = DATE(?)`;
+      let hourlySelect = dbType === 'mysql'
+        ? `DATE_FORMAT(${visitedAtVn}, '%H')`
+        : `strftime('%H', ${visitedAtVn})`;
+      let hourlyLabel = "hour";
+
+      if (cleanDate.length === 7) {
+        // Year-Month (e.g. 2026-06)
+        whereClause = dbType === 'mysql' 
+          ? `DATE_FORMAT(${visitedAtVn}, '%Y-%m') = ?` 
+          : `strftime('%Y-%m', ${visitedAtVn}) = ?`;
+        hourlySelect = dbType === 'mysql'
+          ? `DATE_FORMAT(${visitedAtVn}, '%Y-%m-%d')`
+          : `strftime('%Y-%m-%d', ${visitedAtVn})`;
+        hourlyLabel = "day";
+      }
+
+      // Detailed hourly stats for visits
+      const rows = await query(`
+        SELECT ${hourlySelect} as period, COUNT(DISTINCT ip) as unique_visitors, COUNT(*) as total_visits
+        FROM visits
+        WHERE ${whereClause}
+        GROUP BY period
+        ORDER BY period ASC
+      `, [cleanDate]);
+
+      return res.json({
+        success: true,
+        data: {
+          mode: 'specific_date',
+          date: cleanDate,
+          distributionStats: rows,
+          distributionLabel: hourlyLabel
+        }
+      });
+    }
+
     let selectExpr = dbType === 'mysql' ? `DATE(${visitedAtVn})` : `date(${visitedAtVn})`;
     let dateFilter = "";
     const params = [];
