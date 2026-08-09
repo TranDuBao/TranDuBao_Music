@@ -58,7 +58,11 @@ if (dbType === 'mysql') {
 } else {
   // SQLite implementation
   const sqlite3 = require('sqlite3').verbose();
-  const dbPath = path.resolve(__dirname, '../../database/db.sqlite');
+  const dbPath = process.env.DB_PATH || (
+    fs.existsSync('/app/database') 
+      ? '/app/database/db.sqlite' 
+      : path.resolve(__dirname, '../../database/db.sqlite')
+  );
   
   // Ensure the database folder exists
   const dbDir = path.dirname(dbPath);

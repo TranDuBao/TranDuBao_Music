@@ -109,7 +109,11 @@ const initDb = async () => {
       // Create all tables using the pool (which already has SSL configured)
       const fs = require('fs');
       const path = require('path');
-      const sqlFile = path.resolve(__dirname, '../../database/music_db.sql');
+      const sqlFile = process.env.SQL_INIT_PATH || (
+        fs.existsSync('/app/database/music_db.sql')
+          ? '/app/database/music_db.sql'
+          : path.resolve(__dirname, '../../database/music_db.sql')
+      );
       const sqlContent = fs.readFileSync(sqlFile, 'utf8');
 
       // Split by semicolon, filter empty queries

@@ -2,8 +2,13 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const audioDir  = path.resolve(__dirname, '../../uploads/audio');
-const imgDir    = path.resolve(__dirname, '../../uploads/img');
+const baseUploadDir = process.env.UPLOADS_DIR || (
+  fs.existsSync('/app/uploads')
+    ? '/app/uploads'
+    : path.resolve(__dirname, '../../uploads')
+);
+const audioDir  = path.join(baseUploadDir, 'audio');
+const imgDir    = path.join(baseUploadDir, 'img');
 [audioDir, imgDir].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 
 const AUDIO_TYPES = ['audio/mpeg','audio/wav','audio/ogg','audio/flac','audio/mp4','audio/x-m4a','audio/aac'];

@@ -14,9 +14,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── Ensure upload directories exist ──────────────────────────────
-['../uploads/audio', '../uploads/img'].forEach(d => {
-  const p = path.join(__dirname, d);
-  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+const uploadBase = process.env.UPLOADS_DIR || (
+  fs.existsSync('/app/uploads')
+    ? '/app/uploads'
+    : path.resolve(__dirname, '../uploads')
+);
+[path.join(uploadBase, 'audio'), path.join(uploadBase, 'img')].forEach(d => {
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
 // ── Middleware ────────────────────────────────────────────────────
@@ -59,7 +63,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // ── Static Files ──────────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(uploadBase));
 
 // ── Database Init ─────────────────────────────────────────────────
 initDb().catch(err => console.error('Database init failed:', err));
