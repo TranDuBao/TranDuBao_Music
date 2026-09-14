@@ -42,7 +42,7 @@ interface MusicStore {
   searchQuery: string;
   audio: HTMLAudioElement | null;
   favorites: number[];
-  lastFetchParams: { search: string; mine: boolean; categoryId: number | null } | null;
+  lastFetchParams: { search: string; mine: boolean; categoryId: number | null; statusFilter?: string | null } | null;
 
   // Custom players
   ytPlayer: any | null;
@@ -50,7 +50,7 @@ interface MusicStore {
   initYoutubePlayer: (callback?: () => void) => void;
 
   // API Fetch actions
-  fetchTracks: (search?: string, mine?: boolean, categoryId?: number | null) => Promise<void>;
+  fetchTracks: (search?: string, mine?: boolean, categoryId?: number | null, statusFilter?: string | null) => Promise<void>;
   fetchPlaylists: () => Promise<void>;
   fetchPlaylistTracks: (playlistId: number) => Promise<void>;
   fetchFavorites: () => Promise<void>;

@@ -158,12 +158,7 @@ export function StatsTab({ authH }: { authH: Record<string, string> }) {
     fetchHistoryStats(view);
   };
 
-  const handleVisitsViewChange = (view: 'day' | 'month') => {
-    setVisitsView(view);
-    fetchVisitsStats(view);
-    setSelectedPeriod(null);
-    setVisitsDetails(null);
-  };
+
 
   const fetchCategoryTracks = async (cat: any) => {
     setSelectedCategory(cat);

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { Clock } from 'lucide-react';
+import { Clock, Music } from 'lucide-react';
 import { getAbsoluteUrl } from '../config';
 import { getCategoryIcon } from '../utils/format';
 
@@ -26,7 +26,7 @@ interface TrackHoverPreviewProps {
 export const TrackHoverPreview: React.FC<TrackHoverPreviewProps> = ({ track, children }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; placeAbove: boolean }>({ top: 0, left: 0, placeAbove: true });
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const formatDuration = (secs?: number) => {
     if (!secs) return '3:00';
