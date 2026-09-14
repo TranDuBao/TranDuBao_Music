@@ -16,7 +16,8 @@ class User {
   }
 
   static async findByEmail(email) {
-    const rows = await query('SELECT * FROM users WHERE email = ?', [email]);
+    if (!email) return null;
+    const rows = await query('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
     return rows[0] || null;
   }
 

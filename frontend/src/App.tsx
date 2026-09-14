@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 import { useMusicStore } from './store/useMusicStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
@@ -36,12 +37,13 @@ function OAuthCallback() {
   );
 }
 
-// ── Protected App Shell ────────────────────────────────────────────
+import { socket } from './socket';
+
 // ── Protected App Shell ────────────────────────────────────────────
 function AppShell() {
-  const { fetchTracks, fetchPlaylists, fetchFavorites, initAudio, currentTrack, isPlaying } = useMusicStore();
+  const { fetchTracks, fetchPlaylists, fetchFavorites, initAudio, currentTrack, isPlaying, handleTrackRemoved, handleTrackStatusChanged } = useMusicStore();
   const { user } = useAuthStore();
-  const [view, setView] = useState<'all' | 'mine' | 'admin' | 'profile'>('all');
+  const [view, setView] = useState<'all' | 'mine' | 'pending' | 'admin' | 'profile'>('all');
   const [showUpload, setShowUpload] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -50,6 +52,27 @@ function AppShell() {
     fetchPlaylists();
     fetchFavorites();
     initAudio();
+
+    // ── Socket.IO Real-time event listeners ──────────────────────
+    const onTrackDeleted = (data: { id: number; title?: string }) => {
+      if (data && data.id) {
+        handleTrackRemoved(data.id, data.title);
+      }
+    };
+
+    const onTrackStatusChanged = (data: { id: number; status: string; track?: any }) => {
+      if (data && data.id) {
+        handleTrackStatusChanged(data.id, data.status, data.track);
+      }
+    };
+
+    socket.on('track_deleted', onTrackDeleted);
+    socket.on('track_status_changed', onTrackStatusChanged);
+
+    return () => {
+      socket.off('track_deleted', onTrackDeleted);
+      socket.off('track_status_changed', onTrackStatusChanged);
+    };
   }, []);
 
   useEffect(() => {
@@ -112,7 +135,7 @@ function AppInitializer() {
     initTheme();
     initAuth().finally(() => {
       setReady(true);
-      fetch(`${API_BASE}/visits/log`, { method: 'POST' }).catch(() => {});
+      axios.post(`${API_BASE}/visits/log`).catch(() => {});
     });
   }, []);
 

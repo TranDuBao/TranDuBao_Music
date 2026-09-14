@@ -118,7 +118,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       if (res.data.success) {
-        showAlert('Đã thêm!', `"${track.title}" đã được thêm vào thư viện.`, 'success');
+        const isAdmin = useAuthStore.getState().user?.role === 'admin';
+        if (isAdmin) {
+          showAlert('Đã thêm!', `"${track.title}" đã được thêm vào thư viện.`, 'success');
+        } else {
+          showAlert('Đã gửi bài hát!', `"${track.title}" đã được gửi và đang chờ Admin duyệt trước khi hiển thị công khai.`, 'info');
+        }
         await fetchTracks();
       } else {
         showAlert('Thất bại', res.data.message || 'Không thể thêm bài hát.', 'error');
@@ -131,18 +136,43 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   };
 
   // ── File / URL upload ─────────────────────────────────────────────
+  const processSelectedAudioFile = (file: File) => {
+    setAudioFile(file);
+    const titleFromFileName = file.name.replace(/\.[^/.]+$/, '');
+    setForm(p => ({
+      ...p,
+      title: p.title ? p.title : titleFromFileName
+    }));
+
+    // Extract exact duration in seconds from audio file metadata
+    try {
+      const blobUrl = URL.createObjectURL(file);
+      const tempAudio = new Audio(blobUrl);
+      tempAudio.onloadedmetadata = () => {
+        if (tempAudio.duration && isFinite(tempAudio.duration)) {
+          const totalSec = Math.round(tempAudio.duration);
+          setForm(p => ({ ...p, duration: String(totalSec) }));
+        }
+        URL.revokeObjectURL(blobUrl);
+      };
+      tempAudio.onerror = () => {
+        URL.revokeObjectURL(blobUrl);
+      };
+    } catch (_) {}
+  };
+
   const handleAudioDrop = (e: React.DragEvent) => {
     e.preventDefault(); setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('audio/')) {
-      setAudioFile(file);
-      if (!form.title) setForm(f => ({ ...f, title: file.name.replace(/\.[^/.]+$/, '') }));
+      processSelectedAudioFile(file);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setStatus('idle'); setErrorMessage('');
+    const isAdmin = useAuthStore.getState().user?.role === 'admin';
     try {
       if (uploadMode === 'file') {
         if (!audioFile) return;
@@ -156,7 +186,11 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         });
         if (res.data.success) {
           setStatus('success');
-          showAlert('Thành công', 'Upload bài hát thành công', 'success');
+          if (isAdmin) {
+            showAlert('Thành công', 'Upload bài hát thành công', 'success');
+          } else {
+            showAlert('Đã gửi bài hát!', 'Bài hát đã được tải lên và đang chờ Admin duyệt trước khi hiển thị công khai.', 'info');
+          }
           await fetchTracks();
           setTimeout(() => { onClose(); setStatus('idle'); setAudioFile(null); setCoverFile(null); }, 1500);
         } else {
@@ -170,7 +204,11 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         }, { headers: { Authorization: `Bearer ${token}` } });
         if (res.data.success) {
           setStatus('success');
-          showAlert('Thành công', 'Thêm bài hát thành công!', 'success');
+          if (isAdmin) {
+            showAlert('Thành công', 'Thêm bài hát thành công!', 'success');
+          } else {
+            showAlert('Đã gửi bài hát!', 'Bài hát đã được gửi và đang chờ Admin duyệt trước khi hiển thị công khai.', 'info');
+          }
           await fetchTracks();
           setTimeout(() => { onClose(); setStatus('idle'); setImportUrl(''); }, 1500);
         } else {
@@ -387,7 +425,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   : audioFile ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}`}
               >
                 <input ref={audioRef} type="file" accept="audio/*" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setAudioFile(f); if (!form.title) setForm(p => ({ ...p, title: f.name.replace(/\.[^/.]+$/, '') })); } }} />
+                  onChange={e => { const f = e.target.files?.[0]; if (f) processSelectedAudioFile(f); }} />
                 {audioFile ? (
                   <div className="flex items-center justify-center gap-3">
                     <CheckCircle2 className="w-6 h-6 text-green-400" />

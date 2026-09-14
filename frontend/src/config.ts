@@ -4,7 +4,7 @@ const rawUrl = (import.meta.env.VITE_API_URL || '').trim();
 // Automatically clean up trailing slashes and '/api' suffix to prevent path duplication
 export const BACKEND_URL = rawUrl 
   ? rawUrl.replace(/\/+$/, '').replace(/\/api$/, '') 
-  : (isDev ? 'http://localhost:5000' : (typeof window !== 'undefined' ? window.location.origin : ''));
+  : (isDev ? 'http://localhost:1005' : (typeof window !== 'undefined' ? window.location.origin : ''));
 
 export const API_BASE = `${BACKEND_URL}/api`;
 

@@ -21,6 +21,7 @@ uploads/
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -32,8 +33,17 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files - NEVER commit real .env!
+.env
+.env.*
+!.env.example
+
+# SQLite database (contains real user data!)
+*.sqlite
+*.sqlite3
+*.db
+database/*.sqlite
+database/*.sqlite3
 
 # vercel
 .vercel
@@ -41,3 +51,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# OS files
+Thumbs.db

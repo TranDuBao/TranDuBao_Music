@@ -63,6 +63,25 @@ const initDb = async () => {
 
         // Ensure position column exists for banner_slides in MySQL
         try { await query("ALTER TABLE banner_slides ADD COLUMN position INT DEFAULT 0"); } catch (_) {}
+        try { await query("ALTER TABLE tracks ADD COLUMN status VARCHAR(20) DEFAULT 'approved'"); } catch (_) {}
+
+        // ── Migration: Ensure 'notifications' table exists for MySQL ──
+        try {
+          await query(`CREATE TABLE IF NOT EXISTS notifications (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            user_id     INT NOT NULL,
+            title       VARCHAR(255) NOT NULL,
+            message     TEXT NOT NULL,
+            type        VARCHAR(20) DEFAULT 'info',
+            track_id    INT DEFAULT NULL,
+            is_read     TINYINT(1) DEFAULT 0,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+          await query("DELETE FROM notifications WHERE created_at < NOW() - INTERVAL 14 DAY");
+        } catch (migErr) {
+          console.error('Failed to migrate notifications table for MySQL:', migErr.message);
+        }
 
         // ── Migration: Ensure 'visits' table exists for MySQL ──
         try {
@@ -87,13 +106,16 @@ const initDb = async () => {
           if (phpUsers && phpUsers.length > 0) {
             for (const u of phpUsers) {
               let plain = '';
-              if (u.email === 'admin@musicstream.com') plain = 'admin123';
-              else if (u.email === 'user@musicstream.com') plain = 'user123';
-              
+              // Only match if env vars are explicitly set - no hardcoded fallback!
+              if (process.env.ADMIN_EMAIL && u.email === process.env.ADMIN_EMAIL)
+                plain = process.env.ADMIN_PASSWORD || '';
+              if (process.env.DEMO_EMAIL && u.email === process.env.DEMO_EMAIL)
+                plain = process.env.DEMO_PASSWORD  || '';
+
               if (plain) {
                 const validHash = await bcrypt.hash(plain, 10);
                 await query("UPDATE users SET password_hash = ? WHERE id = ?", [validHash, u.id]);
-                console.log(`Auto-fixed PHP password hash for ${u.email} to standard Node.js bcrypt hash.`);
+                console.log(`Auto-fixed PHP password hash for user ID=${u.id}.`);
               }
             }
           }
@@ -148,6 +170,7 @@ const initDb = async () => {
     )`);
 
     // ── Categories ───────────────────────────────────────────────
+
     await query(`CREATE TABLE IF NOT EXISTS categories (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       name        TEXT    NOT NULL UNIQUE,
@@ -169,6 +192,7 @@ const initDb = async () => {
       genre       TEXT    DEFAULT 'Other',
       is_public   INTEGER DEFAULT 1,
       play_count  INTEGER DEFAULT 0,
+      status      TEXT    DEFAULT 'approved',
       user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
       category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
       album_id    INTEGER REFERENCES albums(id) ON DELETE SET NULL,
@@ -179,6 +203,7 @@ const initDb = async () => {
     try { await query("ALTER TABLE tracks ADD COLUMN play_count INTEGER DEFAULT 0"); } catch (_) { }
     try { await query("ALTER TABLE tracks ADD COLUMN category_id INTEGER"); } catch (_) { }
     try { await query("ALTER TABLE tracks ADD COLUMN album_id INTEGER"); } catch (_) { }
+    try { await query("ALTER TABLE tracks ADD COLUMN status TEXT DEFAULT 'approved'"); } catch (_) { }
     try { await query("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (_) { }
     try { await query("ALTER TABLE users ADD COLUMN banned_until DATETIME DEFAULT NULL"); } catch (_) { }
     try { await query("ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT NULL"); } catch (_) { }
@@ -283,42 +308,75 @@ const initDb = async () => {
     // ── Visits ────────────────────────────────────────────────────
     await query(`CREATE TABLE IF NOT EXISTS visits (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     INTEGER,
       ip          TEXT,
       user_agent  TEXT,
       visited_at  DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+    try { await query("ALTER TABLE visits ADD COLUMN user_id INTEGER"); } catch (_) {}
 
-    // Ensure visits table exists in existing SQLite tables (migration)
+    // ── Notifications ──────────────────────────────────────────────
+    await query(`CREATE TABLE IF NOT EXISTS notifications (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title       TEXT    NOT NULL,
+      message     TEXT    NOT NULL,
+      type        TEXT    DEFAULT 'info',
+      track_id    INTEGER DEFAULT NULL,
+      is_read     INTEGER DEFAULT 0,
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     try {
-      await query(`CREATE TABLE IF NOT EXISTS visits (
+      await query(`CREATE TABLE IF NOT EXISTS notifications (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        ip          TEXT,
-        user_agent  TEXT,
-        visited_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title       TEXT    NOT NULL,
+        message     TEXT    NOT NULL,
+        type        TEXT    DEFAULT 'info',
+        track_id    INTEGER DEFAULT NULL,
+        is_read     INTEGER DEFAULT 0,
+        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
+      await query("DELETE FROM notifications WHERE created_at < datetime('now', '-14 days')");
     } catch (_) { }
 
-    // ── Seed Admin ───────────────────────────────────────────────
-    const adminCount = await query("SELECT COUNT(*) as c FROM users WHERE role='admin'");
-    if (adminCount[0].c === 0) {
-      const existingUser = await query("SELECT id FROM users WHERE email='admin@musicstream.com'");
-      if (existingUser && existingUser.length > 0) {
-        await query("UPDATE users SET role='admin' WHERE email='admin@musicstream.com'");
-        console.log('Admin role restored for admin@musicstream.com');
+    // ── Seed / Sync Default Admin & User via env vars ──────────────────────
+    // All account info MUST come from environment variables - nothing hardcoded!
+    // Set ADMIN_EMAIL, ADMIN_PASSWORD, DEMO_EMAIL, DEMO_PASSWORD in .env or server env
+    const adminEmail    = process.env.ADMIN_EMAIL    || '';
+    const demoEmail     = process.env.DEMO_EMAIL     || '';
+    const adminPassword = process.env.ADMIN_PASSWORD || '';
+    const demoPassword  = process.env.DEMO_PASSWORD  || '';
+
+    if (!adminEmail || !adminPassword) {
+      console.warn('[DB Init] ADMIN_EMAIL or ADMIN_PASSWORD not set — skipping admin seed.');
+    } else {
+      const adminHash = await bcrypt.hash(adminPassword, 10);
+      const existingAdmin = await query('SELECT id FROM users WHERE LOWER(email)=LOWER(?)', [adminEmail]);
+      if (!existingAdmin || existingAdmin.length === 0) {
+        await query("INSERT INTO users (name,email,password_hash,role,bio,provider) VALUES (?,?,?,'admin','Quản trị viên hệ thống MusicStream','local')",
+          ['Admin', adminEmail, adminHash]);
+        console.log('[DB Init] Admin account created.');
       } else {
-        const h = await bcrypt.hash('admin123', 10);
-        await query("INSERT INTO users (name,email,password_hash,role,bio) VALUES (?,?,?,'admin','Quản trị viên hệ thống MusicStream')",
-          ['Admin', 'admin@musicstream.com', h]);
-        console.log('Admin seeded: admin@musicstream.com / admin123');
+        await query("UPDATE users SET role='admin', password_hash=?, provider='local' WHERE LOWER(email)=LOWER(?)", [adminHash, adminEmail]);
+        console.log('[DB Init] Admin account verified.');
       }
     }
 
-    const userCount = await query("SELECT COUNT(*) as c FROM users WHERE email='user@musicstream.com'");
-    if (userCount[0].c === 0) {
-      const h = await bcrypt.hash('user123', 10);
-      await query("INSERT INTO users (name,email,password_hash,role,bio) VALUES (?,?,?,'user','Người yêu nhạc')",
-        ['Demo User', 'user@musicstream.com', h]);
-      console.log('Demo user seeded: user@musicstream.com / user123');
+    if (!demoEmail || !demoPassword) {
+      console.warn('[DB Init] DEMO_EMAIL or DEMO_PASSWORD not set — skipping demo user seed.');
+    } else {
+      const userHash = await bcrypt.hash(demoPassword, 10);
+      const existingUser = await query('SELECT id FROM users WHERE LOWER(email)=LOWER(?)', [demoEmail]);
+      if (!existingUser || existingUser.length === 0) {
+        await query("INSERT INTO users (name,email,password_hash,role,bio,provider) VALUES (?,?,?,'user','Người yêu nhạc','local')",
+          ['Demo User', demoEmail, userHash]);
+        console.log('[DB Init] Demo user created.');
+      } else {
+        await query("UPDATE users SET password_hash=?, provider='local' WHERE LOWER(email)=LOWER(?)", [userHash, demoEmail]);
+        console.log('[DB Init] Demo user synced.');
+      }
     }
 
     // ── Seed Categories ──────────────────────────────────────────
@@ -337,8 +395,15 @@ const initDb = async () => {
       for (const [name, desc, color, icon] of cats)
         await query("INSERT INTO categories (name,description,color,icon) VALUES (?,?,?,?)",
           [name, desc, color, icon]);
-      console.log('Categories seeded.');
     }
+
+    // ── Seed / Fix Category Icons ─────────────────────────────────────
+    try {
+      await query("UPDATE categories SET icon = '🇨🇳' WHERE (LOWER(name) LIKE '%china%' OR LOWER(name) LIKE '%c-pop%') AND (icon = '#' OR icon IS NULL OR icon = '' OR icon = '🎵')");
+      await query("UPDATE categories SET icon = '🇻🇳' WHERE (LOWER(name) LIKE '%v-pop%' OR LOWER(name) LIKE '%viet%') AND (icon = '#' OR icon IS NULL OR icon = '' OR icon = '🎵')");
+      await query("UPDATE categories SET icon = '🇰🇷' WHERE (LOWER(name) LIKE '%k-pop%' OR LOWER(name) LIKE '%korea%') AND (icon = '#' OR icon IS NULL OR icon = '' OR icon = '🎵')");
+      await query("UPDATE categories SET icon = '🇺🇸' WHERE (LOWER(name) LIKE '%us-uk%' OR LOWER(name) LIKE '%usuk%') AND (icon = '#' OR icon IS NULL OR icon = '' OR icon = '🎵')");
+    } catch (_) {}
 
     // ── Seed Featured Artists ────────────────────────────────────
     const artistCount = await query("SELECT COUNT(*) as c FROM featured_artists");

@@ -6,13 +6,15 @@ const Favorite = require('../models/Favorite');
 const getStats = async (req, res) => {
   try {
     const [userStats]  = await query("SELECT COUNT(*) as total FROM users");
-    const [trackStats] = await query("SELECT COUNT(*) as total, COALESCE(SUM(play_count),0) as plays FROM tracks");
+    const [trackStats] = await query("SELECT COUNT(*) as total, COALESCE(SUM(play_count),0) as plays FROM tracks WHERE (status = 'approved' OR status IS NULL)");
     const [favStats]   = await query("SELECT COUNT(*) as total FROM favorites");
     const [ratingStats]= await query("SELECT COUNT(*) as total, AVG(rating) as avg FROM ratings");
 
     const topTracks = await query(`
       SELECT id, title, artist, cover_url, play_count, genre
-      FROM tracks ORDER BY play_count DESC LIMIT 10`);
+      FROM tracks 
+      WHERE (status = 'approved' OR status IS NULL)
+      ORDER BY play_count DESC LIMIT 10`);
 
     const topRated = await Rating.getTopRated();
     const dailyPlays = await PlayHistory.getDailyStats(7);
@@ -28,7 +30,7 @@ const getStats = async (req, res) => {
         COUNT(t.id) as count,
         COALESCE(SUM(t.play_count), 0) as plays
       FROM categories c
-      LEFT JOIN tracks t ON t.category_id = c.id
+      LEFT JOIN tracks t ON t.category_id = c.id AND (t.status = 'approved' OR t.status IS NULL)
       GROUP BY c.id, c.name, c.color
       ORDER BY plays DESC`);
 
@@ -38,7 +40,7 @@ const getStats = async (req, res) => {
         COUNT(*) as count,
         COALESCE(SUM(play_count), 0) as plays
       FROM tracks
-      WHERE category_id IS NULL`);
+      WHERE category_id IS NULL AND (status = 'approved' OR status IS NULL)`);
 
     const genreStats = [...withCat];
     if (noCat && Number(noCat.count) > 0) {
@@ -213,14 +215,14 @@ const getCategoryTracksStats = async (req, res) => {
       sql = `
         SELECT id, title, artist, cover_url, play_count as plays
         FROM tracks
-        WHERE category_id IS NULL
+        WHERE category_id IS NULL AND (status = 'approved' OR status IS NULL)
         ORDER BY play_count DESC
       `;
     } else {
       sql = `
         SELECT id, title, artist, cover_url, play_count as plays
         FROM tracks
-        WHERE category_id = ?
+        WHERE category_id = ? AND (status = 'approved' OR status IS NULL)
         ORDER BY play_count DESC
       `;
       params = [categoryId];
@@ -236,7 +238,24 @@ const logVisit = async (req, res) => {
   try {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
     const userAgent = req.headers['user-agent'] || null;
-    await query("INSERT INTO visits (ip, user_agent) VALUES (?, ?)", [ip, userAgent]);
+    const userId = req.user?.id || null;
+
+    // Throttle: don't log duplicate visit within 2 minutes for same user or IP
+    const timeCheckExpr = dbType === 'mysql'
+      ? "visited_at > DATE_SUB(NOW(), INTERVAL 2 MINUTE)"
+      : "visited_at > datetime('now', '-2 minutes')";
+
+    let existing;
+    if (userId) {
+      [existing] = await query(`SELECT id FROM visits WHERE user_id = ? AND ${timeCheckExpr} LIMIT 1`, [userId]);
+    } else {
+      [existing] = await query(`SELECT id FROM visits WHERE user_id IS NULL AND ip = ? AND ${timeCheckExpr} LIMIT 1`, [ip]);
+    }
+
+    if (!existing) {
+      await query("INSERT INTO visits (user_id, ip, user_agent) VALUES (?, ?, ?)", [userId, ip, userAgent]);
+    }
+
     res.json({ success: true, message: 'Visit logged successfully' });
   } catch (error) {
     console.error('[logVisit] ERROR:', error.message);
@@ -246,73 +265,75 @@ const logVisit = async (req, res) => {
 
 const getVisitsStats = async (req, res) => {
   try {
-    const { view = 'day', date, startDate, endDate } = req.query;
     const visitedAtVn = dbType === 'mysql'
-      ? "DATE_ADD(visited_at, INTERVAL 7 HOUR)"
-      : "datetime(visited_at, '+7 hours')";
+      ? "DATE_ADD(v.visited_at, INTERVAL 7 HOUR)"
+      : "datetime(v.visited_at, '+7 hours')";
 
-    if (date) {
-      const cleanDate = date.includes('T') ? date.split('T')[0] : (date.includes(' ') ? date.split(' ')[0] : date);
+    const todayExpr = dbType === 'mysql'
+      ? "DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR))"
+      : "DATE(datetime('now', '+7 hours'))";
 
-      let whereClause = `DATE(${visitedAtVn}) = DATE(?)`;
-      let hourlySelect = dbType === 'mysql'
-        ? `DATE_FORMAT(${visitedAtVn}, '%H')`
-        : `strftime('%H', ${visitedAtVn})`;
-      let hourlyLabel = "hour";
+    // 1. Total visits today & unique logged-in users today
+    const [todayStats] = await query(`
+      SELECT 
+        COUNT(*) as total_visits,
+        COUNT(DISTINCT v.user_id) as logged_users
+      FROM visits v
+      WHERE DATE(${visitedAtVn}) = ${todayExpr}
+    `);
 
-      if (cleanDate.length === 7) {
-        // Year-Month (e.g. 2026-06)
-        whereClause = dbType === 'mysql' 
-          ? `DATE_FORMAT(${visitedAtVn}, '%Y-%m') = ?` 
-          : `strftime('%Y-%m', ${visitedAtVn}) = ?`;
-        hourlySelect = dbType === 'mysql'
-          ? `DATE_FORMAT(${visitedAtVn}, '%Y-%m-%d')`
-          : `strftime('%Y-%m-%d', ${visitedAtVn})`;
-        hourlyLabel = "day";
+    // 2. Total all-time visits
+    const [allTimeStats] = await query(`
+      SELECT COUNT(*) as total_visits FROM visits
+    `);
+
+    // 3. Today's active logged-in users list (User Name, Username/Email, Last Visit Time, Visit Count)
+    const todayUsers = await query(`
+      SELECT 
+        u.id,
+        u.name as user_name,
+        u.email,
+        u.role,
+        u.provider,
+        u.avatar_url,
+        MAX(${visitedAtVn}) as last_visit,
+        COUNT(v.id) as visit_count
+      FROM visits v
+      JOIN users u ON v.user_id = u.id
+      WHERE DATE(${visitedAtVn}) = ${todayExpr}
+      GROUP BY u.id, u.name, u.email, u.role, u.provider, u.avatar_url
+      ORDER BY last_visit DESC
+    `);
+
+    // 4. Detailed recent access & login audit history (last 50 visits/logins)
+    const recentLogins = await query(`
+      SELECT 
+        v.id,
+        v.ip,
+        v.user_agent,
+        ${visitedAtVn} as visited_at,
+        u.id as user_id,
+        u.name as user_name,
+        u.email,
+        u.role,
+        u.provider,
+        u.avatar_url
+      FROM visits v
+      LEFT JOIN users u ON v.user_id = u.id
+      ORDER BY v.id DESC
+      LIMIT 200
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        todayVisits: Number(todayStats?.total_visits || 0),
+        todayUsersCount: Number(todayStats?.logged_users || 0),
+        totalVisits: Number(allTimeStats?.total_visits || 0),
+        todayUsers,
+        recentLogins
       }
-
-      // Detailed hourly stats for visits
-      const rows = await query(`
-        SELECT ${hourlySelect} as period, COUNT(DISTINCT ip) as unique_visitors, COUNT(*) as total_visits
-        FROM visits
-        WHERE ${whereClause}
-        GROUP BY period
-        ORDER BY period ASC
-      `, [cleanDate]);
-
-      return res.json({
-        success: true,
-        data: {
-          mode: 'specific_date',
-          date: cleanDate,
-          distributionStats: rows,
-          distributionLabel: hourlyLabel
-        }
-      });
-    }
-
-    let selectExpr = dbType === 'mysql' ? `DATE(${visitedAtVn})` : `date(${visitedAtVn})`;
-    let dateFilter = "";
-    const params = [];
-
-    if (startDate && endDate) {
-      dateFilter = `WHERE DATE(${visitedAtVn}) BETWEEN DATE(?) AND DATE(?)`;
-      params.push(startDate, endDate);
-    }
-
-    if (view === 'month') {
-      selectExpr = dbType === 'mysql' ? `DATE_FORMAT(${visitedAtVn}, '%Y-%m')` : `strftime('%Y-%m', ${visitedAtVn})`;
-    }
-
-    const rows = await query(`
-      SELECT ${selectExpr} as label, COUNT(DISTINCT ip) as unique_visitors, COUNT(*) as total_visits
-      FROM visits
-      ${dateFilter}
-      GROUP BY label
-      ORDER BY label ASC
-    `, params);
-
-    res.json({ success: true, data: rows });
+    });
   } catch (error) {
     console.error('[getVisitsStats] ERROR:', error.message);
     res.status(500).json({ success: false, message: error.message });

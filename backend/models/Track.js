@@ -1,7 +1,7 @@
 const { query } = require('../config/db');
 
 class Track {
-  static async getAll(search = '', userId = null, showMine = false, categoryId = null) {
+  static async getAll(search = '', userId = null, showMine = false, categoryId = null, userRole = 'user', statusFilter = null) {
     let sql, params = [];
 
     // Base query selects track info, uploader info, and category info
@@ -13,13 +13,42 @@ class Track {
       WHERE 1=1
     `;
 
-    // Filter by ownership/publicity
-    if (showMine && userId) {
+    // Status filter logic
+    if (statusFilter === 'pending') {
+      selectClause += ` AND t.status = 'pending' `;
+      if (userRole !== 'admin' || showMine) {
+        selectClause += ` AND t.user_id = ? `;
+        params.push(userId || -1);
+      }
+    } else if (showMine && userId) {
+      // User viewing their own tracks
       selectClause += ` AND t.user_id = ? `;
       params.push(userId);
+
+      if (statusFilter) {
+        if (statusFilter === 'approved') {
+          selectClause += ` AND (t.status = 'approved' OR t.status IS NULL) `;
+        } else {
+          selectClause += ` AND t.status = ? `;
+          params.push(statusFilter);
+        }
+      }
     } else {
-      selectClause += ` AND (t.is_public = 1 OR t.user_id = ?) `;
-      params.push(userId || -1);
+      // Public / Admin view
+      if (userRole === 'admin') {
+        if (statusFilter === 'approved') {
+          selectClause += ` AND (t.status = 'approved' OR t.status IS NULL) `;
+        } else if (statusFilter === 'pending') {
+          selectClause += ` AND t.status = 'pending' `;
+        } else if (statusFilter === 'rejected') {
+          selectClause += ` AND t.status = 'rejected' `;
+        }
+        // If statusFilter is null / omitted for Admin, return all tracks (approved, pending, rejected)
+      } else {
+        // Public / non-admin user view: ONLY approved tracks
+        selectClause += ` AND (t.status = 'approved' OR t.status IS NULL) `;
+        selectClause += ` AND t.is_public = 1 `;
+      }
     }
 
     // Filter by category if provided
@@ -49,19 +78,24 @@ class Track {
     return rows[0] || null;
   }
 
-  static async create({ title, artist, album, duration, cover_url, audio_url, genre, user_id = null, is_public = 1, category_id = null }) {
+  static async create({ title, artist, album, duration, cover_url, audio_url, genre, user_id = null, is_public = 1, category_id = null, status = 'pending' }) {
     const catId = (category_id === '' || category_id === undefined || category_id === null) ? null : Number(category_id);
     const sql = `
-      INSERT INTO tracks (title, artist, album, duration, cover_url, audio_url, genre, user_id, is_public, category_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tracks (title, artist, album, duration, cover_url, audio_url, genre, user_id, is_public, category_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await query(sql, [
       title, artist, album || 'Single',
       duration || 180,
       cover_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500',
-      audio_url, genre || 'Other', user_id, is_public, catId
+      audio_url, genre || 'Other', user_id, is_public, catId, status || 'pending'
     ]);
     return await Track.getById(result.insertId);
+  }
+
+  static async updateStatus(id, status) {
+    await query('UPDATE tracks SET status = ? WHERE id = ?', [status, id]);
+    return await Track.getById(id);
   }
 
   static async update(id, data) {
@@ -76,6 +110,7 @@ class Track {
     const audio_url = data.audio_url !== undefined ? data.audio_url : existing.audio_url;
     const genre = data.genre !== undefined ? data.genre : existing.genre;
     const is_public = data.is_public !== undefined ? data.is_public : existing.is_public;
+    const status = data.status !== undefined ? data.status : existing.status;
     
     let category_id = existing.category_id;
     if (data.category_id !== undefined) {
@@ -83,8 +118,8 @@ class Track {
     }
 
     await query(
-      'UPDATE tracks SET title=?, artist=?, album=?, duration=?, cover_url=?, audio_url=?, genre=?, is_public=?, category_id=? WHERE id=?',
-      [title, artist, album, duration, cover_url, audio_url, genre, is_public ?? 1, category_id, id]
+      'UPDATE tracks SET title=?, artist=?, album=?, duration=?, cover_url=?, audio_url=?, genre=?, is_public=?, category_id=?, status=? WHERE id=?',
+      [title, artist, album, duration, cover_url, audio_url, genre, is_public ?? 1, category_id, status || 'approved', id]
     );
     return await Track.getById(id);
   }
@@ -105,10 +140,11 @@ class Track {
       LEFT JOIN users u ON t.user_id = u.id
       LEFT JOIN categories c ON t.category_id = c.id
       WHERE t.created_at >= ${timeExpr}
+      AND (t.status = 'approved' OR t.status IS NULL OR t.user_id = ?)
       AND (t.is_public = 1 OR t.user_id = ?)
       ORDER BY t.created_at DESC
     `;
-    return await query(sql, [userId || -1]);
+    return await query(sql, [userId || -1, userId || -1]);
   }
 
   static async isOwner(trackId, userId) {

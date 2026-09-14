@@ -459,17 +459,40 @@ function UploadsTab({ authH }: any) {
             </div>
             
             <div className="flex items-center gap-3">
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                t.is_public ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'
-              }`}>
-                {t.is_public ? 'Công khai' : 'Riêng tư'}
-              </span>
+              {t.status === 'pending' ? (
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-400">
+                  ⏳ Chờ duyệt
+                </span>
+              ) : t.status === 'rejected' ? (
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-rose-500/10 border-rose-500/20 text-rose-400">
+                  ❌ Bị từ chối
+                </span>
+              ) : (
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                  t.is_public ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'
+                }`}>
+                  {t.is_public ? 'Công khai' : 'Riêng tư'}
+                </span>
+              )}
               <span className="text-xs text-zinc-500 hidden sm:block">{t.play_count || 0} lượt nghe</span>
               
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => playTrack(t, tracks)}
-                  className="w-8 h-8 rounded-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 flex items-center justify-center"
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    t.status === 'rejected'
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 opacity-60 hover:opacity-100'
+                      : t.status === 'pending'
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 opacity-70 hover:opacity-100'
+                        : 'bg-purple-600/10 hover:bg-purple-600/20 text-purple-400'
+                  }`}
+                  title={
+                    t.status === 'rejected'
+                      ? 'Bài hát đã bị từ chối'
+                      : t.status === 'pending'
+                        ? 'Bài hát đang chờ duyệt'
+                        : 'Phát bài hát'
+                  }
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                 </button>

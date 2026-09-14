@@ -11,7 +11,8 @@ import AddTrackModal from './AddTrackModal';
 import AdminPanel from './AdminPanel';
 import UserProfilePage from '../pages/UserProfilePage';
 import FeaturedArtists from './FeaturedArtists';
-import { formatCount } from '../utils/format';
+import { NotificationDropdown } from './NotificationDropdown';
+import { formatCount, getCategoryIcon } from '../utils/format';
 import { BACKEND_URL, API_BASE, getAbsoluteUrl } from '../config';
 
 interface Album {
@@ -22,8 +23,8 @@ interface Album {
 }
 
 interface MainViewProps {
-  view: 'all' | 'mine' | 'admin' | 'profile';
-  setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void;
+  view: 'all' | 'mine' | 'pending' | 'admin' | 'profile';
+  setView: (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile') => void;
   onUploadClick: () => void;
   toggleSidebar?: () => void;
 }
@@ -144,7 +145,14 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
     if (view === 'admin' || view === 'profile') return;
     const delay = setTimeout(() => {
       if (!currentPlaylist) {
-        fetchTracks(searchQuery, view === 'mine', selectedCategoryId);
+        if (view === 'pending') {
+          const isAdmin = user?.role === 'admin';
+          fetchTracks(searchQuery, !isAdmin, selectedCategoryId, 'pending');
+        } else if (view === 'mine') {
+          fetchTracks(searchQuery, true, selectedCategoryId, 'approved');
+        } else {
+          fetchTracks(searchQuery, false, selectedCategoryId, 'approved');
+        }
       }
     }, 300);
     return () => clearTimeout(delay);
@@ -158,9 +166,11 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
       ? (i18n.language === 'vi' ? `Bài hát của ${selectedArtist}` : `Songs by ${selectedArtist}`)
       : currentPlaylist
         ? currentPlaylist.name
-        : view === 'mine'
-          ? t('tracks.myTracks')
-          : t('tracks.allTracks');
+        : view === 'pending'
+          ? (i18n.language === 'vi' ? '⏳ Nhạc chờ duyệt' : '⏳ Pending Music')
+          : view === 'mine'
+            ? t('tracks.myTracks')
+            : t('tracks.allTracks');
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -323,7 +333,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
 
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} setView={setView} toggleSidebar={toggleSidebar} />
 
-      <div className="p-8 max-w-5xl w-full mx-auto space-y-8 relative z-10">
+      <div className="p-8 pb-48 max-w-5xl w-full mx-auto space-y-8 relative z-10">
         {/* Hero Banner with Auto-rotating 5 animated video background */}
         <div className="theme-dark-always relative rounded-3xl overflow-hidden bg-zinc-950 p-8 md:p-10 border border-purple-500/15 shadow-2xl">
           {/* Slideshow background */}
@@ -417,7 +427,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
                       boxShadow: active ? `0 4px 12px 0 ${c.color}25` : undefined
                     }}
                   >
-                    <span>{c.icon}</span>
+                    <span>{getCategoryIcon(c.name, c.icon)}</span>
                     <span>{c.name}</span>
                   </button>
                 );
@@ -727,7 +737,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
 }
 
 // Reusable header subcomponent
-function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPlaceholder, toggleSidebar }: { searchQuery: string; setSearchQuery: (v: string) => void; disableSearch: boolean; setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void; searchPlaceholder?: string; toggleSidebar?: () => void }) {
+function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPlaceholder, toggleSidebar }: { searchQuery: string; setSearchQuery: (v: string) => void; disableSearch: boolean; setView: (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile') => void; searchPlaceholder?: string; toggleSidebar?: () => void }) {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
@@ -792,6 +802,9 @@ function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPla
           <span className="text-base leading-none">{i18n.language === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
           <span className="text-xs hidden sm:block">{i18n.language === 'vi' ? 'VI' : 'EN'}</span>
         </button>
+
+        {/* Notification Bell */}
+        <NotificationDropdown onNavigate={setView} />
 
         {/* User / Login */}
         {user ? (

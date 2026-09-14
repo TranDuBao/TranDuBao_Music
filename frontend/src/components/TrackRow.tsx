@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMusicStore } from '../store/useMusicStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { useModalStore } from '../store/useModalStore';
 import type { Track } from '../store/useMusicStore';
-import { Play, Trash2, Plus, Music, Disc, Heart, GripVertical } from 'lucide-react';
-import { getAbsoluteUrl } from '../config';
+import { Play, Trash2, Plus, Music, Disc, Heart, GripVertical, Check, X } from 'lucide-react';
+import axios from 'axios';
+import { getAbsoluteUrl, API_BASE } from '../config';
+import { getCategoryIcon } from '../utils/format';
+import { TrackHoverPreview } from './TrackHoverPreview';
 
 interface TrackRowProps {
   track: Track;
@@ -36,8 +41,49 @@ export default function TrackRow({
     currentPlaylist,
     deleteTrack,
     favorites,
-    toggleFavorite
+    toggleFavorite,
+    fetchTracks
   } = useMusicStore();
+  const { isAdmin, token } = useAuthStore();
+  const { showAlert } = useModalStore();
+
+  const handleAdminApprove = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await axios.put(`${API_BASE}/tracks/${track.id}/status`, { status: 'approved' }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        showAlert(
+          i18n.language === 'vi' ? 'Thành công' : 'Success',
+          i18n.language === 'vi' ? 'Đã duyệt bài hát thành công!' : 'Song approved successfully!',
+          'success'
+        );
+        fetchTracks();
+      }
+    } catch (err: any) {
+      showAlert(i18n.language === 'vi' ? 'Thất bại' : 'Failed', err.response?.data?.message || 'Lỗi khi duyệt bài hát', 'error');
+    }
+  };
+
+  const handleAdminReject = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await axios.put(`${API_BASE}/tracks/${track.id}/status`, { status: 'rejected' }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        showAlert(
+          i18n.language === 'vi' ? 'Thành công' : 'Success',
+          i18n.language === 'vi' ? 'Đã từ chối bài hát!' : 'Song rejected!',
+          'success'
+        );
+        fetchTracks();
+      }
+    } catch (err: any) {
+      showAlert(i18n.language === 'vi' ? 'Thất bại' : 'Failed', err.response?.data?.message || 'Lỗi khi từ chối bài hát', 'error');
+    }
+  };
 
   const [showPlaylists, setShowPlaylists] = useState(false);
   const isFavorited = (favorites || []).includes(track.id);
@@ -123,36 +169,66 @@ export default function TrackRow({
           )}
         </div>
 
-        {/* Cover Art */}
-        <div className="w-11 h-11 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center relative flex-shrink-0 border border-white/5">
-          {track.cover_url ? (
-            <img src={getAbsoluteUrl(track.cover_url)} alt={track.title} className="w-full h-full object-cover" />
-          ) : (
-            <Music className="text-zinc-600 w-5 h-5" />
-          )}
-          {isActive && isPlaying && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <Disc className="w-5 h-5 text-purple-400 animate-spin" style={{ animationDuration: '3s' }} />
+        {/* Cover Art & Title wrapped with Hover Preview */}
+        <TrackHoverPreview track={track}>
+          <div className="flex items-center gap-3.5 min-w-0 cursor-pointer">
+            {/* Cover Art */}
+            <div className="w-11 h-11 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center relative flex-shrink-0 border border-white/5 shadow-sm">
+              {track.cover_url ? (
+                <img src={getAbsoluteUrl(track.cover_url)} alt={track.title} className="w-full h-full object-cover" />
+              ) : (
+                <Music className="text-zinc-600 w-5 h-5" />
+              )}
+              {isActive && isPlaying && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <Disc className="w-5 h-5 text-purple-400 animate-spin" style={{ animationDuration: '3s' }} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Title, Artist */}
-        <div className="min-w-0 flex-1">
-          <p className={`text-sm font-semibold truncate ${isActive ? 'text-purple-400' : 'text-zinc-200'}`}>
-            {track.title}
-          </p>
-          <p className="text-xs text-zinc-400 truncate mt-0.5">{track.artist}</p>
-        </div>
+            {/* Title, Artist */}
+            <div className="min-w-0 flex-1">
+              <p
+                className={`text-sm font-semibold truncate ${isActive ? 'text-purple-400' : 'text-zinc-200'}`}
+                title={`${track.title} - ${track.artist}`}
+              >
+                {track.title}
+              </p>
+              <p className="text-xs text-zinc-400 truncate mt-0.5" title={track.artist}>{track.artist}</p>
+            </div>
+          </div>
+        </TrackHoverPreview>
+      </div>
+
+      {/* Dedicated Uploader Column (Aligned vertically) */}
+      <div className="hidden md:flex w-40 flex-shrink-0 items-center">
+        {track.uploader_name ? (
+          <span className="text-[11px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-0.5 rounded-full font-semibold truncate max-w-[150px] inline-flex items-center gap-1.5" title={`Người đăng: ${track.uploader_name}`}>
+            <span className="text-xs">👤</span>
+            <span className="truncate">{track.uploader_name}</span>
+          </span>
+        ) : (
+          <span className="text-[11px] text-zinc-600 italic">--</span>
+        )}
       </div>
 
       {/* Column 2: Album / Source (Hidden on small screen) */}
-      <div className="hidden md:block w-36 flex-shrink-0 text-sm text-zinc-400 truncate">
+      <div className="hidden lg:block w-28 flex-shrink-0 text-xs text-zinc-400 truncate">
         {track.album}
       </div>
 
-      {/* Column 3: Category & Genre Tags (Hidden on mobile) */}
-      <div className="hidden sm:flex w-48 flex-shrink-0 items-center gap-1.5">
+      {/* Column 3: Category & Genre Tags & Status Badge (Hidden on mobile) */}
+      <div className="hidden sm:flex w-48 flex-shrink-0 items-center gap-1.5 flex-wrap">
+        {track.status === 'pending' && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full border bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold animate-pulse">
+            ⏳ {i18n.language === 'vi' ? 'Chờ duyệt' : 'Pending'}
+          </span>
+        )}
+        {track.status === 'rejected' && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full border bg-rose-500/20 text-rose-400 border-rose-500/30 font-bold">
+            ❌ {i18n.language === 'vi' ? 'Bị từ chối' : 'Rejected'}
+          </span>
+        )}
         {track.category_name && (
           <span
             className="text-[10px] px-2 py-0.5 rounded-full border font-bold"
@@ -162,7 +238,7 @@ export default function TrackRow({
               color: track.category_color || '#a78bfa'
             }}
           >
-            {track.category_icon || '🎵'} {track.category_name}
+            {getCategoryIcon(track.category_name, track.category_icon)} {track.category_name}
           </span>
         )}
         {track.genre && track.genre !== track.category_name && (
@@ -173,11 +249,32 @@ export default function TrackRow({
       </div>
 
       {/* Right section: Duration, More controls */}
-      <div className="flex items-center gap-6 ml-4 flex-shrink-0">
+      <div className="flex items-center gap-4 ml-4 flex-shrink-0">
         <span className="text-xs text-zinc-500 font-medium">{formatDuration(track.duration)}</span>
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 relative">
+          {/* Admin Approval Buttons */}
+          {isAdmin() && track.status !== 'approved' && (
+            <div className="flex items-center gap-1.5 mr-1">
+              <button
+                onClick={handleAdminApprove}
+                className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold transition-all shadow-sm"
+                title={i18n.language === 'vi' ? 'Xác nhận duyệt bài hát' : 'Approve song'}
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{i18n.language === 'vi' ? 'Duyệt' : 'Approve'}</span>
+              </button>
+              <button
+                onClick={handleAdminReject}
+                className="flex items-center gap-1 px-2 py-1 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-bold transition-all"
+                title={i18n.language === 'vi' ? 'Từ chối bài hát' : 'Reject song'}
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>{i18n.language === 'vi' ? 'Từ chối' : 'Reject'}</span>
+              </button>
+            </div>
+          )}
           {/* Favorite button */}
           <button
             onClick={() => toggleFavorite(track.id)}

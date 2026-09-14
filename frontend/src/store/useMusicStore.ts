@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useAuthStore } from './useAuthStore';
+import { useModalStore } from './useModalStore';
 
 export interface Track {
   id: number;
@@ -11,6 +12,8 @@ export interface Track {
   audio_url: string;
   genre: string;
   created_at?: string;
+  status?: 'pending' | 'approved' | 'rejected' | string;
+  uploader_name?: string;
   category_id?: number | null;
   category_name?: string;
   category_color?: string;
@@ -80,6 +83,8 @@ interface MusicStore {
   setSearchQuery: (query: string) => void;
   setCurrentPlaylist: (playlist: Playlist | null) => void;
   resetPlayer: () => void;
+  handleTrackRemoved: (trackId: number, title?: string) => void;
+  handleTrackStatusChanged: (trackId: number, status: string, updatedTrack?: any) => void;
 }
 
 import { API_BASE, getAbsoluteUrl } from '../config';
@@ -162,6 +167,30 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       set({ progress: audio.currentTime });
     });
 
+    audio.addEventListener('loadedmetadata', () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        const exactSec = Math.floor(audio.duration);
+        const currentTrack = get().currentTrack;
+        if (exactSec > 0 && currentTrack && currentTrack.duration !== exactSec) {
+          set({
+            currentTrack: {
+              ...currentTrack,
+              duration: exactSec
+            }
+          });
+          const token = localStorage.getItem('ms_token');
+          fetch(`${API_BASE}/tracks/${currentTrack.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ duration: exactSec })
+          }).catch(() => {});
+        }
+      }
+    });
+
     audio.addEventListener('ended', () => {
       const { repeatMode, currentTrack } = get();
       if (repeatMode === 'one' && currentTrack) {
@@ -175,8 +204,29 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
 
     set({ audio });
 
-    // Preload YouTube API eagerly
-    loadYoutubeAPI(() => {});
+    // ── Pre-load YouTube IFrame API immediately (not lazily) ──────────────
+    // This ensures the player is ready BEFORE the user clicks play
+    loadYoutubeAPI(() => {
+      // API loaded — also pre-init the player silently so it's warm
+      setTimeout(() => {
+        if (!get().ytPlayer) {
+          get().initYoutubePlayer(() => {
+            console.log('[Player] YouTube Player pre-initialized and warm ✓');
+          });
+        }
+      }, 1500); // short delay so DOM is ready
+    });
+
+    // ── Keep-alive ping to prevent backend cold start ─────────────────────
+    // Free hosting (Render/Railway) sleeps after 15min → this prevents it
+    const ping = () => {
+      fetch(`${API_BASE}/tracks/top-weekly`, { method: 'GET' })
+        .catch(() => {}); // silent, we don't care about the response
+    };
+    ping(); // ping immediately on app load
+    const keepAliveInterval = setInterval(ping, 10 * 60 * 1000); // every 10 min
+    // Store interval ID so it can be cleaned up on logout if needed
+    (window as any).__keepAliveInterval = keepAliveInterval;
   },
 
   initYoutubePlayer: (callback?: () => void) => {
@@ -231,7 +281,6 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
                   player.seekTo(0, true);
                   player.playVideo();
                 }
-                set({ isPlaying: true, progress: 0 });
               } else {
                 get().playNext();
               }
@@ -242,13 +291,14 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     });
   },
 
-  fetchTracks: async (search, mine, categoryId) => {
-    const params = get().lastFetchParams || { search: '', mine: false, categoryId: null };
+  fetchTracks: async (search?: string, mine?: boolean, categoryId?: number | null, statusFilter?: string | null) => {
+    const params = get().lastFetchParams || { search: '', mine: false, categoryId: null, statusFilter: null };
     const activeSearch = search !== undefined ? search : params.search;
     const activeMine = mine !== undefined ? mine : params.mine;
     const activeCategoryId = categoryId !== undefined ? categoryId : params.categoryId;
+    const activeStatusFilter = statusFilter !== undefined ? statusFilter : params.statusFilter;
 
-    set({ lastFetchParams: { search: activeSearch, mine: activeMine, categoryId: activeCategoryId } });
+    set({ lastFetchParams: { search: activeSearch, mine: activeMine, categoryId: activeCategoryId, statusFilter: activeStatusFilter } });
 
     try {
       const token = localStorage.getItem('ms_token');
@@ -258,6 +308,9 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       let url = `${API_BASE}/tracks?search=${encodeURIComponent(activeSearch)}${activeMine ? '&mine=true' : ''}`;
       if (activeCategoryId !== null) {
         url += `&categoryId=${activeCategoryId}`;
+      }
+      if (activeStatusFilter) {
+        url += `&status=${activeStatusFilter}`;
       }
       const res = await fetch(url, { headers });
       const json = await res.json();
@@ -505,6 +558,18 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   },
 
   playTrack: (track, customQueue, forceIndex) => {
+    if (track.status === 'pending' || track.status === 'rejected') {
+      const isAdmin = useAuthStore.getState().user?.role === 'admin';
+      if (!isAdmin) {
+        const title = track.status === 'rejected' ? 'Bài hát bị từ chối' : 'Chưa thể phát';
+        const msg = track.status === 'rejected'
+          ? 'Bài hát này đã bị Admin từ chối phê duyệt, không thể phát bài hát này!'
+          : 'Bài hát này đang chờ Admin phê duyệt, chưa thể phát lúc này!';
+        useModalStore.getState().showAlert(title, msg, 'warning');
+        return;
+      }
+    }
+
     const { audio, initAudio } = get();
     initAudio();
 
@@ -586,6 +651,15 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
                         duration: ytDuration
                       }
                     });
+                    const token = localStorage.getItem('ms_token');
+                    fetch(`${API_BASE}/tracks/${currentTrack.id}`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                      },
+                      body: JSON.stringify({ duration: ytDuration })
+                    }).catch(() => {});
                   }
                 } catch (_) {}
               }
@@ -686,7 +760,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   },
 
   setProgress: (time) => {
-    const { audio, currentTrack } = get();
+    const { audio, currentTrack, isPlaying } = get();
     if (currentTrack) {
       const videoId = getYoutubeVideoId(currentTrack.audio_url);
       if (videoId) {
@@ -694,11 +768,19 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
           try {
             ytPlayer.seekTo(time, true);
+            if (isPlaying && typeof ytPlayer.playVideo === 'function') {
+              setTimeout(() => {
+                try { ytPlayer.playVideo(); } catch (_) {}
+              }, 50);
+            }
           } catch (_) {}
         }
       } else {
         if (audio) {
           audio.currentTime = time;
+          if (isPlaying && audio.paused) {
+            audio.play().catch(() => {});
+          }
         }
       }
     }
@@ -799,5 +881,61 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       queue: [],
       queueIndex: -1,
     });
+  },
+
+  handleTrackRemoved: (trackId, title) => {
+    const { tracks, currentTrack, queue, currentPlaylistTracks, audio, ytPlayer, progressInterval } = get();
+
+    const isCurrentPlaying = currentTrack && Number(currentTrack.id) === Number(trackId);
+
+    if (isCurrentPlaying) {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+        try { ytPlayer.stopVideo(); } catch (_) {}
+      }
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      useModalStore.getState().showAlert(
+        'Thông báo hệ thống',
+        `Bài hát "${title || currentTrack?.title || ''}" vừa bị Admin xóa hoặc gỡ khỏi hệ thống.`,
+        'warning'
+      );
+    }
+
+    const newTracks = tracks.filter(t => Number(t.id) !== Number(trackId));
+    const newQueue = queue.filter(t => Number(t.id) !== Number(trackId));
+    const newPlaylistTracks = currentPlaylistTracks.filter(t => Number(t.id) !== Number(trackId));
+
+    set({
+      tracks: newTracks,
+      queue: newQueue,
+      currentPlaylistTracks: newPlaylistTracks,
+      ...(isCurrentPlaying ? { currentTrack: null, isPlaying: false, progress: 0, progressInterval: null } : {})
+    });
+  },
+
+  handleTrackStatusChanged: (trackId, status, updatedTrack) => {
+    if (status === 'rejected') {
+      get().handleTrackRemoved(trackId, updatedTrack?.title);
+    } else if (status === 'approved') {
+      const { tracks } = get();
+      const exists = tracks.some(t => Number(t.id) === Number(trackId));
+      if (exists) {
+        set({
+          tracks: tracks.map(t => Number(t.id) === Number(trackId) ? { ...t, ...updatedTrack, status: 'approved' } : t)
+        });
+      } else {
+        get().fetchTracks();
+      }
+    } else {
+      const { tracks } = get();
+      set({
+        tracks: tracks.map(t => Number(t.id) === Number(trackId) ? { ...t, ...updatedTrack, status } : t)
+      });
+    }
   }
 }));

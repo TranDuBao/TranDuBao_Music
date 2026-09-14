@@ -83,6 +83,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         setStoredToken(data.token);
         setAxiosAuth(data.token);
         set({ token: data.token, user: data.user });
+        axios.post(`${API}/visits/log`).catch(() => {});
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -98,6 +99,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         setStoredToken(data.token);
         setAxiosAuth(data.token);
         set({ token: data.token, user: data.user });
+        axios.post(`${API}/visits/log`).catch(() => {});
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -113,6 +115,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { data } = await axios.get(`${API}/auth/me`);
       if (data.success) {
         set({ token, user: data.user });
+        axios.post(`${API}/visits/log`).catch(() => {});
       }
     } catch {
       setStoredToken(null);

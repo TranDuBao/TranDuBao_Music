@@ -47,3 +47,20 @@ export function formatDateLabel(label: string, viewMode: 'day' | 'month' | 'year
 
   return label;
 }
+
+export function getCategoryIcon(name?: string, icon?: string): string {
+  if (icon && icon !== '#' && icon.trim() !== '') return icon;
+  if (!name) return '🎵';
+  const lower = name.toLowerCase();
+  if (lower.includes('china') || lower.includes('trung') || lower.includes('c-pop') || lower.includes('cpop')) return '🇨🇳';
+  if (lower.includes('v-pop') || lower.includes('vpop') || lower.includes('việt')) return '🇻🇳';
+  if (lower.includes('k-pop') || lower.includes('kpop') || lower.includes('hàn')) return '🇰🇷';
+  if (lower.includes('us-uk') || lower.includes('usuk') || lower.includes('english')) return '🇺🇸';
+  if (lower.includes('j-pop') || lower.includes('jpop') || lower.includes('nhật')) return '🇯🇵';
+  if (lower.includes('lofi')) return '📻';
+  if (lower.includes('remix') || lower.includes('edm') || lower.includes('electronic')) return '⚡';
+  if (lower.includes('rock')) return '🎸';
+  if (lower.includes('jazz')) return '🎷';
+  if (lower.includes('classical')) return '🎻';
+  return '🎵';
+}

@@ -100,9 +100,23 @@ setupFacebookStrategy();
 
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const name     = (req.body.name     || '').toString().trim().slice(0, 100);
+    const email    = (req.body.email    || '').toString().trim().toLowerCase().slice(0, 254);
+    const password = (req.body.password || '').toString();
+
     if (!name || !email || !password)
       return res.status(400).json({ success: false, message: 'Name, email and password are required' });
+
+    // Basic email format validation
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!EMAIL_RE.test(email))
+      return res.status(400).json({ success: false, message: 'Email không hợp lệ' });
+
+    if (password.length < 6)
+      return res.status(400).json({ success: false, message: 'Mật khẩu phải có ít nhất 6 ký tự' });
+
+    if (password.length > 128)
+      return res.status(400).json({ success: false, message: 'Mật khẩu quá dài (tối đa 128 ký tự)' });
 
     const existing = await User.findByEmail(email);
     if (existing)
@@ -180,6 +194,10 @@ const updateUserRole = async (req, res) => {
 // Admin: delete user
 const deleteUser = async (req, res) => {
   try {
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) return res.status(404).json({ success: false, message: 'User not found' });
+    if (targetUser.role === 'admin')
+      return res.status(400).json({ success: false, message: 'Không thể xóa tài khoản Quản trị viên (Admin)' });
     if (String(req.params.id) === String(req.user.id))
       return res.status(400).json({ success: false, message: 'Cannot delete your own account' });
     await User.delete(req.params.id);
@@ -193,6 +211,10 @@ const deleteUser = async (req, res) => {
 const banUser = async (req, res) => {
   try {
     const targetId = req.params.id;
+    const targetUser = await User.findById(targetId);
+    if (!targetUser) return res.status(404).json({ success: false, message: 'User not found' });
+    if (targetUser.role === 'admin')
+      return res.status(400).json({ success: false, message: 'Không thể khóa tài khoản Quản trị viên (Admin)' });
     if (String(targetId) === String(req.user.id))
       return res.status(400).json({ success: false, message: 'Không thể khóa chính tài khoản của bạn' });
 
@@ -221,13 +243,49 @@ const banUser = async (req, res) => {
   }
 };
 
+// Admin: reset password for any user
+const adminResetPassword = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+    }
+
+    const targetUser = await User.findById(targetId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+    if (targetUser.role === 'admin') {
+      return res.status(400).json({ success: false, message: 'Không thể đổi mật khẩu tài khoản Quản trị viên (Admin)' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await require('../config/db').query('UPDATE users SET password_hash=? WHERE id=?', [newHash, targetId]);
+
+    // Send notification to user about password reset by admin
+    await Notification.create({
+      user_id: targetId,
+      title: 'Mật khẩu đã được đặt lại',
+      message: 'Admin đã cập nhật lại mật khẩu cho tài khoản của bạn.',
+      type: 'info',
+      track_id: null,
+    }).catch(() => {});
+
+    res.json({ success: true, message: `Đã đặt lại mật khẩu cho ${targetUser.name} thành công!` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // User: update profile info
 const updateProfile = async (req, res) => {
   try {
-    const { name, bio } = req.body;
+    const name = (req.body.name || '').toString().trim().slice(0, 100);
+    const bio  = (req.body.bio  || '').toString().trim().slice(0, 500);
     if (!name) return res.status(400).json({ success: false, message: 'Name required' });
     await require('../config/db').query(
-      'UPDATE users SET name=?, bio=? WHERE id=?', [name.trim(), bio || '', req.user.id]);
+      'UPDATE users SET name=?, bio=? WHERE id=?', [name, bio, req.user.id]);
     const user = await User.findById(req.user.id);
     res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar_url: user.avatar_url, bio: user.bio } });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
@@ -296,7 +354,7 @@ const getMyUploads = async (req, res) => {
 
 module.exports = {
   passport, register, login, getMe, oauthCallback,
-  getAllUsers, updateUserRole, deleteUser, banUser,
+  getAllUsers, updateUserRole, deleteUser, banUser, adminResetPassword,
   updateProfile, changePassword, updateAvatar, deleteAvatar, getMyUploads
 };
 

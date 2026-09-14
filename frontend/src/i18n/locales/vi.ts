@@ -27,9 +27,6 @@ const vi = {
     loginDesc: 'Nghe nhạc yêu thích mọi lúc, mọi nơi.',
     invalidCredentials: 'Email hoặc mật khẩu không đúng.',
     emailTaken: 'Email này đã được đăng ký.',
-    demoAccounts: 'Tài khoản thử nghiệm',
-    adminDemo: 'Admin: admin@musicstream.com / admin123',
-    userDemo: 'Người dùng: user@musicstream.com / user123',
   },
   // Trình phát
   player: {

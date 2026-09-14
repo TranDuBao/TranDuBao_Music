@@ -10,7 +10,27 @@ const rateLimit = require('express-rate-limit');
 const { passport } = require('./controllers/authController');
 const initDb = require('./config/initDb');
 
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    credentials: true
+  }
+});
+
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log(`🔌 Client connected to Socket.IO: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`🔌 Client disconnected: ${socket.id}`);
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
 // ── Ensure upload directories exist ──────────────────────────────
@@ -72,15 +92,16 @@ app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/artists', require('./routes/artistRoutes'));
 app.use('/api/albums', require('./routes/albumRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api', require('./routes/interactionRoutes'));
 
 // Admin stats
-const { requireAuth, requireAdmin } = require('./middleware/auth');
+const { requireAuth, requireAdmin, optionalAuth } = require('./middleware/auth');
 const { getStats, getPlayHistoryStats, getCategoryTracksStats, logVisit, getVisitsStats } = require('./controllers/statsController');
 app.get('/api/stats', requireAuth, requireAdmin, getStats);
 app.get('/api/stats/history', requireAuth, requireAdmin, getPlayHistoryStats);
 app.get('/api/stats/category-tracks', requireAuth, requireAdmin, getCategoryTracksStats);
-app.post('/api/visits/log', logVisit);
+app.post('/api/visits/log', optionalAuth, logVisit);
 app.get('/api/stats/visits', requireAuth, requireAdmin, getVisitsStats);
 
 // Health check
@@ -88,5 +109,5 @@ app.get('/api/health', (req, res) =>
   res.json({ status: 'OK', dbType: process.env.DB_TYPE || 'sqlite' }));
 
 // ── Start ─────────────────────────────────────────────────────────
-app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
 // Trigger reload to load updated .env variables for Google and Facebook Strategy - MySQL enabled

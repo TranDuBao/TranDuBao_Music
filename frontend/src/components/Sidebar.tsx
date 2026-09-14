@@ -8,12 +8,12 @@ import Logo from './Logo';
 import {
   Music2, PlayCircle, Plus, Trash2,
   ListMusic, LogOut, Upload, Shield, Globe, ChevronDown,
-  UserCircle2, Music
+  UserCircle2, Music, Clock
 } from 'lucide-react';
 
 interface SidebarProps {
-  view: 'all' | 'mine' | 'admin' | 'profile';
-  setView: (v: 'all' | 'mine' | 'admin' | 'profile') => void;
+  view: 'all' | 'mine' | 'pending' | 'admin' | 'profile';
+  setView: (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile') => void;
   onUploadClick: () => void;
   isOpen?: boolean;
   onClose?: () => void;
@@ -42,7 +42,7 @@ export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose 
     setShowLang(false);
   };
 
-  const handleNavClick = (v: 'all' | 'mine' | 'admin' | 'profile') => {
+  const handleNavClick = (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile') => {
     setView(v);
     setCurrentPlaylist(null);
     if (onClose) onClose();
@@ -102,6 +102,14 @@ export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose 
             label={t('nav.myMusic')}
             onClick={() => handleNavClick('mine')}
           />
+          {user && (
+            <NavBtn
+              active={view === 'pending' && !currentPlaylist}
+              icon={<Clock className="w-4 h-4 text-amber-400" />}
+              label={i18n.language === 'vi' ? 'Nhạc chờ duyệt' : 'Pending Music'}
+              onClick={() => handleNavClick('pending')}
+            />
+          )}
           {isAdmin() && (
             <NavBtn
               active={view === 'admin'}

@@ -2,8 +2,18 @@ const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
 const Track = require('../models/Track');
+const Notification = require('../models/Notification');
 const { query, dbType } = require('../config/db');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
+const { getCache, setCache, delCacheByPattern } = require('../config/redis');
+
+const invalidateTracksCache = async () => {
+  try {
+    await delCacheByPattern('tracks:*');
+  } catch (err) {
+    console.warn('[Redis] Failed to invalidate tracks cache:', err.message);
+  }
+};
 
 const isWindows = process.platform === 'win32';
 const ytDlpPath = isWindows
@@ -67,6 +77,53 @@ const isBotBlocked = (msg) => {
   );
 };
 
+// Helper to clean/normalize YouTube & SoundCloud URLs
+const cleanMediaUrl = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+  try {
+    const trimmed = rawUrl.trim();
+    if (trimmed.includes('youtube.com') || trimmed.includes('youtu.be')) {
+      if (trimmed.includes('youtu.be/')) {
+        const id = trimmed.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0];
+        if (id) return `https://www.youtube.com/watch?v=${id}`;
+      }
+      const parsed = new URL(trimmed);
+      if (parsed.searchParams.has('v')) {
+        const v = parsed.searchParams.get('v');
+        return `https://www.youtube.com/watch?v=${v}`;
+      }
+    }
+  } catch (e) {}
+  return rawUrl.trim();
+};
+
+// Helper: extract exact YouTube duration in seconds instantly from page metadata
+const fetchYoutubeDuration = async (youtubeUrl) => {
+  try {
+    const res = await fetch(youtubeUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+    if (!res.ok) return 180;
+    const html = await res.text();
+    const matchSec = html.match(/"lengthSeconds":"(\d+)"/);
+    if (matchSec && matchSec[1]) {
+      const sec = parseInt(matchSec[1]);
+      if (sec > 0) return sec;
+    }
+    const matchMs = html.match(/"approxDurationMs":"(\d+)"/);
+    if (matchMs && matchMs[1]) {
+      const sec = Math.round(parseInt(matchMs[1]) / 1000);
+      if (sec > 0) return sec;
+    }
+  } catch (e) {
+    console.warn('[YouTube Duration] Fetch failed:', e.message);
+  }
+  return 180;
+};
+
 // Helper to download files (like covers or direct links)
 const downloadFile = async (url, destPath) => {
   const response = await fetch(url);
@@ -78,11 +135,29 @@ const downloadFile = async (url, destPath) => {
 
 const getAllTracks = async (req, res) => {
   try {
-    const search     = req.query.search || '';
-    const showMine   = req.query.mine === 'true';
-    const userId     = req.user?.id || null;
-    const categoryId = req.query.categoryId || null;
-    const tracks     = await Track.getAll(search, userId, showMine, categoryId);
+    const search       = req.query.search || '';
+    const showMine     = req.query.mine === 'true';
+    const userId       = req.user?.id || null;
+    const userRole     = req.user?.role || 'user';
+    const categoryId   = req.query.categoryId || null;
+    const statusFilter = req.query.status || null;
+
+    // Cache key for public track listings (skip cache when mine=true)
+    const cacheKey = !showMine ? `tracks:all:${search}:${categoryId || 'all'}:${statusFilter || 'all'}:${userRole}` : null;
+
+    if (cacheKey) {
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        return res.json({ success: true, data: cached, cached: true });
+      }
+    }
+
+    const tracks = await Track.getAll(search, userId, showMine, categoryId, userRole, statusFilter);
+
+    if (cacheKey && tracks) {
+      await setCache(cacheKey, tracks, 300);
+    }
+
     res.json({ success: true, data: tracks });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -101,18 +176,28 @@ const getTrackById = async (req, res) => {
 
 const createTrack = async (req, res) => {
   try {
-    const { title, artist } = req.body;
+    // ── Whitelist allowed fields (prevent mass assignment) ─────────
+    const title  = (req.body.title  || '').toString().trim().slice(0, 300);
+    const artist = (req.body.artist || '').toString().trim().slice(0, 200);
+    const album  = (req.body.album  || 'Single').toString().trim().slice(0, 200);
+    const genre  = (req.body.genre  || 'Other').toString().trim().slice(0, 100);
+    const is_public = req.body.is_public !== undefined ? Number(req.body.is_public) : 1;
+    const category_id = req.body.category_id ? Number(req.body.category_id) : null;
+
     if (!title || !artist)
       return res.status(400).json({ success: false, message: 'Title and artist are required' });
 
-    // Check duplicate track: title and artist (case-insensitive)
-    const existing = await query('SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)', [title.trim(), artist.trim()]);
-    if (existing && existing.length > 0) {
-      return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn' });
-    }
+    let audio_url = (req.body.audio_url || '').toString().trim();
+    let cover_url = (req.body.cover_url || '').toString().trim();
 
-    let audio_url = req.body.audio_url;
-    let cover_url = req.body.cover_url || '';
+    // ── URL allow-list: only safe protocols ──────────────────────
+    const SAFE_PROTO = /^(https?:\/\/)/i;
+    if (audio_url && !SAFE_PROTO.test(audio_url)) {
+      return res.status(400).json({ success: false, message: 'Audio URL phải bắt đầu bằng https://' });
+    }
+    if (cover_url && !SAFE_PROTO.test(cover_url)) {
+      cover_url = ''; // silently ignore invalid cover
+    }
 
     // Handle file uploads
     if (req.files?.audio?.[0]) {
@@ -125,13 +210,54 @@ const createTrack = async (req, res) => {
     if (!audio_url)
       return res.status(400).json({ success: false, message: 'Audio file or URL is required' });
 
+    const cleanAudioUrl = cleanMediaUrl(audio_url);
+
+    // Duplicate check ONLY for active tracks (approved or pending)
+    const activeDup = await query(
+      `SELECT id, status FROM tracks 
+       WHERE (audio_url != '' AND (audio_url = ? OR audio_url = ?))
+       AND (status = 'approved' OR status = 'pending' OR status IS NULL)`,
+      [audio_url.trim(), cleanAudioUrl]
+    );
+    if (activeDup && activeDup.length > 0) {
+      const existingStatus = activeDup[0].status;
+      if (existingStatus === 'pending') {
+        return res.status(400).json({ success: false, message: 'Bài hát này đã được gửi lên hệ thống và đang chờ Admin duyệt!' });
+      }
+      return res.status(400).json({ success: false, message: 'Bài hát này đã có sẵn trong thư viện ứng dụng.' });
+    }
+
+    // Delete old rejected/deleted record if re-uploading same URL
+    await query(
+      `DELETE FROM tracks 
+       WHERE (audio_url != '' AND (audio_url = ? OR audio_url = ?))
+       AND status = 'rejected'`,
+      [audio_url.trim(), cleanAudioUrl]
+    );
+
+    const status = req.user?.role === 'admin' ? 'approved' : 'pending';
+
+    // ── Only pass whitelisted fields to Track.create ───────────────
     const newTrack = await Track.create({
-      ...req.body,
-      audio_url,
+      title,
+      artist,
+      album,
+      genre,
+      duration: parseInt(req.body.duration) || 180,
+      audio_url: cleanAudioUrl,
       cover_url,
       user_id:   req.user?.id || null,
-      is_public: req.body.is_public !== undefined ? Number(req.body.is_public) : 1,
+      is_public: is_public === 0 ? 0 : 1,
+      category_id: category_id && !isNaN(category_id) ? category_id : null,
+      status,
     });
+
+    if (status === 'pending' && req.user?.role !== 'admin') {
+      notifyAdminsNewPendingTrack(newTrack, req.user?.name || 'Người dùng').catch(() => {});
+    }
+
+    await invalidateTracksCache();
+
     res.status(201).json({ success: true, data: newTrack });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -148,6 +274,7 @@ const updateTrack = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Forbidden' });
 
     const updated = await Track.update(req.params.id, req.body);
+    await invalidateTracksCache();
     res.json({ success: true, data: updated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -172,6 +299,26 @@ const deleteTrack = async (req, res) => {
     }
 
     await Track.delete(req.params.id);
+
+    // Send notification if track belonged to a user and was deleted by Admin
+    if (track.user_id && req.user?.role === 'admin' && String(track.user_id) !== String(req.user?.id)) {
+      await Notification.create({
+        user_id: track.user_id,
+        title: 'Bài hát đã bị xóa',
+        message: `Bài hát "${track.title}" của bạn đã bị Admin xóa khỏi hệ thống.`,
+        type: 'deleted',
+        track_id: null,
+      });
+    }
+
+    // Emit Socket.IO event for real-time client sync
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('track_deleted', { id: Number(req.params.id), title: track.title });
+    }
+
+    await invalidateTracksCache();
+
     res.json({ success: true, message: 'Track deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -398,27 +545,43 @@ const importTrack = async (req, res) => {
     const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
     const isSoundCloud = url.includes('soundcloud.com');
 
+    const cleanUrl = cleanMediaUrl(url);
+
     if (!isYouTube && !isSoundCloud) {
       // Direct audio file URL (mp3, wav, Deezer preview, etc.)
-      const title  = req.body.title  || 'Imported Audio';
-      const artist = req.body.artist || 'Unknown Artist';
-      const dup = await query(
-        'SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)',
-        [title.trim(), artist.trim()]
+      const SAFE_PROTO = /^(https?:\/\/)/i;
+      if (!SAFE_PROTO.test(url)) {
+        return res.status(400).json({ success: false, message: 'URL không hợp lệ: chỉ chấp nhận https://' });
+      }
+      const title  = (req.body.title  || 'Imported Audio').toString().trim().slice(0, 300);
+      const artist = (req.body.artist || 'Unknown Artist').toString().trim().slice(0, 200);
+      const activeDup = await query(
+        `SELECT id FROM tracks 
+         WHERE (audio_url != '' AND (audio_url = ? OR audio_url = ?))
+         AND (status = 'approved' OR status = 'pending' OR status IS NULL)`,
+        [url.trim(), cleanUrl]
       );
-      if (dup && dup.length > 0) {
+      if (activeDup && activeDup.length > 0) {
         return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
       }
+      await query(
+        `DELETE FROM tracks 
+         WHERE (audio_url != '' AND (audio_url = ? OR audio_url = ?))
+         AND status = 'rejected'`,
+        [url.trim(), cleanUrl]
+      );
+      const status = req.user?.role === 'admin' ? 'approved' : 'pending';
       const newTrack = await Track.create({
         title, artist,
-        album: req.body.album || 'Imported',
+        album: (req.body.album || 'Imported').toString().trim().slice(0, 200),
         duration: parseInt(req.body.duration) || 180,
-        cover_url: req.body.cover_url || '',
-        audio_url: url,
-        genre,
+        cover_url: (() => { const u = (req.body.cover_url||'').trim(); return /^https?:\/\//.test(u) ? u : ''; })(),
+        audio_url: cleanUrl,
+        genre: (genre || 'Other').toString().trim().slice(0, 100),
         is_public: Number(is_public),
         user_id: req.user?.id || null,
         category_id: category_id ? Number(category_id) : null,
+        status,
       });
       return res.status(201).json({ success: true, data: newTrack });
     }
@@ -430,7 +593,7 @@ const importTrack = async (req, res) => {
     try {
       let oembedUrl;
       if (isYouTube) {
-        oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+        oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(cleanUrl)}&format=json`;
       } else {
         // Strip query parameters for SoundCloud oEmbed to prevent 404s
         let cleanSoundCloudUrl = url.trim();
@@ -447,7 +610,7 @@ const importTrack = async (req, res) => {
       title    = data.title          || 'Imported Audio';
       artist   = data.author_name    || 'Unknown Artist';
       cover_url = data.thumbnail_url || '';
-      duration = 180; // oEmbed doesn't return duration — frontend gets it from player or backend extracts
+      duration = isYouTube ? await fetchYoutubeDuration(cleanUrl) : 180;
       oembedSuccess = true;
       console.log(`[Import] oEmbed OK: "${title}" by "${artist}"`);
     } catch (err) {
@@ -455,7 +618,7 @@ const importTrack = async (req, res) => {
       
       if (isYouTube) {
         try {
-          const noembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
+          const noembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(cleanUrl)}`;
           console.log(`[Import] Querying noembed.com fallback: ${noembedUrl}`);
           const noRes = await fetch(noembedUrl);
           if (noRes.ok) {
@@ -464,7 +627,7 @@ const importTrack = async (req, res) => {
               title = data.title || 'Imported Audio';
               artist = data.author_name || 'Unknown Artist';
               cover_url = data.thumbnail_url || '';
-              duration = 180;
+              duration = isYouTube ? await fetchYoutubeDuration(cleanUrl) : 180;
               oembedSuccess = true;
               console.log(`[Import] noembed.com fallback OK: "${title}" by "${artist}"`);
             }
@@ -477,7 +640,7 @@ const importTrack = async (req, res) => {
       if (!oembedSuccess) {
         console.warn('[Import] Trying yt-dlp metadata fallback...');
         try {
-          const { stdout } = await runYtDlp(['--dump-json', '--no-playlist', '--no-warnings', url], 15000);
+          const { stdout } = await runYtDlp(['--dump-json', '--no-playlist', '--no-warnings', cleanUrl], 15000);
           if (stdout && stdout.trim()) {
             const data = JSON.parse(stdout.trim());
             title = data.title || 'Imported Audio';
@@ -498,31 +661,116 @@ const importTrack = async (req, res) => {
       }
     }
 
-    // ── Duplicate check ───────────────────────────────────────────────
-    const dup = await query(
-      'SELECT id FROM tracks WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)',
-      [title.trim(), artist.trim()]
+    // Duplicate check for active tracks (approved or pending)
+    const activeDup = await query(
+      `SELECT id, status FROM tracks 
+       WHERE (audio_url != '' AND (audio_url = ? OR audio_url = ?))
+       AND (status = 'approved' OR status = 'pending' OR status IS NULL)`,
+      [url.trim(), cleanUrl]
     );
-    if (dup && dup.length > 0) {
-      return res.status(400).json({ success: false, message: 'Bài hát đã có sẵn trong thư viện.' });
+    if (activeDup && activeDup.length > 0) {
+      const existingStatus = activeDup[0].status;
+      if (existingStatus === 'pending') {
+        return res.status(400).json({ success: false, message: 'Bài hát này đã được gửi lên hệ thống và đang chờ Admin duyệt!' });
+      }
+      return res.status(400).json({ success: false, message: 'Bài hát này đã có sẵn trong thư viện ứng dụng.' });
     }
 
-    // ── Save track with original YouTube / SoundCloud URL ─────────────
+    // Delete old rejected record if re-importing
+    await query(
+      `DELETE FROM tracks 
+       WHERE (audio_url != '' AND (audio_url = ? OR audio_url = ?))
+       AND status = 'rejected'`,
+      [url.trim(), cleanUrl]
+    );
+
+    // ── Save track with clean YouTube / SoundCloud URL ─────────────
+    const status = req.user?.role === 'admin' ? 'approved' : 'pending';
     const newTrack = await Track.create({
       title, artist,
       album: isYouTube ? 'YouTube' : 'SoundCloud',
       duration,
       cover_url,
-      audio_url: url,
+      audio_url: cleanUrl,
       genre,
       is_public: Number(is_public),
       user_id: req.user?.id || null,
       category_id: category_id ? Number(category_id) : null,
+      status,
     });
+
+    if (status === 'pending' && req.user?.role !== 'admin') {
+      notifyAdminsNewPendingTrack(newTrack, req.user?.name || 'Người dùng').catch(() => {});
+    }
+
+    await invalidateTracksCache();
+
     return res.status(201).json({ success: true, data: newTrack });
 
   } catch (err) {
     console.error('[Import] Unhandled error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const notifyAdminsNewPendingTrack = async (track, uploaderName) => {
+  try {
+    const adminUsers = await query("SELECT id FROM users WHERE role = 'admin'");
+    if (adminUsers && adminUsers.length > 0) {
+      for (const admin of adminUsers) {
+        await Notification.create({
+          user_id: admin.id,
+          title: 'Bài hát mới cần phê duyệt',
+          message: `Người dùng "${uploaderName}" vừa thêm bài hát "${track.title}" và đang chờ bạn phê duyệt.`,
+          type: 'info',
+          track_id: track.id,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to notify admins about pending track:', err.message);
+  }
+};
+
+const updateTrackStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Trạng thái không hợp lệ' });
+    }
+    const track = await Track.getById(req.params.id);
+    if (!track) return res.status(404).json({ success: false, message: 'Không tìm thấy bài hát' });
+
+    const updated = await Track.updateStatus(req.params.id, status);
+
+    // Create notification for track owner ONLY if owner is NOT the admin performing the action
+    if (track.user_id && String(track.user_id) !== String(req.user?.id) && (status === 'approved' || status === 'rejected')) {
+      const isApproved = status === 'approved';
+      const title = isApproved ? 'Bài hát đã được duyệt' : 'Bài hát bị từ chối';
+      const message = isApproved
+        ? `Bài hát "${track.title}" của bạn đã được Admin phê duyệt và xuất hiện trên hệ thống!`
+        : `Bài hát "${track.title}" của bạn đã bị Admin từ chối.`;
+      const type = isApproved ? 'approved' : 'rejected';
+
+      await Notification.create({
+        user_id: track.user_id,
+        title,
+        message,
+        type,
+        track_id: track.id,
+      });
+    }
+
+    // Emit Socket.IO event for real-time client sync
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('track_status_changed', { id: Number(req.params.id), status, track: updated });
+    }
+
+    await invalidateTracksCache();
+
+    res.json({ success: true, data: updated });
+  } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -536,6 +784,13 @@ const streamTrack = async (req, res) => {
     const track = await Track.getById(req.params.id);
     if (!track) {
       return res.status(404).json({ success: false, message: 'Track not found' });
+    }
+
+    if ((track.status === 'pending' || track.status === 'rejected') && req.user?.role !== 'admin') {
+      const msg = track.status === 'rejected'
+        ? 'Bài hát này đã bị Admin từ chối phê duyệt, không thể phát bài hát này!'
+        : 'Bài hát đang chờ Admin phê duyệt, chưa thể phát lúc này!';
+      return res.status(403).json({ success: false, message: msg });
     }
 
     const url = track.audio_url;
@@ -899,4 +1154,4 @@ const debugYtDlp = async (req, res) => {
   }
 };
 
-module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, streamTrack, getTopWeekly, getRecentUploads, debugYtDlp };
+module.exports = { getAllTracks, getTrackById, createTrack, updateTrack, deleteTrack, importTrack, updateTrackStatus, streamTrack, getTopWeekly, getRecentUploads, debugYtDlp };

@@ -368,7 +368,7 @@ export default function LoginPage() {
                     : 'To ensure maximum account security, please contact the Administration directly via the email below for assistance resetting your password:'}
                 </p>
                 <div className="mt-3 bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-center shadow-inner">
-                  <span className="text-xs font-bold text-purple-400 font-mono select-all">admin@musicstream.com</span>
+                  <span className="text-xs font-bold text-purple-400 font-mono select-all">dubao1005@gmail.com</span>
                 </div>
               </div>
             </div>

@@ -27,9 +27,6 @@ const en = {
     loginDesc: 'Stream your favorite music anywhere.',
     invalidCredentials: 'Invalid email or password.',
     emailTaken: 'This email is already registered.',
-    demoAccounts: 'Demo Accounts',
-    adminDemo: 'Admin: admin@musicstream.com / admin123',
-    userDemo: 'User: user@musicstream.com / user123',
   },
   // Player
   player: {
