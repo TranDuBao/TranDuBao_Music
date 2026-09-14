@@ -90,11 +90,14 @@ const initDb = async () => {
             console.log('Migrating: Creating visits table for MySQL...');
             await query(`CREATE TABLE IF NOT EXISTS visits (
               id          INT AUTO_INCREMENT PRIMARY KEY,
+              user_id     INT DEFAULT NULL,
               ip          VARCHAR(45) DEFAULT NULL,
               user_agent  TEXT DEFAULT NULL,
               visited_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
             console.log('Migrating: Created visits table for MySQL.');
+          } else {
+            try { await query("ALTER TABLE visits ADD COLUMN user_id INT DEFAULT NULL"); } catch (_) {}
           }
         } catch (migErr) {
           console.error('Failed to migrate visits table for MySQL:', migErr.message);
