@@ -689,15 +689,17 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       }
       console.log(`[Player] Playing standard audio stream: ${finalUrl}`);
       activeAudio.src = getAbsoluteUrl(finalUrl);
-      activeAudio.play().then(() => {
-        set({
-          currentTrack: track,
-          isPlaying: true,
-          progress: 0,
-          queue: playQueue,
-          queueIndex: index,
-        });
 
+      // Set state BEFORE play() so queue/index are always correct for auto-advance
+      set({
+        currentTrack: track,
+        isPlaying: true,
+        progress: 0,
+        queue: playQueue,
+        queueIndex: index,
+      });
+
+      activeAudio.play().then(() => {
         const token = localStorage.getItem('ms_token');
         fetch(`${API_BASE}/tracks/${track.id}/play`, {
           method: 'POST',
@@ -705,8 +707,10 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         }).catch(() => {});
       }).catch(err => {
         console.error('Standard playback failed', err);
+        set({ isPlaying: false });
       });
     }
+
   },
 
   togglePlay: () => {

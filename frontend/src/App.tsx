@@ -43,7 +43,7 @@ import { socket } from './socket';
 function AppShell() {
   const { fetchTracks, fetchPlaylists, fetchFavorites, initAudio, currentTrack, isPlaying, handleTrackRemoved, handleTrackStatusChanged } = useMusicStore();
   const { user } = useAuthStore();
-  const [view, setView] = useState<'all' | 'mine' | 'pending' | 'admin' | 'profile'>('all');
+  const [view, setView] = useState<'all' | 'mine' | 'pending' | 'admin' | 'profile' | 'youtube' | 'soundcloud'>('all');
   const [showUpload, setShowUpload] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 

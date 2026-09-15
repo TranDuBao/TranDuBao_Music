@@ -31,7 +31,9 @@ const en = {
   // Player
   player: {
     noSong: 'No Song Selected',
+    noSongSelected: 'No Song Selected',
     selectSong: 'Select a song to start listening',
+    chooseSong: 'Select a song to start listening',
     shuffle: 'Shuffle',
     repeat: 'Repeat',
   },

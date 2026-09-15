@@ -7,13 +7,27 @@ import Avatar from './Avatar';
 import Logo from './Logo';
 import {
   Music2, PlayCircle, Plus, Trash2,
-  ListMusic, LogOut, Upload, Shield, Globe, ChevronDown,
+  ListMusic, LogOut, Upload, Shield, Globe, ChevronDown, ChevronRight,
   UserCircle2, Music, Clock
 } from 'lucide-react';
 
+// Inline SVG icon for YouTube (lucide-react does not include this)
+const YoutubeIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
+// Inline SVG icon for SoundCloud (path from Simple Icons - simpleicons.org)
+const SoundcloudIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.56 8.87V17h8.76c1.76 0 3.19-1.43 3.19-3.19a3.19 3.19 0 0 0-1.5-2.71 4.63 4.63 0 0 0 .18-1.28 4.74 4.74 0 0 0-4.74-4.74c-.7 0-1.38.15-1.99.43A5.09 5.09 0 0 0 5 10a2.8 2.8 0 1 0 0 5.6v.01h.83V10a4.28 4.28 0 0 1 5.73-1.13zM2.22 12.53a1.17 1.17 0 1 0 0 2.34 1.17 1.17 0 0 0 0-2.34zm2.42 1.07V14H5v.6h-.36v-1zm.75-.6v2.2h.35v-2.2zm.75.38v1.82h.35v-1.82zm.75-.26v2.08h.35v-2.08zm.75-.37v2.45H8v-2.45z"/>
+  </svg>
+);
+
 interface SidebarProps {
-  view: 'all' | 'mine' | 'pending' | 'admin' | 'profile';
-  setView: (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile') => void;
+  view: 'all' | 'mine' | 'pending' | 'admin' | 'profile' | 'youtube' | 'soundcloud';
+  setView: (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile' | 'youtube' | 'soundcloud') => void;
   onUploadClick: () => void;
   isOpen?: boolean;
   onClose?: () => void;
@@ -28,6 +42,7 @@ export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose 
   const [newName, setNewName]   = useState('');
   const [showInput, setShowInput] = useState(false);
   const [showLang, setShowLang]   = useState(false);
+  const [showAllSongsMenu, setShowAllSongsMenu] = useState(true);
 
   const handleCreatePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +57,7 @@ export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose 
     setShowLang(false);
   };
 
-  const handleNavClick = (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile') => {
+  const handleNavClick = (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile' | 'youtube' | 'soundcloud') => {
     setView(v);
     setCurrentPlaylist(null);
     if (onClose) onClose();
@@ -90,12 +105,58 @@ export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose 
       <div className="px-3 pt-4 pb-2">
         <p className="px-2 text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-1.5">{t('nav.discover')}</p>
         <nav className="space-y-0.5">
-          <NavBtn
-            active={view === 'all' && !currentPlaylist}
-            icon={<PlayCircle className="w-4 h-4" />}
-            label={t('nav.allSongs')}
-            onClick={() => handleNavClick('all')}
-          />
+          {/* All Songs with expandable sub-menu */}
+          <div>
+            <div className="flex items-center">
+              <button
+                onClick={() => { handleNavClick('all'); setShowAllSongsMenu(v => !v); }}
+                className={`flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  (view === 'all' || view === 'youtube' || view === 'soundcloud') && !currentPlaylist
+                    ? 'bg-purple-600/10 text-purple-400 border-l-2 border-purple-500 pl-2.5'
+                    : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'
+                }`}
+              >
+                <PlayCircle className="w-4 h-4" />
+                <span className="flex-1 text-left">{t('nav.allSongs')}</span>
+              </button>
+              <button
+                onClick={() => setShowAllSongsMenu(v => !v)}
+                className="p-2 text-zinc-600 hover:text-zinc-300 transition-colors"
+              >
+                {showAllSongsMenu
+                  ? <ChevronDown className="w-3 h-3" />
+                  : <ChevronRight className="w-3 h-3" />}
+              </button>
+            </div>
+
+            {/* Sub-menu: YouTube & SoundCloud */}
+            {showAllSongsMenu && (
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/5 pl-3">
+                <button
+                  onClick={() => handleNavClick('youtube')}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    view === 'youtube' && !currentPlaylist
+                      ? 'bg-red-600/15 text-red-400 border-l-2 border-red-500'
+                      : 'text-zinc-600 hover:bg-white/5 hover:text-zinc-300'
+                  }`}
+                >
+                  <YoutubeIcon className="w-3.5 h-3.5" />
+                  <span>YouTube</span>
+                </button>
+                <button
+                  onClick={() => handleNavClick('soundcloud')}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    view === 'soundcloud' && !currentPlaylist
+                      ? 'bg-orange-600/15 text-orange-400 border-l-2 border-orange-500'
+                      : 'text-zinc-600 hover:bg-white/5 hover:text-zinc-300'
+                  }`}
+                >
+                  <SoundcloudIcon className="w-3.5 h-3.5" />
+                  <span>SoundCloud</span>
+                </button>
+              </div>
+            )}
+          </div>
           <NavBtn
             active={view === 'mine' && !currentPlaylist}
             icon={<Music className="w-4 h-4" />}

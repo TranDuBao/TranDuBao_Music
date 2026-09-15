@@ -31,7 +31,9 @@ const vi = {
   // Trình phát
   player: {
     noSong: 'Chưa chọn bài hát',
+    noSongSelected: 'Chưa chọn bài hát',
     selectSong: 'Chọn một bài hát để bắt đầu nghe',
+    chooseSong: 'Chọn một bài hát để bắt đầu nghe',
     shuffle: 'Phát ngẫu nhiên',
     repeat: 'Lặp lại',
   },

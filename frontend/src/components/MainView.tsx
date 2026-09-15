@@ -23,8 +23,8 @@ interface Album {
 }
 
 interface MainViewProps {
-  view: 'all' | 'mine' | 'pending' | 'admin' | 'profile';
-  setView: (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile') => void;
+  view: 'all' | 'mine' | 'pending' | 'admin' | 'profile' | 'youtube' | 'soundcloud';
+  setView: (v: 'all' | 'mine' | 'pending' | 'admin' | 'profile' | 'youtube' | 'soundcloud') => void;
   onUploadClick: () => void;
   toggleSidebar?: () => void;
 }
@@ -151,6 +151,8 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
         } else if (view === 'mine') {
           fetchTracks(searchQuery, true, selectedCategoryId, 'approved');
         } else {
+          // 'all', 'youtube', 'soundcloud' all fetch the full approved library
+          // Source filtering is done client-side
           fetchTracks(searchQuery, false, selectedCategoryId, 'approved');
         }
       }
@@ -170,7 +172,11 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
           ? (i18n.language === 'vi' ? '⏳ Nhạc chờ duyệt' : '⏳ Pending Music')
           : view === 'mine'
             ? t('tracks.myTracks')
-            : t('tracks.allTracks');
+            : view === 'youtube'
+              ? (i18n.language === 'vi' ? 'Nhạc từ YouTube' : 'YouTube Music')
+              : view === 'soundcloud'
+                ? (i18n.language === 'vi' ? 'Nhạc từ SoundCloud' : 'SoundCloud Music')
+                : t('tracks.allTracks');
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -208,8 +214,20 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
         t.title.toLowerCase().includes(artistLower)
       );
     }
+
+    // ── Source filter for YouTube / SoundCloud sub-views ──
+    if (!currentPlaylist) {
+      if (view === 'youtube') {
+        list = list.filter(t =>
+          t.audio_url?.includes('youtube.com') || t.audio_url?.includes('youtu.be')
+        );
+      } else if (view === 'soundcloud') {
+        list = list.filter(t => t.audio_url?.includes('soundcloud.com'));
+      }
+    }
+
     return list;
-  }, [activeTracks, selectedArtist, selectedAlbum]);
+  }, [activeTracks, selectedArtist, selectedAlbum, view, currentPlaylist]);
 
   // Shuffle logic: each user gets a uniquely shuffled list by default.
   // Clicking "Shuffle" reshuffles the list to another random permutation.
@@ -273,6 +291,21 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
   useEffect(() => {
     setCurrentPage(1);
   }, [currentPlaylist, view, searchQuery]);
+
+  // Keep a ref to displayedTracks so the auto-page sync effect always reads the latest list
+  const displayedTracksRef = React.useRef(displayedTracks);
+  displayedTracksRef.current = displayedTracks;
+
+  // ── Auto-page sync: when currently playing track changes, jump to the page that contains it ──
+  useEffect(() => {
+    if (!currentTrack || currentPlaylist) return;
+    const list = displayedTracksRef.current;
+    const trackIdx = list.findIndex(t => t.id === currentTrack.id);
+    if (trackIdx === -1) return; // track not in this view
+    const trackPage = Math.floor(trackIdx / ITEMS_PER_PAGE) + 1;
+    setCurrentPage(prev => prev !== trackPage ? trackPage : prev);
+  }, [currentTrack?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   useEffect(() => {
     if (mainRef.current) {
@@ -440,6 +473,16 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-4">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              {view === 'youtube' && !currentPlaylist && (
+                <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#FF0000' }} viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+              )}
+              {view === 'soundcloud' && !currentPlaylist && (
+                <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#FF5500' }} viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.56 8.87V17h8.76c1.76 0 3.19-1.43 3.19-3.19a3.19 3.19 0 0 0-1.5-2.71 4.63 4.63 0 0 0 .18-1.28 4.74 4.74 0 0 0-4.74-4.74c-.7 0-1.38.15-1.99.43A5.09 5.09 0 0 0 5 10a2.8 2.8 0 1 0 0 5.6v.01h.83V10a4.28 4.28 0 0 1 5.73-1.13zM2.22 12.53a1.17 1.17 0 1 0 0 2.34 1.17 1.17 0 0 0 0-2.34zm2.42 1.07V14H5v.6h-.36v-1zm.75-.6v2.2h.35v-2.2zm.75.38v1.82h.35v-1.82zm.75-.26v2.08h.35v-2.08zm.75-.37v2.45H8v-2.45z"/>
+                </svg>
+              )}
               <span>{listTitle}</span>
               {(selectedArtist || selectedAlbum) && (
                 <button
