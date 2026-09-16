@@ -61,6 +61,11 @@ export function TracksTab({ authH }: { authH: Record<string, string> }) {
 
   useEffect(() => { fetch(); }, [search]);
   useEffect(() => { fetchCategories(); }, []);
+  useEffect(() => {
+    const handleTrackAdded = () => fetch();
+    window.addEventListener('track_added', handleTrackAdded);
+    return () => window.removeEventListener('track_added', handleTrackAdded);
+  }, []);
 
   const { showConfirm, showAlert } = useModalStore();
 

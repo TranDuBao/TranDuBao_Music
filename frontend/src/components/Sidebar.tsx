@@ -167,7 +167,7 @@ export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose 
             <NavBtn
               active={view === 'pending' && !currentPlaylist}
               icon={<Clock className="w-4 h-4 text-amber-400" />}
-              label={i18n.language === 'vi' ? 'Nhạc chờ duyệt' : 'Pending Music'}
+              label={t('nav.pendingMusic')}
               onClick={() => handleNavClick('pending')}
             />
           )}
@@ -221,7 +221,7 @@ export default function Sidebar({ view, setView, onUploadClick, isOpen, onClose 
                 return (
                   <div key={pl.id} className={`group flex items-center rounded-lg transition-all ${active ? 'bg-purple-600/10' : 'hover:bg-white/5'}`}>
                     <button
-                      onClick={() => { setCurrentPlaylist(pl); if (onClose) onClose(); }}
+                      onClick={() => { setView('all'); setCurrentPlaylist(pl); if (onClose) onClose(); }}
                       className={`flex-1 flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-left ${active ? 'text-purple-400' : 'text-zinc-400 group-hover:text-zinc-200'}`}
                     >
                       <ListMusic className="w-3.5 h-3.5 flex-shrink-0" />

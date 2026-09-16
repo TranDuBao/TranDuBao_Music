@@ -125,6 +125,9 @@ class Track {
   }
 
   static async delete(id) {
+    await query('DELETE FROM favorites WHERE track_id = ?', [id]);
+    await query('DELETE FROM playlist_tracks WHERE track_id = ?', [id]);
+    await query('DELETE FROM play_history WHERE track_id = ?', [id]);
     return await query('DELETE FROM tracks WHERE id = ?', [id]);
   }
 

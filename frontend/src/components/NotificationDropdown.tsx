@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { Bell, CheckCircle2, XCircle, Info, CheckCheck, Trash2, Volume2 } from 'lucide-react';
 import { API_BASE } from '../config';
@@ -63,6 +64,7 @@ export const playNotificationChime = () => {
 };
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNavigate }) => {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -98,7 +100,16 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 15000); // Poll every 15s
-    return () => clearInterval(interval);
+
+    const handleTrackAddedEvent = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('track_added', handleTrackAddedEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('track_added', handleTrackAddedEvent);
+    };
   }, [user]);
 
   // Close dropdown on outside click
@@ -209,14 +220,21 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-zinc-900/95 border border-white/10 backdrop-blur-xl rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+        <>
+          {/* Mobile backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 sm:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+
+          <div className="fixed inset-x-3 top-14 z-50 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-96 max-w-md bg-zinc-900/98 border border-white/10 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
           <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-zinc-950/40">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-zinc-100">Thông báo</span>
+              <span className="text-sm font-semibold text-zinc-100">{t('notification.title')}</span>
               {unreadCount > 0 && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-medium border border-purple-500/30">
-                  {unreadCount} chưa đọc
+                  {unreadCount} {t('notification.unread')}
                 </span>
               )}
             </div>
@@ -225,7 +243,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
               {/* Test chime sound button */}
               <button
                 onClick={playNotificationChime}
-                title="Thử âm thanh thông báo"
+                title={t('notification.title')}
                 className="p-1 rounded-lg text-zinc-400 hover:text-purple-400 hover:bg-white/5 transition-all"
               >
                 <Volume2 className="w-3.5 h-3.5" />
@@ -238,7 +256,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
                   className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Đã đọc tất cả</span>
+                  <span>{t('notification.markAllRead')}</span>
                 </button>
               )}
             </div>
@@ -249,7 +267,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
             {notifications.length === 0 ? (
               <div className="py-10 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
                 <Bell className="w-8 h-8 opacity-30 text-zinc-400" />
-                <span>Chưa có thông báo nào</span>
+                <span>{t('notification.noNotifications')}</span>
               </div>
             ) : (
               notifications.map(item => (
@@ -311,7 +329,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
             <span className="text-[9px] text-purple-400/80">Bấm vào để xem chi tiết</span>
           </div>
         </div>
-      )}
+      </>
+    )}
     </div>
   );
 };

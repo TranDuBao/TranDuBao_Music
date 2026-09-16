@@ -14,7 +14,7 @@ import {
 import { API_BASE, getAbsoluteUrl } from '../config';
 const API = API_BASE;
 
-type Tab = 'info' | 'security' | 'history' | 'uploads' | 'playlists';
+type Tab = 'info' | 'security' | 'history' | 'favorites' | 'uploads' | 'playlists';
 
 export default function UserProfilePage() {
   const { t } = useTranslation();
@@ -25,11 +25,12 @@ export default function UserProfilePage() {
   if (!user) return null;
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'info',      label: 'Thông tin cá nhân', icon: <User className="w-4 h-4" /> },
-    { id: 'security',  label: 'Bảo mật',            icon: <Lock className="w-4 h-4" /> },
-    { id: 'history',   label: 'Lịch sử nghe',       icon: <Clock className="w-4 h-4" /> },
-    { id: 'uploads',   label: 'Nhạc đã tải lên',    icon: <Music className="w-4 h-4" /> },
-    { id: 'playlists', label: 'Playlist của tôi',   icon: <ListMusic className="w-4 h-4" /> },
+    { id: 'info',      label: t('userProfile.personalInfo'), icon: <User className="w-4 h-4" /> },
+    { id: 'security',  label: t('userProfile.security'),     icon: <Lock className="w-4 h-4" /> },
+    { id: 'history',   label: t('userProfile.listenHistory'),icon: <Clock className="w-4 h-4" /> },
+    { id: 'favorites', label: t('userProfile.favorites'),    icon: <Heart className="w-4 h-4 text-rose-400 fill-rose-400/20" /> },
+    { id: 'uploads',   label: t('userProfile.myUploadedMusic'), icon: <Music className="w-4 h-4" /> },
+    { id: 'playlists', label: t('userProfile.myPlaylists'), icon: <ListMusic className="w-4 h-4" /> },
   ];
 
   return (
@@ -40,22 +41,22 @@ export default function UserProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
         {/* Navigation Sidebar inside settings */}
         <div className="md:col-span-1 flex flex-col gap-1 p-2 bg-zinc-950/60 border border-white/5 rounded-2xl">
-          <p className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Cài đặt tài khoản</p>
-          {tabs.map(t => (
+          <p className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('userProfile.accountSettings')}</p>
+          {tabs.map(tItem => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={tItem.id}
+              onClick={() => setTab(tItem.id)}
               className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
-                tab === t.id
+                tab === tItem.id
                   ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-lg shadow-purple-500/10'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                {t.icon}
-                <span>{t.label}</span>
+                {tItem.icon}
+                <span>{tItem.label}</span>
               </div>
-              <ChevronRight className={`w-3.5 h-3.5 opacity-50 ${tab === t.id ? 'opacity-100' : ''}`} />
+              <ChevronRight className={`w-3.5 h-3.5 opacity-50 ${tab === tItem.id ? 'opacity-100' : ''}`} />
             </button>
           ))}
         </div>
@@ -65,6 +66,7 @@ export default function UserProfilePage() {
           {tab === 'info'      && <InfoTab user={user} authH={authH} />}
           {tab === 'security'  && <SecurityTab user={user} authH={authH} />}
           {tab === 'history'   && <HistoryTab authH={authH} />}
+          {tab === 'favorites' && <FavoritesTab authH={authH} />}
           {tab === 'uploads'   && <UploadsTab authH={authH} />}
           {tab === 'playlists' && <PlaylistsTab authH={authH} />}
         </div>
@@ -75,6 +77,7 @@ export default function UserProfilePage() {
 
 // ── Profile Header (Avatar + basic info) ──────────────────────────
 function ProfileHeader({ user, token, authH }: any) {
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar_url || '');
@@ -112,10 +115,10 @@ function ProfileHeader({ user, token, authH }: any) {
       if (data.success) {
         setAvatarUrl(data.avatar_url);
         await initAuth();
-        showAlert('Thành công', 'Đã cập nhật ảnh đại diện mới!', 'success');
+        showAlert(t('common.success'), t('userProfile.updateAvatarSuccess'), 'success');
       }
     } catch (err: any) {
-      showAlert('Lỗi', err.response?.data?.message || 'Không thể cập nhật ảnh đại diện', 'error');
+      showAlert(t('common.error'), err.response?.data?.message || t('common.failed'), 'error');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -124,8 +127,8 @@ function ProfileHeader({ user, token, authH }: any) {
 
   const handleAvatarDelete = () => {
     showConfirm(
-      'Xóa ảnh đại diện',
-      'Bạn có chắc chắn muốn xóa ảnh đại diện hiện tại không?',
+      t('userProfile.deleteAvatarTitle'),
+      t('userProfile.deleteAvatarConfirm'),
       async () => {
         setUploading(true);
         try {
@@ -135,10 +138,10 @@ function ProfileHeader({ user, token, authH }: any) {
           if (data.success) {
             setAvatarUrl('');
             await initAuth();
-            showAlert('Thành công', 'Đã xóa ảnh đại diện thành công!', 'success');
+            showAlert(t('common.success'), t('userProfile.deleteAvatarSuccess'), 'success');
           }
         } catch (err: any) {
-          showAlert('Lỗi', err.response?.data?.message || 'Không thể xóa ảnh đại diện', 'error');
+          showAlert(t('common.error'), err.response?.data?.message || t('common.failed'), 'error');
         } finally {
           setUploading(false);
         }
@@ -161,7 +164,7 @@ function ProfileHeader({ user, token, authH }: any) {
             onClick={handleAvatarDelete}
             disabled={uploading}
             className="absolute bottom-1 left-1 w-9 h-9 bg-rose-600/90 hover:bg-rose-600 hover:scale-105 active:scale-95 rounded-full flex items-center justify-center border-4 border-zinc-950 shadow-lg transition-all cursor-pointer text-white"
-            title="Xóa ảnh đại diện"
+            title={t('userProfile.deleteAvatar')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -171,7 +174,7 @@ function ProfileHeader({ user, token, authH }: any) {
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           className="absolute bottom-1 right-1 w-9 h-9 bg-gradient-to-tr from-purple-600 to-pink-500 hover:scale-105 active:scale-95 rounded-full flex items-center justify-center border-4 border-zinc-950 shadow-lg transition-all cursor-pointer"
-          title="Thay đổi ảnh đại diện"
+          title={t('userProfile.changeAvatar')}
         >
           {uploading ? (
             <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -191,13 +194,13 @@ function ProfileHeader({ user, token, authH }: any) {
                 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' 
                 : 'bg-purple-500/10 border-purple-500/20 text-purple-400'
             }`}>
-              {user.role === 'admin' ? '👑 Admin' : '🎵 Người dùng'}
+              {user.role === 'admin' ? '👑 Admin' : `🎵 ${t('userProfile.normalUser')}`}
             </span>
           </div>
         </div>
-        <p className="text-sm text-zinc-400">{user.email || 'Liên kết qua Mạng xã hội'}</p>
+        <p className="text-sm text-zinc-400">{user.email || 'OAuth Account'}</p>
         <p className="text-sm text-zinc-500 italic max-w-lg">
-          {user.bio ? `"${user.bio}"` : 'Thành viên yêu âm nhạc của MusicStream.'}
+          {user.bio ? `"${user.bio}"` : t('userProfile.normalUserDesc')}
         </p>
       </div>
 
@@ -206,7 +209,7 @@ function ProfileHeader({ user, token, authH }: any) {
         imageSrc={cropperSrc}
         aspectRatio={1}
         cropShape="round"
-        title="Cắt ảnh đại diện"
+        title={t('userProfile.changeAvatar')}
         onCrop={handleCroppedAvatar}
         onClose={() => {
           setCropperOpen(false);
@@ -219,6 +222,7 @@ function ProfileHeader({ user, token, authH }: any) {
 
 // ── Info Tab ──────────────────────────────────────────────────────
 function InfoTab({ user, authH }: any) {
+  const { t } = useTranslation();
   const { initAuth } = useAuthStore();
   const [form, setForm]     = useState({ name: user.name || '', bio: user.bio || '' });
   const [status, setStatus] = useState<'idle'|'ok'|'err'>('idle');
@@ -236,13 +240,13 @@ function InfoTab({ user, authH }: any) {
       const { data } = await axios.put(`${API}/auth/profile`, form, { headers: authH });
       if (data.success) { 
         setStatus('ok'); 
-        setMsg('Cập nhật thông tin cá nhân thành công!'); 
+        setMsg(t('userProfile.infoUpdateSuccess')); 
         await initAuth(); 
       }
       else { setStatus('err'); setMsg(data.message); }
     } catch (e: any) { 
       setStatus('err'); 
-      setMsg(e.response?.data?.message || 'Có lỗi xảy ra khi cập nhật'); 
+      setMsg(e.response?.data?.message || t('common.error')); 
     } finally {
       setSaving(false);
       setTimeout(() => setStatus('idle'), 3000);
@@ -252,27 +256,25 @@ function InfoTab({ user, authH }: any) {
   return (
     <form onSubmit={save} className="space-y-5">
       <div>
-        <h3 className="text-lg font-bold text-white">Thông tin cá nhân</h3>
-        <p className="text-xs text-zinc-500">Cập nhật họ tên và mô tả ngắn hiển thị trên trang cá nhân.</p>
+        <h3 className="text-lg font-bold text-white">{t('userProfile.personalInfo')}</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Họ và tên" value={form.name} onChange={(v: string) => setForm({...form, name: v})} required />
+        <Field label={t('userProfile.fullName')} value={form.name} onChange={(v: string) => setForm({...form, name: v})} required />
         <div>
-          <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Email tài khoản</label>
+          <label className="block text-xs font-semibold text-zinc-400 mb-1.5">{t('userProfile.emailAddress')}</label>
           <input value={user.email || 'OAuth Account'} disabled
             className="w-full bg-zinc-900/40 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-sm text-zinc-500 cursor-not-allowed" />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Mô tả ngắn (Bio)</label>
+        <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Bio</label>
         <textarea
           value={form.bio}
           onChange={e => setForm({...form, bio: e.target.value})}
           rows={3}
           className="w-full bg-zinc-900/80 border border-zinc-800 focus:border-purple-500/60 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-zinc-600 resize-none transition-all"
-          placeholder="Giới thiệu bản thân..."
         />
       </div>
 
@@ -280,7 +282,7 @@ function InfoTab({ user, authH }: any) {
 
       <button type="submit" disabled={saving} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 active:scale-95 text-white font-bold rounded-xl text-xs transition-all cursor-pointer">
         {saving ? <div className="w-4 h-4 border border-white/40 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-        Lưu thay đổi
+        {saving ? t('userProfile.saving') : t('userProfile.saveChanges')}
       </button>
     </form>
   );
@@ -288,6 +290,7 @@ function InfoTab({ user, authH }: any) {
 
 // ── Security Tab ──────────────────────────────────────────────────
 function SecurityTab({ user, authH }: any) {
+  const { t } = useTranslation();
   const [form, setForm]     = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [show, setShow]     = useState(false);
   const [status, setStatus] = useState<'idle'|'ok'|'err'>('idle');
@@ -297,7 +300,7 @@ function SecurityTab({ user, authH }: any) {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.newPassword !== form.confirm) {
-      setStatus('err'); setMsg('Mật khẩu xác nhận không trùng khớp.'); return;
+      setStatus('err'); setMsg(t('userProfile.passwordMismatch')); return;
     }
     setSaving(true);
     try {
@@ -306,13 +309,13 @@ function SecurityTab({ user, authH }: any) {
         { headers: authH });
       if (data.success) { 
         setStatus('ok'); 
-        setMsg('Đổi mật khẩu thành công!'); 
+        setMsg(t('userProfile.passwordSuccess')); 
         setForm({ currentPassword:'', newPassword:'', confirm:'' }); 
       }
       else { setStatus('err'); setMsg(data.message); }
     } catch (e: any) { 
       setStatus('err'); 
-      setMsg(e.response?.data?.message || 'Mật khẩu hiện tại không chính xác'); 
+      setMsg(e.response?.data?.message || t('auth.invalidCredentials')); 
     } finally {
       setSaving(false);
       setTimeout(() => setStatus('idle'), 3000);
@@ -326,8 +329,8 @@ function SecurityTab({ user, authH }: any) {
           <Lock className="w-5 h-5 text-zinc-500" />
         </div>
         <div>
-          <p className="text-zinc-300 font-bold text-sm">Không thể đổi mật khẩu</p>
-          <p className="text-xs text-zinc-500 max-w-sm mt-1">Tài khoản này được đăng nhập thông qua OAuth ({user.provider}). Bạn vui lòng thay đổi mật khẩu từ trang tài khoản liên kết.</p>
+          <p className="text-zinc-300 font-bold text-sm">{t('userProfile.security')}</p>
+          <p className="text-xs text-zinc-500 max-w-sm mt-1">{t('userProfile.socialAccountNote')}</p>
         </div>
       </div>
     );
@@ -336,14 +339,13 @@ function SecurityTab({ user, authH }: any) {
   return (
     <form onSubmit={save} className="space-y-5">
       <div>
-        <h3 className="text-lg font-bold text-white">Đổi mật khẩu</h3>
-        <p className="text-xs text-zinc-500">Bảo vệ tài khoản của bạn bằng cách cập nhật mật khẩu định kỳ.</p>
+        <h3 className="text-lg font-bold text-white">{t('userProfile.changePassword')}</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Field label="Mật khẩu hiện tại" value={form.currentPassword} onChange={(v:string)=>setForm({...form, currentPassword:v})} type={show?'text':'password'} required />
-        <Field label="Mật khẩu mới"      value={form.newPassword}      onChange={(v:string)=>setForm({...form, newPassword:v})}      type={show?'text':'password'} required />
-        <Field label="Xác nhận mật khẩu mới" value={form.confirm}     onChange={(v:string)=>setForm({...form, confirm:v})}          type={show?'text':'password'} required />
+        <Field label={t('userProfile.currentPassword')} value={form.currentPassword} onChange={(v:string)=>setForm({...form, currentPassword:v})} type={show?'text':'password'} required />
+        <Field label={t('userProfile.newPassword')}      value={form.newPassword}      onChange={(v:string)=>setForm({...form, newPassword:v})}      type={show?'text':'password'} required />
+        <Field label={t('userProfile.confirmNewPassword')} value={form.confirm}     onChange={(v:string)=>setForm({...form, confirm:v})}          type={show?'text':'password'} required />
       </div>
 
       <div className="flex items-center justify-between">
@@ -352,7 +354,7 @@ function SecurityTab({ user, authH }: any) {
           onClick={() => setShow(!show)}
           className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
-          {show ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+          {show ? 'Hide Password' : 'Show Password'}
         </button>
       </div>
 
@@ -360,7 +362,7 @@ function SecurityTab({ user, authH }: any) {
 
       <button type="submit" disabled={saving} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 active:scale-95 text-white font-bold rounded-xl text-xs transition-all cursor-pointer">
         {saving ? <div className="w-4 h-4 border border-white/40 border-t-white rounded-full animate-spin" /> : <Lock className="w-4 h-4" />}
-        Đổi mật khẩu
+        {t('userProfile.updatePasswordBtn')}
       </button>
     </form>
   );
@@ -368,6 +370,7 @@ function SecurityTab({ user, authH }: any) {
 
 // ── History Tab ───────────────────────────────────────────────────
 function HistoryTab({ authH }: any) {
+  const { t, i18n } = useTranslation();
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { playTrack } = useMusicStore();
@@ -388,13 +391,13 @@ function HistoryTab({ authH }: any) {
   }, []);
 
   if (loading) return <LoadingSpinner />;
-  if (history.length === 0) return <EmptyState icon={<Clock />} msg="Chưa có lịch sử nghe nhạc gần đây." />;
+  if (history.length === 0) return <EmptyState icon={<Clock />} msg={t('userProfile.noHistory')} />;
 
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-bold text-white">Lịch sử nghe nhạc</h3>
-        <p className="text-xs text-zinc-500">Xem lại các bài hát bạn đã thưởng thức gần đây.</p>
+        <h3 className="text-lg font-bold text-white">{t('userProfile.historyTitle')}</h3>
+        <p className="text-xs text-zinc-500">{t('userProfile.historyDesc')}</p>
       </div>
 
       <div className="divide-y divide-white/[0.03] max-h-[400px] overflow-y-auto pr-1">
@@ -406,7 +409,7 @@ function HistoryTab({ authH }: any) {
               <p className="text-sm font-semibold text-zinc-200 truncate">{h.title}</p>
               <p className="text-xs text-zinc-500 truncate mt-0.5">{h.artist}</p>
             </div>
-            <p className="text-[10px] text-zinc-600 hidden sm:block">{new Date(h.played_at).toLocaleString('vi-VN')}</p>
+            <p className="text-[10px] text-zinc-600 hidden sm:block">{new Date(h.played_at).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}</p>
             <button
               onClick={() => playTrack(h, history)}
               className="w-8 h-8 rounded-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 flex items-center justify-center hover:scale-105 transition-all opacity-0 group-hover:opacity-100"
@@ -420,11 +423,85 @@ function HistoryTab({ authH }: any) {
   );
 }
 
+// ── Favorites Tab (Đã thích) ──────────────────────────────────────
+function FavoritesTab({ authH }: any) {
+  const { t } = useTranslation();
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { playTrack, toggleFavorite, favorites: storeFavs } = useMusicStore();
+
+  useEffect(() => {
+    axios.get(`${API}/favorites`, { headers: authH })
+      .then(r => {
+        if (r.data.success) {
+          setFavorites(r.data.data || []);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [storeFavs]);
+
+  const handleUnfavorite = async (e: React.MouseEvent, trackId: number) => {
+    e.stopPropagation();
+    await toggleFavorite(trackId);
+    setFavorites(prev => prev.filter(tItem => tItem.id !== trackId));
+  };
+
+  if (loading) return <LoadingSpinner />;
+  if (favorites.length === 0) return <EmptyState icon={<Heart className="text-rose-500 w-10 h-10" />} msg={t('userProfile.noFavorites')} />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <span>{t('userProfile.likedTitle')}</span>
+            <span className="text-xs bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold">
+              {favorites.length}
+            </span>
+          </h3>
+          <p className="text-xs text-zinc-500 mt-0.5">{t('userProfile.likedDesc')}</p>
+        </div>
+      </div>
+
+      <div className="divide-y divide-white/[0.03] max-h-[420px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
+        {favorites.map((f, i) => (
+          <div
+            key={f.id}
+            onClick={() => playTrack(f, favorites)}
+            className="flex items-center gap-4 py-3 group hover:bg-white/[0.02] px-2 rounded-xl transition-all cursor-pointer"
+          >
+            <span className="text-xs text-zinc-600 w-5 text-center font-bold">{i + 1}</span>
+            <img src={getAbsoluteUrl(f.cover_url) || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover border border-white/5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-zinc-200 truncate group-hover:text-purple-400 transition-colors">{f.title}</p>
+              <p className="text-xs text-zinc-500 truncate mt-0.5">{f.artist}</p>
+            </div>
+            <button
+              onClick={(e) => handleUnfavorite(e, f.id)}
+              className="p-2 text-rose-500 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-all"
+            >
+              <Heart className="w-4 h-4 fill-current" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); playTrack(f, favorites); }}
+              className="w-8 h-8 rounded-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 flex items-center justify-center hover:scale-105 transition-all opacity-0 group-hover:opacity-100"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Uploads Tab ───────────────────────────────────────────────────
 function UploadsTab({ authH }: any) {
+  const { t } = useTranslation();
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { playTrack } = useMusicStore();
+  const { showConfirm } = useModalStore();
 
   useEffect(() => {
     axios.get(`${API}/auth/my-uploads`, { headers: authH })
@@ -432,72 +509,70 @@ function UploadsTab({ authH }: any) {
       .finally(() => setLoading(false));
   }, []);
 
-  const deleteTrack = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa bài hát này khỏi hệ thống?')) return;
-    await axios.delete(`${API}/tracks/${id}`, { headers: authH });
-    setTracks(t => t.filter(x => x.id !== id));
+  const deleteTrack = (id: number) => {
+    showConfirm(
+      t('tracks.deleteSong'),
+      t('tracks.deleteSongConfirm') || 'Are you sure you want to delete this track?',
+      async () => {
+        await axios.delete(`${API}/tracks/${id}`, { headers: authH });
+        setTracks(tList => tList.filter(x => x.id !== id));
+      }
+    );
   };
 
   if (loading) return <LoadingSpinner />;
-  if (tracks.length === 0) return <EmptyState icon={<Music />} msg="Bạn chưa tải lên bài hát nào." />;
+  if (tracks.length === 0) return <EmptyState icon={<Music />} msg={t('userProfile.noUploads')} />;
 
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-bold text-white">Nhạc đã tải lên</h3>
-        <p className="text-xs text-zinc-500">Quản lý và chỉnh sửa các tệp âm thanh bạn đã tự upload lên đám mây cá nhân.</p>
+        <h3 className="text-lg font-bold text-white">{t('userProfile.uploadedTitle')}</h3>
+        <p className="text-xs text-zinc-500">{t('userProfile.uploadedDesc')}</p>
       </div>
 
       <div className="space-y-2">
-        {tracks.map((t, i) => (
-          <div key={t.id} className="flex items-center gap-3 p-3 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/[0.01] transition-all group">
+        {tracks.map((tItem, i) => (
+          <div key={tItem.id} className="flex items-center gap-3 p-3 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/[0.01] transition-all group">
             <span className="text-xs font-bold text-zinc-600 w-5 text-center">{i+1}</span>
-            <img src={getAbsoluteUrl(t.cover_url) || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover" />
+            <img src={getAbsoluteUrl(tItem.cover_url) || 'https://via.placeholder.com/48'} className="w-12 h-12 rounded-lg object-cover" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-zinc-200 truncate">{t.title}</p>
-              <p className="text-xs text-zinc-500 truncate mt-0.5">{t.artist} · <span className="text-zinc-600">{t.genre}</span></p>
+              <p className="text-sm font-semibold text-zinc-200 truncate">{tItem.title}</p>
+              <p className="text-xs text-zinc-500 truncate mt-0.5">{tItem.artist} · <span className="text-zinc-600">{tItem.genre}</span></p>
             </div>
             
             <div className="flex items-center gap-3">
-              {t.status === 'pending' ? (
+              {tItem.status === 'pending' ? (
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-400">
-                  ⏳ Chờ duyệt
+                  ⏳ {t('tracks.pending')}
                 </span>
-              ) : t.status === 'rejected' ? (
+              ) : tItem.status === 'rejected' ? (
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-rose-500/10 border-rose-500/20 text-rose-400">
-                  ❌ Bị từ chối
+                  ❌ {t('tracks.rejected')}
                 </span>
               ) : (
                 <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                  t.is_public ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'
+                  tItem.is_public ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'
                 }`}>
-                  {t.is_public ? 'Công khai' : 'Riêng tư'}
+                  {tItem.is_public ? t('tracks.public') : t('tracks.private')}
                 </span>
               )}
-              <span className="text-xs text-zinc-500 hidden sm:block">{t.play_count || 0} lượt nghe</span>
+              <span className="text-xs text-zinc-500 hidden sm:block">{tItem.play_count || 0} {t('admin.playsCount')}</span>
               
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => playTrack(t, tracks)}
+                  onClick={() => playTrack(tItem, tracks)}
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                    t.status === 'rejected'
+                    tItem.status === 'rejected'
                       ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 opacity-60 hover:opacity-100'
-                      : t.status === 'pending'
+                      : tItem.status === 'pending'
                         ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 opacity-70 hover:opacity-100'
                         : 'bg-purple-600/10 hover:bg-purple-600/20 text-purple-400'
                   }`}
-                  title={
-                    t.status === 'rejected'
-                      ? 'Bài hát đã bị từ chối'
-                      : t.status === 'pending'
-                        ? 'Bài hát đang chờ duyệt'
-                        : 'Phát bài hát'
-                  }
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                 </button>
                 <button 
-                  onClick={() => deleteTrack(t.id)} 
+                  onClick={() => deleteTrack(tItem.id)} 
                   className="w-8 h-8 rounded-full bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -513,6 +588,7 @@ function UploadsTab({ authH }: any) {
 
 // ── Playlists Tab ─────────────────────────────────────────────────
 function PlaylistsTab({ authH }: any) {
+  const { t } = useTranslation();
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [expanded, setExpanded]   = useState<number|null>(null);
   const [tracks, setTracks]       = useState<Record<number,any[]>>({});
@@ -535,13 +611,13 @@ function PlaylistsTab({ authH }: any) {
   };
 
   if (loading) return <LoadingSpinner />;
-  if (playlists.length === 0) return <EmptyState icon={<ListMusic />} msg="Chưa có danh sách phát nào được tạo." />;
+  if (playlists.length === 0) return <EmptyState icon={<ListMusic />} msg={t('playlists.noPlaylists')} />;
 
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-bold text-white">Playlist của tôi</h3>
-        <p className="text-xs text-zinc-500">Danh sách phát nhạc cá nhân của riêng bạn.</p>
+        <h3 className="text-lg font-bold text-white">{t('userProfile.playlistsTitle')}</h3>
+        <p className="text-xs text-zinc-500">{t('userProfile.playlistsDesc')}</p>
       </div>
 
       <div className="space-y-3">
@@ -557,27 +633,26 @@ function PlaylistsTab({ authH }: any) {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-zinc-200">{pl.name}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{pl.description || 'Không có mô tả'}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{pl.description || t('playlists.empty')}</p>
                 </div>
               </div>
-              <span className="text-xs text-zinc-500">{expanded === pl.id ? 'Ẩn chi tiết' : 'Xem chi tiết'}</span>
             </button>
 
             {expanded === pl.id && (
               <div className="border-t border-white/5 divide-y divide-white/[0.02] bg-black/20 p-2 space-y-1">
                 {(tracks[pl.id] || []).length === 0 ? (
-                  <p className="text-xs text-zinc-600 p-3 italic">Playlist trống. Hãy thêm các bài hát yêu thích!</p>
+                  <p className="text-xs text-zinc-600 p-3 italic">{t('playlists.empty')}</p>
                 ) : (
-                  (tracks[pl.id] || []).map((t, i) => (
-                    <div key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/[0.02] group">
+                  (tracks[pl.id] || []).map((tItem, i) => (
+                    <div key={tItem.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/[0.02] group">
                       <span className="text-xs text-zinc-600 w-4 font-bold">{i+1}</span>
-                      <img src={getAbsoluteUrl(t.cover_url)} className="w-9 h-9 rounded object-cover" />
+                      <img src={getAbsoluteUrl(tItem.cover_url)} className="w-9 h-9 rounded object-cover" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-zinc-300 truncate">{t.title}</p>
-                        <p className="text-[10px] text-zinc-500 truncate mt-0.5">{t.artist}</p>
+                        <p className="text-xs font-semibold text-zinc-300 truncate">{tItem.title}</p>
+                        <p className="text-[10px] text-zinc-500 truncate mt-0.5">{tItem.artist}</p>
                       </div>
                       <button
-                        onClick={() => playTrack(t, tracks[pl.id])}
+                        onClick={() => playTrack(tItem, tracks[pl.id])}
                         className="w-7 h-7 rounded-full bg-purple-600/10 text-purple-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105"
                       >
                         <Play className="w-3 h-3 fill-current" />

@@ -63,16 +63,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       const { data } = await axios.get(`${API}/auth/me`, { timeout: 5000 });
       if (data.success) {
-        set({ user: data.user, token, loading: false });
+        set({ user: data.user, token });
       } else {
         setStoredToken(null);
         setAxiosAuth(null);
-        set({ token: null, user: null, loading: false });
+        set({ token: null, user: null });
       }
     } catch {
       setStoredToken(null);
       setAxiosAuth(null);
-      set({ token: null, user: null, loading: false });
+      set({ token: null, user: null });
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -82,7 +84,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (data.success) {
         setStoredToken(data.token);
         setAxiosAuth(data.token);
-        set({ token: data.token, user: data.user });
+        set({ token: data.token, user: data.user, loading: false });
         axios.post(`${API}/visits/log`).catch(() => {});
         return { success: true };
       }
@@ -98,7 +100,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (data.success) {
         setStoredToken(data.token);
         setAxiosAuth(data.token);
-        set({ token: data.token, user: data.user });
+        set({ token: data.token, user: data.user, loading: false });
         axios.post(`${API}/visits/log`).catch(() => {});
         return { success: true };
       }
@@ -109,6 +111,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   loginWithToken: async (token) => {
+    set({ loading: true });
     setStoredToken(token);
     setAxiosAuth(token);
     try {
@@ -116,17 +119,24 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (data.success) {
         set({ token, user: data.user });
         axios.post(`${API}/visits/log`).catch(() => {});
+      } else {
+        setStoredToken(null);
+        setAxiosAuth(null);
+        set({ token: null, user: null });
       }
     } catch {
       setStoredToken(null);
       setAxiosAuth(null);
+      set({ token: null, user: null });
+    } finally {
+      set({ loading: false });
     }
   },
 
   logout: () => {
     setStoredToken(null);
     setAxiosAuth(null);
-    set({ token: null, user: null });
+    set({ token: null, user: null, loading: false });
     useMusicStore.getState().resetPlayer();
   },
 

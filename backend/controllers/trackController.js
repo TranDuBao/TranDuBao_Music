@@ -258,6 +258,11 @@ const createTrack = async (req, res) => {
 
     await invalidateTracksCache();
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('track_added', { track: newTrack });
+    }
+
     res.status(201).json({ success: true, data: newTrack });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -705,6 +710,11 @@ const importTrack = async (req, res) => {
 
     await invalidateTracksCache();
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('track_added', { track: newTrack });
+    }
+
     return res.status(201).json({ success: true, data: newTrack });
 
   } catch (err) {
@@ -1007,17 +1017,19 @@ const streamTrack = async (req, res) => {
 
 const getTopWeekly = async (req, res) => {
   try {
+    const { dbType } = require('../config/db');
     // played_at is stored as Vietnam time (UTC+7), compare against 7 days ago in VN time
     const timeExpr = dbType === 'mysql'
       ? 'DATE_SUB(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR), INTERVAL 7 DAY)'
       : "datetime('now', '+7 hours', '-7 days')";
 
     const topTracks = await query(`
-      SELECT t.id, t.title, t.artist, t.cover_url, t.audio_url, t.genre, t.duration,
+      SELECT t.id, t.title, t.artist, t.cover_url, t.audio_url, t.genre, t.duration, t.status,
              COUNT(ph.id) as weekly_plays
       FROM tracks t
       JOIN play_history ph ON ph.track_id = t.id
       WHERE ph.played_at >= ${timeExpr}
+      AND (t.status = 'approved' OR t.status IS NULL)
       GROUP BY t.id
       ORDER BY weekly_plays DESC
       LIMIT 5

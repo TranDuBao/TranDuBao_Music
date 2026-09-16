@@ -8,6 +8,7 @@ class Favorite {
       JOIN tracks t ON f.track_id = t.id
       LEFT JOIN users u ON t.user_id = u.id
       WHERE f.user_id = ?
+      AND (t.status = 'approved' OR t.status IS NULL)
       ORDER BY f.created_at DESC`, [userId]);
   }
   static async toggle(userId, trackId) {
@@ -26,9 +27,12 @@ class Favorite {
   }
   static async getStats() {
     return await query(`
-      SELECT t.id, t.title, t.artist, COUNT(f.user_id) as favorite_count
-      FROM tracks t LEFT JOIN favorites f ON f.track_id = t.id
-      GROUP BY t.id, t.title, t.artist ORDER BY favorite_count DESC LIMIT 10`);
+      SELECT t.id, t.title, t.artist, t.cover_url, t.audio_url, t.duration, COUNT(f.user_id) as favorite_count
+      FROM tracks t
+      JOIN favorites f ON f.track_id = t.id
+      WHERE (t.status = 'approved' OR t.status IS NULL)
+      GROUP BY t.id, t.title, t.artist, t.cover_url, t.audio_url, t.duration
+      ORDER BY favorite_count DESC`);
   }
 }
 module.exports = Favorite;

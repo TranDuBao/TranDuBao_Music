@@ -123,6 +123,27 @@ const removeTrackFromPlaylist = async (req, res) => {
   }
 };
 
+const reorderPlaylistTracks = async (req, res) => {
+  try {
+    const { trackIds } = req.body;
+    const userId = req.user?.id;
+    const playlistId = req.params.id;
+    const playlist = await Playlist.getById(playlistId);
+    if (!playlist) {
+      return res.status(404).json({ success: false, message: 'Playlist not found' });
+    }
+    if (playlist.user_id !== userId) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    if (Array.isArray(trackIds)) {
+      await Playlist.reorderTracks(playlistId, trackIds);
+    }
+    res.json({ success: true, message: 'Playlist reordered' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAllPlaylists,
   getPlaylistById,
@@ -130,5 +151,6 @@ module.exports = {
   deletePlaylist,
   getPlaylistTracks,
   addTrackToPlaylist,
-  removeTrackFromPlaylist
+  removeTrackFromPlaylist,
+  reorderPlaylistTracks
 };

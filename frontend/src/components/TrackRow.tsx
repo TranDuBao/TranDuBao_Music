@@ -117,12 +117,13 @@ export default function TrackRow({
 
   return (
     <div
-      className={`group flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 border ${isDragOver
+      className={`group flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 border cursor-pointer ${isDragOver
           ? 'border-purple-500/60 bg-purple-950/20 scale-[1.01] shadow-lg shadow-purple-500/10'
           : isActive
             ? 'bg-purple-950/20 border-purple-500/20 shadow-sm'
             : 'hover:bg-white/5 border-transparent'
         } ${dragMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      onClick={handlePlayClick}
       draggable={dragMode}
       onDragStart={dragMode ? (e) => onDragStart?.(e, index) : undefined}
       onDragOver={dragMode ? (e) => { e.preventDefault(); onDragOver?.(e, index); } : undefined}
@@ -142,7 +143,7 @@ export default function TrackRow({
         <div className="w-8 flex items-center justify-center flex-shrink-0">
           {isActive ? (
             <button
-              onClick={handlePlayClick}
+              onClick={(e) => { e.stopPropagation(); handlePlayClick(); }}
               className="text-purple-400 hover:scale-105 transition-transform"
             >
               {isPlaying ? (
@@ -160,7 +161,7 @@ export default function TrackRow({
             <>
               <span className="text-zinc-600 text-sm group-hover:hidden">{index + 1}</span>
               <button
-                onClick={handlePlayClick}
+                onClick={(e) => { e.stopPropagation(); handlePlayClick(); }}
                 className="hidden group-hover:flex text-zinc-300 hover:text-white transition-all"
               >
                 <Play className="w-4 h-4 fill-current" />
@@ -171,7 +172,7 @@ export default function TrackRow({
 
         {/* Cover Art & Title wrapped with Hover Preview */}
         <TrackHoverPreview track={track}>
-          <div className="flex items-center gap-3.5 min-w-0 cursor-pointer">
+          <div className="flex items-center gap-3.5 min-w-0">
             {/* Cover Art */}
             <div className="w-11 h-11 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center relative flex-shrink-0 border border-white/5 shadow-sm">
               {track.cover_url ? (
@@ -277,7 +278,7 @@ export default function TrackRow({
           )}
           {/* Favorite button */}
           <button
-            onClick={() => toggleFavorite(track.id)}
+            onClick={(e) => { e.stopPropagation(); toggleFavorite(track.id); }}
             className={`p-2 rounded-lg hover:bg-white/5 transition-all ${isFavorited ? 'text-rose-500' : 'text-zinc-500 hover:text-rose-400'}`}
             title={isFavorited ? (i18n.language === 'vi' ? 'Bỏ yêu thích' : 'Unfavorite') : (i18n.language === 'vi' ? 'Yêu thích' : 'Favorite')}
           >
@@ -287,7 +288,7 @@ export default function TrackRow({
           {/* Add to playlist / Remove from playlist button */}
           {currentPlaylist ? (
             <button
-              onClick={handleRemoveFromPlaylist}
+              onClick={(e) => { e.stopPropagation(); handleRemoveFromPlaylist(); }}
               className="text-zinc-500 hover:text-rose-400 p-2 rounded-lg hover:bg-white/5 transition-all"
               title={t('tracks.removeFromPlaylist')}
             >
@@ -296,7 +297,7 @@ export default function TrackRow({
           ) : (
             <div className="relative">
               <button
-                onClick={() => setShowPlaylists(!showPlaylists)}
+                onClick={(e) => { e.stopPropagation(); setShowPlaylists(!showPlaylists); }}
                 className="text-zinc-500 hover:text-purple-400 p-2 rounded-lg hover:bg-white/5 transition-all"
                 title={t('tracks.addToPlaylist')}
               >
@@ -305,7 +306,7 @@ export default function TrackRow({
 
               {showPlaylists && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowPlaylists(false)} />
+                  <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setShowPlaylists(false); }} />
                   <div className="absolute right-0 mt-2 w-48 rounded-lg bg-zinc-900 border border-zinc-800 shadow-xl py-1 z-20">
                     <p className="px-3 py-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                       {t('tracks.addToPlaylist')}
@@ -316,7 +317,7 @@ export default function TrackRow({
                       playlists.map((pl) => (
                         <button
                           key={pl.id}
-                          onClick={() => handleAddToPlaylist(pl.id)}
+                          onClick={(e) => { e.stopPropagation(); handleAddToPlaylist(pl.id); }}
                           className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-purple-600 hover:text-white transition-all truncate"
                         >
                           {pl.name}
@@ -332,7 +333,7 @@ export default function TrackRow({
           {/* Delete track entirely if permitted */}
           {showDelete && !currentPlaylist && (
             <button
-              onClick={() => deleteTrack(track.id)}
+              onClick={(e) => { e.stopPropagation(); deleteTrack(track.id); }}
               className="text-zinc-500 hover:text-rose-500 p-2 rounded-lg hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100"
               title={t('tracks.deleteSong')}
             >

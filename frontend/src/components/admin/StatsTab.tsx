@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BarChart2, RefreshCw, TrendingUp, Activity, Clock, Globe, Eye, Users, FolderOpen, Music } from 'lucide-react';
+import { BarChart2, RefreshCw, TrendingUp, Activity, Clock, Globe, Eye, Users, FolderOpen, Music, Heart, Play, X } from 'lucide-react';
 import axios from 'axios';
 import { formatCount, formatDateLabel } from '../../utils/format';
 import { API_BASE, getAbsoluteUrl } from '../../config';
+import { useMusicStore } from '../../store/useMusicStore';
 
 const API = API_BASE;
 
@@ -38,6 +39,8 @@ export function StatsTab({ authH }: { authH: Record<string, string> }) {
   const isVi = i18n.language === 'vi';
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showFavoritesModal, setShowFavoritesModal] = useState(false);
+  const { playTrack } = useMusicStore();
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [categoryTracks, setCategoryTracks] = useState<any[]>([]);
   const [catLoading, setCatLoading] = useState(false);
@@ -207,14 +210,25 @@ export function StatsTab({ authH }: { authH: Record<string, string> }) {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {([
-          { label: isVi ? 'Người dùng' : 'Users', value: stats.totalUsers ?? 0, icon: '👤', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20 shadow-[0_4px_20px_rgba(59,130,246,0.05)]' },
-          { label: isVi ? 'Bài hát' : 'Tracks', value: stats.totalTracks ?? 0, icon: '🎵', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20 shadow-[0_4px_20px_rgba(168,85,247,0.05)]' },
-          { label: isVi ? 'Lượt nghe' : 'Total Plays', value: formatCount(Number(stats.totalPlays ?? 0)), icon: '▶️', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' },
-          { label: isVi ? 'Yêu thích' : 'Favorites', value: stats.totalFavorites ?? 0, icon: '❤️', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20 shadow-[0_4px_20px_rgba(244,63,94,0.05)]' },
-        ] as const).map(card => (
-          <div key={card.label} className={`rounded-xl border p-4 transition-all duration-300 hover:scale-[1.02] ${card.bg}`}>
-            <div className="text-2xl mb-1">{card.icon}</div>
+        {[
+          { label: isVi ? 'Người dùng' : 'Users', value: stats.totalUsers ?? 0, icon: '👤', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20 shadow-[0_4px_20px_rgba(59,130,246,0.05)]', isFavorites: false },
+          { label: isVi ? 'Bài hát' : 'Tracks', value: stats.totalTracks ?? 0, icon: '🎵', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20 shadow-[0_4px_20px_rgba(168,85,247,0.05)]', isFavorites: false },
+          { label: isVi ? 'Lượt nghe' : 'Total Plays', value: formatCount(Number(stats.totalPlays ?? 0)), icon: '▶️', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.05)]', isFavorites: false },
+          { label: isVi ? 'Yêu thích (Bấm xem)' : 'Favorites (Click)', value: stats.totalFavorites ?? 0, icon: '❤️', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20 shadow-[0_4px_20px_rgba(244,63,94,0.05)]', isFavorites: true },
+        ].map(card => (
+          <div
+            key={card.label}
+            onClick={card.isFavorites ? () => setShowFavoritesModal(true) : undefined}
+            className={`rounded-xl border p-4 transition-all duration-300 ${card.isFavorites ? 'cursor-pointer hover:border-rose-500/60 hover:scale-[1.03] shadow-lg shadow-rose-500/10' : 'hover:scale-[1.02]'} ${card.bg}`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-2xl">{card.icon}</span>
+              {card.isFavorites && (
+                <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                  {isVi ? 'Xem chi tiết ➔' : 'View list ➔'}
+                </span>
+              )}
+            </div>
             <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
             <p className="text-xs text-zinc-500 mt-0.5">{card.label}</p>
           </div>
@@ -878,6 +892,85 @@ export function StatsTab({ authH }: { authH: Record<string, string> }) {
           )}
         </div>
       </div>
+
+      {/* Modal: Favorited Songs Breakdown & Total Likes per Track */}
+      {showFavoritesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-zinc-900 border border-rose-500/30 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl relative max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-500/15 rounded-xl border border-rose-500/30">
+                  <Heart className="w-6 h-6 text-rose-500 fill-rose-500 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {isVi ? 'Thống kê bài hát Đã thích' : 'Song Favorites Statistics'}
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {(() => {
+                      const calculatedTotalFavs = (stats.favoriteStats || []).reduce((sum: number, item: any) => sum + Number(item.favorite_count || 0), 0);
+                      return isVi ? `Tổng số ${calculatedTotalFavs} lượt thích trên toàn hệ thống` : `Total ${calculatedTotalFavs} favorites across system`;
+                    })()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFavoritesModal(false)}
+                className="text-zinc-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List of favorited tracks with total favorite counts */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
+              {(!stats.favoriteStats || stats.favoriteStats.length === 0) ? (
+                <div className="text-center py-12 text-zinc-500 text-sm">
+                  {isVi ? 'Chưa có bài hát nào được thả tim yêu thích.' : 'No tracks have been favorited yet.'}
+                </div>
+              ) : (
+                stats.favoriteStats.map((track: any, idx: number) => (
+                  <div
+                    key={track.id}
+                    onClick={() => playTrack(track, stats.favoriteStats)}
+                    className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/60 border border-white/5 hover:border-rose-500/30 hover:bg-zinc-800/60 transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <span className={`text-xs font-black w-6 text-center ${idx === 0 ? 'text-amber-400 text-sm' : idx === 1 ? 'text-zinc-300' : idx === 2 ? 'text-amber-600' : 'text-zinc-500'}`}>
+                        #{idx + 1}
+                      </span>
+                      <div className="w-11 h-11 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0 relative">
+                        {track.cover_url ? (
+                          <img src={getAbsoluteUrl(track.cover_url)} alt={track.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <Music className="w-5 h-5 text-zinc-600 m-auto mt-3" />
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Play className="w-4 h-4 text-white fill-current" />
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate group-hover:text-rose-400 transition-colors">
+                          {track.title}
+                        </p>
+                        <p className="text-xs text-zinc-400 truncate mt-0.5">{track.artist}</p>
+                      </div>
+                    </div>
+
+                    {/* Total favorite count badge */}
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/15 border border-rose-500/30 rounded-full text-rose-400 text-xs font-bold shadow-sm">
+                        <Heart className="w-3.5 h-3.5 fill-current" />
+                        <span>{formatCount(track.favorite_count)} {isVi ? 'lượt thích' : (track.favorite_count === 1 ? 'like' : 'likes')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

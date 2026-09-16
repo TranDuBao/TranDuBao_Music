@@ -54,6 +54,11 @@ function AppShell() {
     initAudio();
 
     // ── Socket.IO Real-time event listeners ──────────────────────
+    const onTrackAdded = (data: { track: any }) => {
+      fetchTracks();
+      window.dispatchEvent(new CustomEvent('track_added', { detail: data }));
+    };
+
     const onTrackDeleted = (data: { id: number; title?: string }) => {
       if (data && data.id) {
         handleTrackRemoved(data.id, data.title);
@@ -66,10 +71,12 @@ function AppShell() {
       }
     };
 
+    socket.on('track_added', onTrackAdded);
     socket.on('track_deleted', onTrackDeleted);
     socket.on('track_status_changed', onTrackStatusChanged);
 
     return () => {
+      socket.off('track_added', onTrackAdded);
       socket.off('track_deleted', onTrackDeleted);
       socket.off('track_status_changed', onTrackStatusChanged);
     };
@@ -109,6 +116,16 @@ function AppShell() {
 // ── Route Guard ────────────────────────────────────────────────────
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuthStore();
+
+  // Safety fallback: ensure loading never gets stuck for more than 4 seconds
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        useAuthStore.setState({ loading: false });
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   if (loading) {
     return (

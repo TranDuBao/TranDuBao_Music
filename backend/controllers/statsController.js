@@ -7,7 +7,7 @@ const getStats = async (req, res) => {
   try {
     const [userStats]  = await query("SELECT COUNT(*) as total FROM users");
     const [trackStats] = await query("SELECT COUNT(*) as total, COALESCE(SUM(play_count),0) as plays FROM tracks WHERE (status = 'approved' OR status IS NULL)");
-    const [favStats]   = await query("SELECT COUNT(*) as total FROM favorites");
+    const [favStats]   = await query("SELECT COUNT(f.user_id) as total FROM favorites f JOIN tracks t ON f.track_id = t.id WHERE (t.status = 'approved' OR t.status IS NULL)");
     const [ratingStats]= await query("SELECT COUNT(*) as total, AVG(rating) as avg FROM ratings");
 
     const topTracks = await query(`
@@ -15,6 +15,15 @@ const getStats = async (req, res) => {
       FROM tracks 
       WHERE (status = 'approved' OR status IS NULL)
       ORDER BY play_count DESC LIMIT 10`);
+
+    const topFavorites = await query(`
+      SELECT t.id, t.title, t.artist, t.cover_url, t.audio_url, t.genre, t.duration, COUNT(f.user_id) as favorite_count
+      FROM tracks t
+      JOIN favorites f ON f.track_id = t.id
+      WHERE (t.status = 'approved' OR t.status IS NULL)
+      GROUP BY t.id, t.title, t.artist, t.cover_url, t.audio_url, t.genre, t.duration
+      ORDER BY favorite_count DESC
+    `);
 
     const topRated = await Rating.getTopRated();
     const dailyPlays = await PlayHistory.getDailyStats(7);

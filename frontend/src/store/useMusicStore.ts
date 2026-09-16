@@ -66,6 +66,7 @@ interface MusicStore {
   deletePlaylist: (id: number) => Promise<boolean>;
   addTrackToPlaylist: (playlistId: number, trackId: number) => Promise<boolean>;
   removeTrackFromPlaylist: (playlistId: number, trackId: number) => Promise<boolean>;
+  reorderPlaylistTracks: (playlistId: number, trackIds: number[]) => Promise<boolean>;
 
   isShuffle: boolean;
   repeatMode: 'none' | 'all' | 'one';
@@ -123,6 +124,89 @@ const loadYoutubeAPI = (onReady: () => void) => {
   }
 };
 
+const updateMediaSession = (track: Track | null, isPlaying: boolean, progress: number = 0) => {
+  if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+  if (!track) {
+    navigator.mediaSession.playbackState = 'none';
+    return;
+  }
+
+  const coverSrc = track.cover_url ? getAbsoluteUrl(track.cover_url) : `${window.location.origin}/favicon.png`;
+  
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title,
+      artist: track.artist || 'Music Stream',
+      album: track.album || 'Music Stream',
+      artwork: [
+        { src: coverSrc, sizes: '96x96', type: 'image/png' },
+        { src: coverSrc, sizes: '128x128', type: 'image/png' },
+        { src: coverSrc, sizes: '192x192', type: 'image/png' },
+        { src: coverSrc, sizes: '256x256', type: 'image/png' },
+        { src: coverSrc, sizes: '512x512', type: 'image/png' }
+      ]
+    });
+  } catch (e) {
+    console.warn('[MediaSession] Metadata error:', e);
+  }
+
+  navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+  if ('setPositionState' in navigator.mediaSession && track.duration && track.duration > 0) {
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: track.duration,
+        playbackRate: 1.0,
+        position: Math.max(0, Math.min(progress, track.duration))
+      });
+    } catch (_) {}
+  }
+};
+
+const initMediaSessionHandlers = (get: () => MusicStore) => {
+  if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+  const handlers: Array<[MediaSessionAction, MediaSessionActionHandler]> = [
+    ['play', () => {
+      const { isPlaying, currentTrack, togglePlay } = get();
+      if (currentTrack && !isPlaying) togglePlay();
+    }],
+    ['pause', () => {
+      const { isPlaying, togglePlay } = get();
+      if (isPlaying) togglePlay();
+    }],
+    ['previoustrack', () => {
+      get().playPrevious();
+    }],
+    ['nexttrack', () => {
+      get().playNext();
+    }],
+    ['seekto', (details) => {
+      if (details.seekTime !== undefined && details.seekTime !== null) {
+        get().setProgress(details.seekTime);
+      }
+    }],
+    ['seekbackward', (details) => {
+      const { progress, setProgress } = get();
+      const skipTime = details.seekOffset || 10;
+      setProgress(Math.max(0, progress - skipTime));
+    }],
+    ['seekforward', (details) => {
+      const { progress, currentTrack, setProgress } = get();
+      const skipTime = details.seekOffset || 10;
+      const maxDuration = currentTrack?.duration || (progress + skipTime);
+      setProgress(Math.min(maxDuration, progress + skipTime));
+    }]
+  ];
+
+  for (const [action, handler] of handlers) {
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch (_) {}
+  }
+};
+
 export const useMusicStore = create<MusicStore>((set, get) => ({
   tracks: [],
   playlists: [],
@@ -160,11 +244,34 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   initAudio: () => {
     if (get().audio) return;
 
+    initMediaSessionHandlers(get);
+
     const audio = new Audio();
     audio.volume = get().volume;
 
+    let lastPosSync = 0;
     audio.addEventListener('timeupdate', () => {
-      set({ progress: audio.currentTime });
+      const currentTime = audio.currentTime;
+      set({ progress: currentTime });
+
+      const now = Date.now();
+      if (now - lastPosSync > 2000) {
+        lastPosSync = now;
+        const currentTrack = get().currentTrack;
+        if (currentTrack) {
+          updateMediaSession(currentTrack, get().isPlaying, currentTime);
+        }
+      }
+    });
+
+    audio.addEventListener('play', () => {
+      set({ isPlaying: true });
+      updateMediaSession(get().currentTrack, true, audio.currentTime);
+    });
+
+    audio.addEventListener('pause', () => {
+      set({ isPlaying: false });
+      updateMediaSession(get().currentTrack, false, audio.currentTime);
     });
 
     audio.addEventListener('loadedmetadata', () => {
@@ -172,12 +279,12 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         const exactSec = Math.floor(audio.duration);
         const currentTrack = get().currentTrack;
         if (exactSec > 0 && currentTrack && currentTrack.duration !== exactSec) {
-          set({
-            currentTrack: {
-              ...currentTrack,
-              duration: exactSec
-            }
-          });
+          const updatedTrack = {
+            ...currentTrack,
+            duration: exactSec
+          };
+          set({ currentTrack: updatedTrack });
+          updateMediaSession(updatedTrack, get().isPlaying, audio.currentTime);
           const token = localStorage.getItem('ms_token');
           fetch(`${API_BASE}/tracks/${currentTrack.id}`, {
             method: 'PUT',
@@ -197,6 +304,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         audio.currentTime = 0;
         audio.play().catch(err => console.error(err));
         set({ isPlaying: true, progress: 0 });
+        updateMediaSession(currentTrack, true, 0);
       } else {
         get().playNext();
       }
@@ -274,7 +382,13 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
             if (callback) callback();
           },
           onStateChange: (event: any) => {
-            if (event.data === 0) { // YT.PlayerState.ENDED
+            if (event.data === 1) { // YT.PlayerState.PLAYING
+              set({ isPlaying: true });
+              updateMediaSession(get().currentTrack, true, get().progress);
+            } else if (event.data === 2) { // YT.PlayerState.PAUSED
+              set({ isPlaying: false });
+              updateMediaSession(get().currentTrack, false, get().progress);
+            } else if (event.data === 0) { // YT.PlayerState.ENDED
               const { repeatMode, currentTrack } = get();
               if (repeatMode === 'one' && currentTrack) {
                 if (player && typeof player.seekTo === 'function') {
@@ -557,15 +671,42 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
   },
 
+  reorderPlaylistTracks: async (playlistId, trackIds) => {
+    try {
+      const token = useAuthStore.getState().token;
+      const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks/reorder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ trackIds })
+      });
+      const json = await res.json();
+      return json.success;
+    } catch (error) {
+      console.error('Error reordering playlist tracks:', error);
+      return false;
+    }
+  },
+
   playTrack: (track, customQueue, forceIndex) => {
-    if (track.status === 'pending' || track.status === 'rejected') {
+    if (track.status === 'rejected') {
+      useModalStore.getState().showAlert(
+        'Bài hát bị từ chối',
+        'Bài hát này đã bị từ chối phê duyệt, không thể phát bài hát này!',
+        'warning'
+      );
+      return;
+    }
+    if (track.status === 'pending') {
       const isAdmin = useAuthStore.getState().user?.role === 'admin';
       if (!isAdmin) {
-        const title = track.status === 'rejected' ? 'Bài hát bị từ chối' : 'Chưa thể phát';
-        const msg = track.status === 'rejected'
-          ? 'Bài hát này đã bị Admin từ chối phê duyệt, không thể phát bài hát này!'
-          : 'Bài hát này đang chờ Admin phê duyệt, chưa thể phát lúc này!';
-        useModalStore.getState().showAlert(title, msg, 'warning');
+        useModalStore.getState().showAlert(
+          'Chưa thể phát',
+          'Bài hát này đang chờ Admin phê duyệt, chưa thể phát lúc này!',
+          'warning'
+        );
         return;
       }
     }
@@ -623,6 +764,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
             queue: playQueue,
             queueIndex: index,
           });
+          updateMediaSession(track, true, 0);
 
           // Record play count on backend
           const token = localStorage.getItem('ms_token');
@@ -637,7 +779,12 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
             if (p) {
               if (typeof p.getCurrentTime === 'function') {
                 try {
-                  set({ progress: p.getCurrentTime() });
+                  const cTime = p.getCurrentTime();
+                  set({ progress: cTime });
+                  const cTrack = get().currentTrack;
+                  if (cTrack) {
+                    updateMediaSession(cTrack, get().isPlaying, cTime);
+                  }
                 } catch (_) {}
               }
               if (typeof p.getDuration === 'function') {
@@ -664,7 +811,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
                 } catch (_) {}
               }
             }
-          }, 500);
+          }, 1000);
           set({ progressInterval: interval });
 
         } catch (err) {
@@ -698,6 +845,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         queue: playQueue,
         queueIndex: index,
       });
+      updateMediaSession(track, true, 0);
 
       activeAudio.play().then(() => {
         const token = localStorage.getItem('ms_token');
@@ -708,6 +856,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       }).catch(err => {
         console.error('Standard playback failed', err);
         set({ isPlaying: false });
+        updateMediaSession(track, false, 0);
       });
     }
 
@@ -729,9 +878,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         if (isPlaying) {
           try { ytPlayer.pauseVideo(); } catch (_) {}
           set({ isPlaying: false });
+          updateMediaSession(currentTrack, false, get().progress);
         } else {
           try { ytPlayer.playVideo(); } catch (_) {}
           set({ isPlaying: true });
+          updateMediaSession(currentTrack, true, get().progress);
         }
       }
     } else {
@@ -739,9 +890,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       if (isPlaying) {
         audio.pause();
         set({ isPlaying: false });
+        updateMediaSession(currentTrack, false, audio.currentTime);
       } else {
         audio.play().catch(err => console.error(err));
         set({ isPlaying: true });
+        updateMediaSession(currentTrack, true, audio.currentTime);
       }
     }
   },
@@ -789,10 +942,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       }
     }
     set({ progress: time });
+    updateMediaSession(currentTrack, isPlaying, time);
   },
 
   playNext: () => {
-    const { queue, queueIndex, playTrack, isShuffle, repeatMode } = get();
+    const { queue, queueIndex, playTrack, isShuffle } = get();
     if (queue.length === 0 || queueIndex === -1) return;
 
     if (isShuffle) {
@@ -808,24 +962,8 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       if (nextIndex < queue.length) {
         playTrack(queue[nextIndex], queue, nextIndex);
       } else {
-        if (repeatMode === 'all') {
-          playTrack(queue[0], queue, 0);
-        } else {
-          const { audio } = get();
-          if (audio) {
-            audio.pause();
-            audio.currentTime = 0;
-          }
-          const ytPlayer = get().ytPlayer;
-          if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-            try { ytPlayer.stopVideo(); } catch (_) {}
-          }
-          if (get().progressInterval) {
-            clearInterval(get().progressInterval);
-            set({ progressInterval: null });
-          }
-          set({ isPlaying: false, progress: 0 });
-        }
+        // Reached end of current list -> loop back to song #1
+        playTrack(queue[0], queue, 0);
       }
     }
   },
@@ -885,6 +1023,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       queue: [],
       queueIndex: -1,
     });
+    updateMediaSession(null, false, 0);
   },
 
   handleTrackRemoved: (trackId, title) => {

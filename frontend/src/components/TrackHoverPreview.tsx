@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Clock, Music } from 'lucide-react';
 import { getAbsoluteUrl } from '../config';
 import { getCategoryIcon } from '../utils/format';
@@ -24,6 +25,7 @@ interface TrackHoverPreviewProps {
 }
 
 export const TrackHoverPreview: React.FC<TrackHoverPreviewProps> = ({ track, children }) => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; placeAbove: boolean }>({ top: 0, left: 0, placeAbove: true });
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,17 +95,17 @@ export const TrackHoverPreview: React.FC<TrackHoverPreviewProps> = ({ track, chi
         <div className="absolute top-2 left-2">
           {track.status === 'pending' && (
             <span className="text-[10px] px-2 py-0.5 rounded-full border bg-amber-500/90 text-white border-amber-400 font-bold backdrop-blur-md shadow-lg">
-              ⏳ Chờ duyệt
+              ⏳ {t('tracks.pending')}
             </span>
           )}
           {track.status === 'rejected' && (
             <span className="text-[10px] px-2 py-0.5 rounded-full border bg-rose-500/90 text-white border-rose-400 font-bold backdrop-blur-md shadow-lg">
-              ❌ Bị từ chối
+              ❌ {t('tracks.rejected')}
             </span>
           )}
           {(track.status === 'approved' || !track.status) && (
             <span className="text-[10px] px-2 py-0.5 rounded-full border bg-emerald-500/90 text-white border-emerald-400 font-bold backdrop-blur-md shadow-lg">
-              ✓ Đã duyệt
+              ✓ {t('tracks.approved')}
             </span>
           )}
         </div>

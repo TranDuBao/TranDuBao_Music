@@ -31,7 +31,7 @@ interface MainViewProps {
 
 export default function MainView({ view, setView, onUploadClick, toggleSidebar }: MainViewProps) {
   const { t, i18n } = useTranslation();
-  const { tracks, currentPlaylist, currentPlaylistTracks, searchQuery, setSearchQuery, fetchTracks, playTrack, currentTrack } = useMusicStore();
+  const { tracks, currentPlaylist, currentPlaylistTracks, searchQuery, setSearchQuery, fetchTracks, playTrack, currentTrack, queue, reorderPlaylistTracks } = useMusicStore();
   const { user } = useAuthStore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -163,44 +163,41 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
   // Determine active tracks and labels
   const activeTracks = currentPlaylist ? currentPlaylistTracks : tracks;
   const listTitle = selectedAlbum
-    ? `Album: ${selectedAlbum.name}`
+    ? t('mainView.albumTitle', { name: selectedAlbum.name })
     : selectedArtist
-      ? (i18n.language === 'vi' ? `Bài hát của ${selectedArtist}` : `Songs by ${selectedArtist}`)
+      ? t('mainView.songsBy', { artist: selectedArtist })
       : currentPlaylist
         ? currentPlaylist.name
         : view === 'pending'
-          ? (i18n.language === 'vi' ? '⏳ Nhạc chờ duyệt' : '⏳ Pending Music')
+          ? t('mainView.pendingMusicTitle')
           : view === 'mine'
             ? t('tracks.myTracks')
             : view === 'youtube'
-              ? (i18n.language === 'vi' ? 'Nhạc từ YouTube' : 'YouTube Music')
+              ? t('nav.youtubeMusic')
               : view === 'soundcloud'
-                ? (i18n.language === 'vi' ? 'Nhạc từ SoundCloud' : 'SoundCloud Music')
+                ? t('nav.soundcloudMusic')
                 : t('tracks.allTracks');
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const mainRef = React.useRef<HTMLElement>(null);
 
-  // ── Drag-and-drop reordering (only for 'mine' view) ──────────────
+  // ── Drag-and-drop reordering (for 'mine' view & playlists) ──────────────
   const [dragOrderIds, setDragOrderIds] = useState<number[]>([]);
   const [dragMode, setDragMode] = useState(false);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const dragSourceIdx = React.useRef<number | null>(null);
 
-  // Sync dragOrderIds whenever tracks change (reset custom order)
+  // Sync dragOrderIds whenever tracks or currentPlaylist change
   useEffect(() => {
-    if (view === 'mine') {
+    if (currentPlaylist) {
+      setDragOrderIds(currentPlaylistTracks.map(t => t.id));
+    } else if (view === 'mine') {
       setDragOrderIds(tracks.map(t => t.id));
+    } else {
+      setDragOrderIds([]);
     }
-  }, [tracks, view]);
-
-  // Compute the displayed tracks in drag order
-  const orderedMineTracks = React.useMemo(() => {
-    if (view !== 'mine' || dragOrderIds.length === 0) return activeTracks;
-    const map = new Map(tracks.map(t => [t.id, t]));
-    return dragOrderIds.map(id => map.get(id)).filter(Boolean) as typeof tracks;
-  }, [view, dragOrderIds, tracks, activeTracks]);
+  }, [tracks, currentPlaylistTracks, view, currentPlaylist]);
 
   const filteredByArtist = React.useMemo(() => {
     let list = activeTracks;
@@ -228,6 +225,21 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
 
     return list;
   }, [activeTracks, selectedArtist, selectedAlbum, view, currentPlaylist]);
+
+  // Compute the displayed tracks in drag order
+  const orderedTracks = React.useMemo(() => {
+    const listToOrder = currentPlaylist ? currentPlaylistTracks : (view === 'mine' ? activeTracks : []);
+    if (listToOrder.length === 0 || dragOrderIds.length === 0) return filteredByArtist;
+    const map = new Map(listToOrder.map(t => [t.id, t]));
+    const ordered = dragOrderIds.map(id => map.get(id)).filter(Boolean) as typeof activeTracks;
+    if (ordered.length < listToOrder.length) {
+      const existing = new Set(dragOrderIds);
+      listToOrder.forEach(t => {
+        if (!existing.has(t.id)) ordered.push(t);
+      });
+    }
+    return ordered;
+  }, [dragOrderIds, activeTracks, currentPlaylist, currentPlaylistTracks, view, filteredByArtist]);
 
   // Shuffle logic: each user gets a uniquely shuffled list by default.
   // Clicking "Shuffle" reshuffles the list to another random permutation.
@@ -261,8 +273,10 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
     return arr;
   }, [filteredByArtist, shuffleSeed]);
 
-  const displayedTracks = (view === 'mine' && !currentPlaylist)
-    ? orderedMineTracks
+  const isDragAllowed = (view === 'mine' && !currentPlaylist) || Boolean(currentPlaylist);
+
+  const displayedTracks = isDragAllowed
+    ? orderedTracks
     : (!currentPlaylist)
       ? shuffledTracks
       : filteredByArtist;
@@ -282,6 +296,10 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
     setDragOrderIds(newOrder);
     dragSourceIdx.current = null;
     setDragOverIdx(null);
+
+    if (currentPlaylist) {
+      reorderPlaylistTracks(currentPlaylist.id, newOrder);
+    }
   };
   const handleDragEnd = () => {
     dragSourceIdx.current = null;
@@ -296,18 +314,35 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
   const displayedTracksRef = React.useRef(displayedTracks);
   displayedTracksRef.current = displayedTracks;
 
+  const isAutoPageChangeRef = React.useRef(false);
+
   // ── Auto-page sync: when currently playing track changes, jump to the page that contains it ──
   useEffect(() => {
     if (!currentTrack || currentPlaylist) return;
+
+    // Do NOT auto-sync page if user is playing from Top 5 Weekly or Recent Uploads
+    const isPlayingTopWeekly = topWeekly.some(t => t.id === currentTrack.id) && queue.length === topWeekly.length && queue.every((t, i) => t.id === topWeekly[i]?.id);
+    const isPlayingRecent = recentUploads.some(t => t.id === currentTrack.id) && queue.length === recentUploads.length && queue.every((t, i) => t.id === recentUploads[i]?.id);
+    if (isPlayingTopWeekly || isPlayingRecent) return;
+
     const list = displayedTracksRef.current;
     const trackIdx = list.findIndex(t => t.id === currentTrack.id);
     if (trackIdx === -1) return; // track not in this view
     const trackPage = Math.floor(trackIdx / ITEMS_PER_PAGE) + 1;
-    setCurrentPage(prev => prev !== trackPage ? trackPage : prev);
-  }, [currentTrack?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
+    setCurrentPage(prev => {
+      if (prev !== trackPage) {
+        isAutoPageChangeRef.current = true;
+        return trackPage;
+      }
+      return prev;
+    });
+  }, [currentTrack?.id, queue, topWeekly, recentUploads]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (isAutoPageChangeRef.current) {
+      isAutoPageChangeRef.current = false;
+      return;
+    }
     if (mainRef.current) {
       mainRef.current.scrollTop = 0;
     }
@@ -320,8 +355,8 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
   if (view === 'profile') {
     return (
       <main className="flex-1 flex flex-col h-full overflow-y-auto pb-32">
-        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} toggleSidebar={toggleSidebar} />
-        <div className="p-8 max-w-5xl w-full mx-auto">
+        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={t('mainView.notAvailableInSection')} toggleSidebar={toggleSidebar} />
+        <div className="p-4 sm:p-8 max-w-5xl w-full mx-auto">
           <UserProfilePage />
         </div>
       </main>
@@ -331,8 +366,8 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
   if (view === 'admin') {
     return (
       <main className="flex-1 flex flex-col h-full overflow-y-auto pb-32">
-        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={i18n.language === 'vi' ? 'Không khả dụng ở phần này' : 'Not available in this section'} toggleSidebar={toggleSidebar} />
-        <div className="p-8 max-w-5xl w-full mx-auto">
+        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch setView={setView} searchPlaceholder={t('mainView.notAvailableInSection')} toggleSidebar={toggleSidebar} />
+        <div className="p-4 sm:p-8 max-w-5xl w-full mx-auto">
           <AdminPanel />
         </div>
       </main>
@@ -366,7 +401,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
 
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} disableSearch={!!currentPlaylist} setView={setView} toggleSidebar={toggleSidebar} />
 
-      <div className="p-8 pb-48 max-w-5xl w-full mx-auto space-y-8 relative z-10">
+      <div className="p-4 sm:p-8 pb-36 sm:pb-48 max-w-5xl w-full mx-auto space-y-6 sm:space-y-8 relative z-10">
         {/* Hero Banner with Auto-rotating 5 animated video background */}
         <div className="theme-dark-always relative rounded-3xl overflow-hidden bg-zinc-950 p-8 md:p-10 border border-purple-500/15 shadow-2xl">
           {/* Slideshow background */}
@@ -426,7 +461,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
         {/* Category filter bar (only show in 'all' or 'mine' view, not inside a playlist) */}
         {!currentPlaylist && categories.length > 0 && (
           <div className="space-y-2.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">{i18n.language === 'vi' ? 'Danh mục bài hát' : 'Music Categories'}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">{t('mainView.categories')}</h3>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
@@ -500,8 +535,8 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
             <p className="text-sm text-zinc-500 mt-0.5">{displayedTracks.length} {i18n.language === 'vi' ? 'bài hát' : 'songs'}</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Drag-to-reorder toggle (only in 'mine' view, not inside a playlist) */}
-            {view === 'mine' && !currentPlaylist && (
+            {/* Drag-to-reorder toggle for 'mine' view & playlists */}
+            {isDragAllowed && (
               <button
                 onClick={() => setDragMode(prev => !prev)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-all ${dragMode
@@ -520,7 +555,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-purple-500/25 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all cursor-pointer shadow-lg shadow-purple-500/10"
               >
                 <Shuffle className="w-4 h-4" />
-                {i18n.language === 'vi' ? 'Xáo trộn bài hát' : 'Shuffle Songs'}
+                {t('mainView.shuffleSongs')}
               </button>
             )}
             {displayedTracks.length > 0 && (
@@ -552,7 +587,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
                   track={track}
                   index={absoluteIdx}
                   showDelete={view === 'mine'}
-                  dragMode={dragMode && view === 'mine' && !currentPlaylist}
+                  dragMode={dragMode && isDragAllowed}
                   isDragOver={dragOverIdx === absoluteIdx}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
@@ -610,15 +645,15 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
               <span className="text-xs bg-orange-500/15 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full font-semibold">{i18n.language === 'vi' ? 'HOT 🔥' : 'TRENDING 🔥'}</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-3 overflow-x-auto pb-3 snap-x scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
               {topWeekly.map((track, i) => (
                 <button
                   key={track.id}
                   onClick={() => playTrack(track, topWeekly)}
-                  className="group relative flex flex-col rounded-2xl overflow-hidden bg-zinc-900/60 border border-white/5 hover:border-orange-500/30 hover:bg-zinc-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/10 text-left"
+                  className="group relative flex flex-col rounded-2xl overflow-hidden bg-zinc-900/60 border border-white/5 hover:border-orange-500/30 hover:bg-zinc-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/10 text-left w-[145px] sm:w-auto flex-shrink-0 snap-start"
                 >
                   {/* Rank badge */}
-                  <div className={`absolute top-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-lg text-xs font-black shadow-lg ${i === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-black' :
+                  <div className={`absolute top-2 left-2 z-10 w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg text-xs font-black shadow-lg ${i === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-black' :
                     i === 1 ? 'bg-gradient-to-br from-zinc-300 to-zinc-400 text-black' :
                       i === 2 ? 'bg-gradient-to-br from-amber-600 to-orange-700 text-white' :
                         'bg-zinc-800/90 text-zinc-400 border border-white/10'
@@ -634,19 +669,19 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
                     }
                     {/* Play overlay */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-11 h-11 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/40">
-                        <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/40">
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-current ml-0.5" />
                       </div>
                     </div>
                   </div>
 
                   {/* Info */}
-                  <div className="p-3 space-y-0.5">
-                    <p className="text-sm font-bold text-white truncate group-hover:text-orange-400 transition-colors">{track.title}</p>
-                    <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+                  <div className="p-2.5 sm:p-3 space-y-0.5 min-w-0 w-full">
+                    <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-orange-400 transition-colors">{track.title}</p>
+                    <p className="text-[11px] sm:text-xs text-zinc-400 truncate">{track.artist}</p>
                     <div className="flex items-center gap-1 pt-1">
-                      <TrendingUp className="w-3 h-3 text-orange-400" />
-                      <span className="text-[10px] text-orange-400 font-semibold">{formatCount(track.weekly_plays || 0)} {i18n.language === 'vi' ? 'lượt / tuần' : ((track.weekly_plays || 0) === 1 ? 'play / week' : 'plays / week')}</span>
+                      <TrendingUp className="w-3 h-3 text-orange-400 flex-shrink-0" />
+                      <span className="text-[10px] text-orange-400 font-semibold truncate">{formatCount(track.weekly_plays || 0)} {i18n.language === 'vi' ? 'lượt / tuần' : ((track.weekly_plays || 0) === 1 ? 'play / week' : 'plays / week')}</span>
                     </div>
                   </div>
                 </button>
@@ -666,12 +701,12 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
               <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-semibold">{i18n.language === 'vi' ? 'MỚI ⚡' : 'NEW ⚡'}</span>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+            <div className="flex gap-3 overflow-x-auto pb-3 snap-x scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
               {recentUploads.map((track) => (
                 <button
                   key={track.id}
                   onClick={() => playTrack(track, recentUploads)}
-                  className="group relative flex flex-col rounded-2xl overflow-hidden bg-zinc-900/60 border border-white/5 hover:border-green-500/30 hover:bg-zinc-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/10 text-left w-[170px] sm:w-[190px] flex-shrink-0"
+                  className="group relative flex flex-col rounded-2xl overflow-hidden bg-zinc-900/60 border border-white/5 hover:border-green-500/30 hover:bg-zinc-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/10 text-left w-[145px] sm:w-[180px] flex-shrink-0 snap-start"
                 >
                   {/* Cover art */}
                   <div className="relative w-full aspect-square overflow-hidden bg-zinc-800">
@@ -681,16 +716,16 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
                     }
                     {/* Play overlay */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-11 h-11 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/40">
-                        <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/40">
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-current ml-0.5" />
                       </div>
                     </div>
                   </div>
 
                   {/* Info */}
-                  <div className="p-3 space-y-0.5 min-w-0 w-full">
-                    <p className="text-sm font-bold text-white truncate group-hover:text-green-400 transition-colors">{track.title}</p>
-                    <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+                  <div className="p-2.5 sm:p-3 space-y-0.5 min-w-0 w-full">
+                    <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-green-400 transition-colors">{track.title}</p>
+                    <p className="text-[11px] sm:text-xs text-zinc-400 truncate">{track.artist}</p>
                     <p className="text-[10px] text-zinc-500 mt-1 truncate">{i18n.language === 'vi' ? `Tải lên bởi: ${track.uploader_name || 'Hệ thống'}` : `Uploaded by: ${track.uploader_name || 'System'}`}</p>
                   </div>
                 </button>
@@ -758,7 +793,7 @@ export default function MainView({ view, setView, onUploadClick, toggleSidebar }
         )}
 
         {/* Featured Artists Section */}
-        {view === 'all' && (
+        {view === 'all' && !currentPlaylist && (
           <FeaturedArtists
             onArtistClick={(name) => {
               setSelectedCategoryId(null);
@@ -785,14 +820,50 @@ function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPla
   const { user, logout } = useAuthStore();
   const { isDark, toggleTheme } = useThemeStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+  const headerRef = React.useRef<HTMLElement>(null);
+  const lastScrollTop = React.useRef(0);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const scrollParent = el.closest('main') || el.parentElement;
+    if (!scrollParent) return;
+
+    let prevSt = scrollParent.scrollTop;
+
+    const handleScroll = () => {
+      const currentSt = scrollParent.scrollTop;
+      const diff = currentSt - prevSt;
+
+      if (currentSt <= 10) {
+        setShowHeader(true);
+      } else if (diff > 4) {
+        // Scrolling down -> hide header
+        setShowHeader(false);
+      } else if (diff < -2) {
+        // Scrolling up even 2px -> show header INSTANTLY
+        setShowHeader(true);
+      }
+      prevSt = currentSt;
+    };
+
+    scrollParent.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollParent.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const toggleLang = () => {
     i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi');
   };
 
   return (
-    <header className="px-5 py-3 flex items-center justify-between border-b border-white/5 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30 shadow-md gap-4">
+    <header 
+      ref={headerRef}
+      className={`px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between border-b border-white/5 bg-zinc-950/95 backdrop-blur-xl sticky top-0 z-30 shadow-md gap-2 sm:gap-4 transition-transform duration-200 ease-out ${
+        showHeader ? 'translate-y-0' : '-translate-y-full'
+      }`}
+    >
       {/* Search & Menu */}
       <div className="flex items-center gap-3 flex-1 max-w-[280px] sm:max-w-[360px]">
         {toggleSidebar && (
@@ -812,7 +883,7 @@ function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPla
             disabled={disableSearch}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-900/80 border border-white/5 rounded-full pl-10 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 transition-all disabled:opacity-40"
+            className="w-full bg-zinc-900/80 border border-white/5 rounded-full pl-9 pr-3 sm:pl-10 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 transition-all disabled:opacity-40 truncate"
           />
         </div>
       </div>
@@ -876,7 +947,7 @@ function Header({ searchQuery, setSearchQuery, disableSearch, setView, searchPla
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-all text-left"
                   >
                     <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    {i18n.language === 'vi' ? 'Thông tin cá nhân' : 'Personal Profile'}
+                    {t('auth.personalProfile')}
                   </button>
                   <button
                     onClick={() => { logout(); setShowUserMenu(false); navigate('/login'); }}

@@ -16,10 +16,11 @@ class PlayHistory {
       ? "DATE_ADD(ph.played_at, INTERVAL 7 HOUR)"
       : "datetime(ph.played_at, '+7 hours')";
     return await query(`
-      SELECT ph.id, ${playedAtVn} as played_at, t.id as track_id, t.title, t.artist, t.album, t.cover_url, t.audio_url, t.duration, t.genre
+      SELECT ph.id, ${playedAtVn} as played_at, t.id as track_id, t.title, t.artist, t.album, t.cover_url, t.audio_url, t.duration, t.genre, t.status
       FROM play_history ph
       JOIN tracks t ON ph.track_id = t.id
       WHERE ph.user_id = ?
+      AND (t.status = 'approved' OR t.status IS NULL)
       ORDER BY ph.played_at DESC LIMIT ?`, [userId, limit]);
   }
   static async getRecentGlobal(limit = 20) {

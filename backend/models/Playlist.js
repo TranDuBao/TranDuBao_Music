@@ -31,6 +31,7 @@ class Playlist {
       FROM tracks t
       JOIN playlist_tracks pt ON t.id = pt.track_id
       WHERE pt.playlist_id = ?
+      AND (t.status = 'approved' OR t.status IS NULL)
       ORDER BY pt.position ASC, pt.track_id ASC
     `;
     return await query(sql, [playlistId]);
@@ -57,6 +58,13 @@ class Playlist {
 
   static async removeTrack(playlistId, trackId) {
     return await query('DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?', [playlistId, trackId]);
+  }
+
+  static async reorderTracks(playlistId, trackIds) {
+    for (let i = 0; i < trackIds.length; i++) {
+      await query('UPDATE playlist_tracks SET position = ? WHERE playlist_id = ? AND track_id = ?', [i + 1, playlistId, trackIds[i]]);
+    }
+    return true;
   }
 }
 
