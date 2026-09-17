@@ -105,7 +105,7 @@ const loadYoutubeAPI = (onReady: () => void) => {
     onReady();
     return;
   }
-  
+
   const prevCallback = (window as any).onYouTubeIframeAPIReady;
   (window as any).onYouTubeIframeAPIReady = () => {
     if (prevCallback) prevCallback();
@@ -133,7 +133,7 @@ const updateMediaSession = (track: Track | null, isPlaying: boolean, progress: n
   }
 
   const coverSrc = track.cover_url ? getAbsoluteUrl(track.cover_url) : `${window.location.origin}/favicon.png`;
-  
+
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title,
@@ -160,7 +160,7 @@ const updateMediaSession = (track: Track | null, isPlaying: boolean, progress: n
         playbackRate: 1.0,
         position: Math.max(0, Math.min(progress, track.duration))
       });
-    } catch (_) {}
+    } catch (_) { }
   }
 };
 
@@ -203,7 +203,7 @@ const initMediaSessionHandlers = (get: () => MusicStore) => {
   for (const [action, handler] of handlers) {
     try {
       navigator.mediaSession.setActionHandler(action, handler);
-    } catch (_) {}
+    } catch (_) { }
   }
 };
 
@@ -293,7 +293,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
               ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
             body: JSON.stringify({ duration: exactSec })
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }
     });
@@ -329,7 +329,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     // Free hosting (Render/Railway) sleeps after 15min → this prevents it
     const ping = () => {
       fetch(`${API_BASE}/tracks/top-weekly`, { method: 'GET' })
-        .catch(() => {}); // silent, we don't care about the response
+        .catch(() => { }); // silent, we don't care about the response
     };
     ping(); // ping immediately on app load
     const keepAliveInterval = setInterval(ping, 10 * 60 * 1000); // every 10 min
@@ -581,7 +581,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       const token = useAuthStore.getState().token;
       const res = await fetch(`${API_BASE}/playlists`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -602,7 +602,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   deletePlaylist: async (id) => {
     try {
       const token = useAuthStore.getState().token;
-      const res = await fetch(`${API_BASE}/playlists/${id}`, { 
+      const res = await fetch(`${API_BASE}/playlists/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -628,7 +628,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       const token = useAuthStore.getState().token;
       const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -728,11 +728,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       activeAudio.pause();
       activeAudio.src = '';
     }
-    
+
     // Stop YouTube audio
     const ytPlayer = get().ytPlayer;
     if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-      try { ytPlayer.stopVideo(); } catch (_) {}
+      try { ytPlayer.stopVideo(); } catch (_) { }
     }
 
     if (get().progressInterval) {
@@ -744,11 +744,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
 
     if (videoId) {
       console.log(`[Player] Playing YouTube track via client-side player: ${videoId}`);
-      
+
       const setupPlayerAndPlay = () => {
         const player = get().ytPlayer;
         if (!player) return;
-        
+
         try {
           player.loadVideoById({
             videoId: videoId,
@@ -756,7 +756,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           });
           player.setVolume(get().volume * 100);
           player.playVideo();
-          
+
           set({
             currentTrack: track,
             isPlaying: true,
@@ -771,8 +771,8 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           fetch(`${API_BASE}/tracks/${track.id}/play`, {
             method: 'POST',
             headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }).catch(() => {});
-          
+          }).catch(() => { });
+
           // Setup progress interval
           const interval = setInterval(() => {
             const p = get().ytPlayer;
@@ -785,7 +785,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
                   if (cTrack) {
                     updateMediaSession(cTrack, get().isPlaying, cTime);
                   }
-                } catch (_) {}
+                } catch (_) { }
               }
               if (typeof p.getDuration === 'function') {
                 try {
@@ -806,9 +806,9 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
                         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                       },
                       body: JSON.stringify({ duration: ytDuration })
-                    }).catch(() => {});
+                    }).catch(() => { });
                   }
-                } catch (_) {}
+                } catch (_) { }
               }
             }
           }, 1000);
@@ -852,7 +852,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         fetch(`${API_BASE}/tracks/${track.id}/play`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }).catch(() => {});
+        }).catch(() => { });
       }).catch(err => {
         console.error('Standard playback failed', err);
         set({ isPlaying: false });
@@ -876,11 +876,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       const ytPlayer = get().ytPlayer;
       if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
         if (isPlaying) {
-          try { ytPlayer.pauseVideo(); } catch (_) {}
+          try { ytPlayer.pauseVideo(); } catch (_) { }
           set({ isPlaying: false });
           updateMediaSession(currentTrack, false, get().progress);
         } else {
-          try { ytPlayer.playVideo(); } catch (_) {}
+          try { ytPlayer.playVideo(); } catch (_) { }
           set({ isPlaying: true });
           updateMediaSession(currentTrack, true, get().progress);
         }
@@ -905,14 +905,14 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     if (audio) {
       audio.volume = clamped;
     }
-    
+
     const ytPlayer = get().ytPlayer;
     if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
       try {
         ytPlayer.setVolume(clamped * 100);
-      } catch (_) {}
+      } catch (_) { }
     }
-    
+
     set({ volume: clamped });
   },
 
@@ -927,16 +927,16 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
             ytPlayer.seekTo(time, true);
             if (isPlaying && typeof ytPlayer.playVideo === 'function') {
               setTimeout(() => {
-                try { ytPlayer.playVideo(); } catch (_) {}
+                try { ytPlayer.playVideo(); } catch (_) { }
               }, 50);
             }
-          } catch (_) {}
+          } catch (_) { }
         }
       } else {
         if (audio) {
           audio.currentTime = time;
           if (isPlaying && audio.paused) {
-            audio.play().catch(() => {});
+            audio.play().catch(() => { });
           }
         }
       }
@@ -1010,7 +1010,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
     const ytPlayer = get().ytPlayer;
     if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-      try { ytPlayer.stopVideo(); } catch (_) {}
+      try { ytPlayer.stopVideo(); } catch (_) { }
     }
     if (get().progressInterval) {
       clearInterval(get().progressInterval);
@@ -1037,7 +1037,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         audio.currentTime = 0;
       }
       if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-        try { ytPlayer.stopVideo(); } catch (_) {}
+        try { ytPlayer.stopVideo(); } catch (_) { }
       }
       if (progressInterval) {
         clearInterval(progressInterval);

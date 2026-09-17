@@ -74,7 +74,7 @@ export default function PlayerBar() {
     <>
       {/* ── 1. MAIN PLAYER BAR ── */}
       <div className="fixed bottom-0 left-0 right-0 w-full max-w-full h-16 sm:h-22 bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 flex items-center justify-between px-3 sm:px-6 z-40 select-none overflow-hidden box-border shadow-2xl">
-        
+
         {/* ── Top Edge Progress Bar for Mobile (< sm) ── */}
         <div className="absolute top-0 left-0 right-0 w-full sm:hidden h-[2.5px] z-50">
           <input
@@ -97,15 +97,14 @@ export default function PlayerBar() {
         {/* ── MOBILE VIEW (< sm): Perfectly Centered 3-Column Player Bar Layout ── */}
         <div className="relative flex sm:hidden items-center justify-between w-full h-full px-3">
           {/* 1. Left: Track Info & Artwork (Click to expand full screen player) */}
-          <div 
+          <div
             onClick={() => currentTrack && setIsMobileExpanded(true)}
             className="flex items-center gap-2 min-w-0 max-w-[calc(50vw-82px)] cursor-pointer py-1 z-10"
           >
             {currentTrack ? (
               <>
-                <div className={`w-9.5 h-9.5 overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center transition-all duration-500 shadow-md ${
-                  isPlaying ? 'rounded-full rotate-animation' : 'rounded-xl'
-                }`}>
+                <div className={`w-9.5 h-9.5 overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center transition-all duration-500 shadow-md ${isPlaying ? 'rounded-full rotate-animation' : 'rounded-xl'
+                  }`}>
                   <img
                     src={getAbsoluteUrl(currentTrack.cover_url)}
                     alt={currentTrack.title}
@@ -136,7 +135,7 @@ export default function PlayerBar() {
 
           {/* 2. Middle: Playback Controls (100% DEAD CENTER of the screen) */}
           <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-2 z-20">
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); playPrevious(); }}
               disabled={!currentTrack}
               className="text-zinc-400 hover:text-white transition-colors disabled:opacity-30 p-1"
@@ -145,7 +144,7 @@ export default function PlayerBar() {
               <SkipBack className="w-4.5 h-4.5" />
             </button>
 
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); togglePlay(); }}
               disabled={!currentTrack}
               className="w-9.5 h-9.5 rounded-full bg-white text-black flex items-center justify-center transition-all shadow-md active:scale-95 disabled:opacity-50 flex-shrink-0"
@@ -158,7 +157,7 @@ export default function PlayerBar() {
               )}
             </button>
 
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); playNext(); }}
               disabled={!currentTrack}
               className="text-zinc-400 hover:text-white transition-colors disabled:opacity-30 p-1"
@@ -195,13 +194,13 @@ export default function PlayerBar() {
         {/* Floating Mobile Volume Popover Overlay */}
         {showMobileVolume && (
           <>
-            <div 
-              className="fixed inset-0 z-40" 
-              onClick={() => setShowMobileVolume(false)} 
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowMobileVolume(false)}
             />
             <div className="absolute bottom-16 right-3 bg-zinc-900/95 border border-white/10 backdrop-blur-xl px-3.5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-              <button 
-                onClick={toggleMute} 
+              <button
+                onClick={toggleMute}
                 className="text-zinc-400 hover:text-white"
               >
                 {volume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-purple-400" />}
@@ -231,9 +230,8 @@ export default function PlayerBar() {
           <div className="flex items-center gap-3 w-[30%] min-w-0 pr-2">
             {currentTrack ? (
               <>
-                <div className={`w-13 h-13 overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center transition-all duration-500 ${
-                  isPlaying ? 'rounded-full rotate-animation' : 'rounded-xl'
-                }`}>
+                <div className={`w-13 h-13 overflow-hidden bg-zinc-800 border border-white/10 relative flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isPlaying ? 'rounded-full rotate-animation' : 'rounded-xl'
+                  }`}>
                   <img
                     src={getAbsoluteUrl(currentTrack.cover_url)}
                     alt={currentTrack.title}
@@ -272,15 +270,15 @@ export default function PlayerBar() {
           {/* 2. Middle: Player Controls & Timeline */}
           <div className="flex flex-col items-center justify-center w-[40%] max-w-xl h-full py-1">
             <div className="flex items-center gap-6 my-auto">
-              <button 
-                onClick={toggleShuffle} 
-                className={`transition-all p-1 ${isShuffle ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`} 
+              <button
+                onClick={toggleShuffle}
+                className={`transition-all p-1 ${isShuffle ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`}
                 title="Shuffle"
               >
                 <Shuffle className="w-4 h-4" />
               </button>
 
-              <button 
+              <button
                 onClick={playPrevious}
                 disabled={!currentTrack}
                 className="text-zinc-400 hover:text-white transition-colors disabled:opacity-30 p-1.5"
@@ -288,7 +286,7 @@ export default function PlayerBar() {
                 <SkipBack className="w-5 h-5" />
               </button>
 
-              <button 
+              <button
                 onClick={togglePlay}
                 disabled={!currentTrack}
                 className="w-11 h-11 rounded-full bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center transition-all shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0"
@@ -300,7 +298,7 @@ export default function PlayerBar() {
                 )}
               </button>
 
-              <button 
+              <button
                 onClick={playNext}
                 disabled={!currentTrack}
                 className="text-zinc-400 hover:text-white transition-colors disabled:opacity-30 p-1.5"
@@ -308,9 +306,9 @@ export default function PlayerBar() {
                 <SkipForward className="w-5 h-5" />
               </button>
 
-              <button 
-                onClick={toggleRepeat} 
-                className={`transition-all p-1 disabled:opacity-30 ${repeatMode !== 'none' ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`} 
+              <button
+                onClick={toggleRepeat}
+                className={`transition-all p-1 disabled:opacity-30 ${repeatMode !== 'none' ? 'text-purple-500 hover:text-purple-400' : 'text-zinc-500 hover:text-white'}`}
                 title="Repeat"
               >
                 {repeatMode === 'one' ? (
@@ -401,9 +399,8 @@ export default function PlayerBar() {
 
           {/* Album Cover Art */}
           <div className="my-auto py-6 flex flex-col items-center">
-            <div className={`w-64 h-64 sm:w-72 sm:h-72 overflow-hidden bg-zinc-800 border-2 border-white/10 shadow-2xl relative flex items-center justify-center transition-all duration-700 ${
-              isPlaying ? 'rounded-full rotate-animation shadow-purple-500/20' : 'rounded-3xl'
-            }`}>
+            <div className={`w-64 h-64 sm:w-72 sm:h-72 overflow-hidden bg-zinc-800 border-2 border-white/10 shadow-2xl relative flex items-center justify-center transition-all duration-700 ${isPlaying ? 'rounded-full rotate-animation shadow-purple-500/20' : 'rounded-3xl'
+              }`}>
               <img
                 src={getAbsoluteUrl(currentTrack.cover_url)}
                 alt={currentTrack.title}
@@ -451,21 +448,21 @@ export default function PlayerBar() {
 
           {/* Full Player Main Controls */}
           <div className="flex items-center justify-between px-4 pb-6">
-            <button 
-              onClick={toggleShuffle} 
-              className={`p-2 transition-all ${isShuffle ? 'text-purple-400 scale-110' : 'text-zinc-500'}`} 
+            <button
+              onClick={toggleShuffle}
+              className={`p-2 transition-all ${isShuffle ? 'text-purple-400 scale-110' : 'text-zinc-500'}`}
             >
               <Shuffle className="w-6 h-6" />
             </button>
 
-            <button 
+            <button
               onClick={playPrevious}
               className="p-3 text-white active:scale-90 transition-transform"
             >
               <SkipBack className="w-8 h-8" />
             </button>
 
-            <button 
+            <button
               onClick={togglePlay}
               className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
             >
@@ -476,16 +473,16 @@ export default function PlayerBar() {
               )}
             </button>
 
-            <button 
+            <button
               onClick={playNext}
               className="p-3 text-white active:scale-90 transition-transform"
             >
               <SkipForward className="w-8 h-8" />
             </button>
 
-            <button 
-              onClick={toggleRepeat} 
-              className={`p-2 transition-all ${repeatMode !== 'none' ? 'text-purple-400 scale-110' : 'text-zinc-500'}`} 
+            <button
+              onClick={toggleRepeat}
+              className={`p-2 transition-all ${repeatMode !== 'none' ? 'text-purple-400 scale-110' : 'text-zinc-500'}`}
             >
               {repeatMode === 'one' ? <Repeat1 className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}
             </button>
