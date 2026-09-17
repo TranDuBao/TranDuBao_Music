@@ -246,7 +246,19 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
 
     initMediaSessionHandlers(get);
 
-    const audio = new Audio();
+    let audio = document.getElementById('global-music-audio') as HTMLAudioElement;
+    if (!audio) {
+      audio = document.createElement('audio');
+      audio.id = 'global-music-audio';
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+      audio.setAttribute('x5-playsinline', 'true');
+      audio.style.display = 'none';
+      document.body.appendChild(audio);
+    } else {
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+    }
     audio.volume = get().volume;
 
     let lastPosSync = 0;
@@ -757,6 +769,14 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           player.setVolume(get().volume * 100);
           player.playVideo();
 
+          if (activeAudio) {
+            try {
+              activeAudio.loop = true;
+              activeAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
+              activeAudio.play().catch(() => { });
+            } catch (_) { }
+          }
+
           set({
             currentTrack: track,
             isPlaying: true,
@@ -835,6 +855,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         finalUrl = `${API_BASE}/tracks/${track.id}/stream`;
       }
       console.log(`[Player] Playing standard audio stream: ${finalUrl}`);
+      activeAudio.loop = false;
       activeAudio.src = getAbsoluteUrl(finalUrl);
 
       // Set state BEFORE play() so queue/index are always correct for auto-advance
