@@ -100,6 +100,11 @@ const getYoutubeVideoId = (url: string): string | null => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+const isMobileDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 const loadYoutubeAPI = (onReady: () => void) => {
   if ((window as any).YT && (window as any).YT.Player) {
     onReady();
@@ -261,13 +266,24 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
     audio.volume = get().volume;
 
+    const isYoutubeActive = () => {
+      const track = get().currentTrack;
+      if (!track || isMobileDevice()) return false;
+      return !!getYoutubeVideoId(track.audio_url);
+    };
+
     let lastPosSync = 0;
     audio.addEventListener('timeupdate', () => {
+      if (isYoutubeActive()) return;
+
+      const lastSeek = (window as any).__lastSeekTimestamp || 0;
+      if (Date.now() - lastSeek < 500) return;
+
       const currentTime = audio.currentTime;
       set({ progress: currentTime });
 
       const now = Date.now();
-      if (now - lastPosSync > 2000) {
+      if (now - lastPosSync > 3000) {
         lastPosSync = now;
         const currentTrack = get().currentTrack;
         if (currentTrack) {
@@ -277,16 +293,19 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     });
 
     audio.addEventListener('play', () => {
+      if (isYoutubeActive()) return;
       set({ isPlaying: true });
       updateMediaSession(get().currentTrack, true, audio.currentTime);
     });
 
     audio.addEventListener('pause', () => {
+      if (isYoutubeActive()) return;
       set({ isPlaying: false });
       updateMediaSession(get().currentTrack, false, audio.currentTime);
     });
 
     audio.addEventListener('loadedmetadata', () => {
+      if (isYoutubeActive()) return;
       if (audio.duration && isFinite(audio.duration)) {
         const exactSec = Math.floor(audio.duration);
         const currentTrack = get().currentTrack;
@@ -311,6 +330,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     });
 
     audio.addEventListener('ended', () => {
+      if (isYoutubeActive()) return;
       const { repeatMode, currentTrack } = get();
       if (repeatMode === 'one' && currentTrack) {
         audio.currentTime = 0;
@@ -394,6 +414,9 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
             if (callback) callback();
           },
           onStateChange: (event: any) => {
+            if ((window as any).__isChangingYtTrack) {
+              return;
+            }
             if (event.data === 1) { // YT.PlayerState.PLAYING
               set({ isPlaying: true });
               updateMediaSession(get().currentTrack, true, get().progress);
@@ -401,14 +424,16 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
               set({ isPlaying: false });
               updateMediaSession(get().currentTrack, false, get().progress);
             } else if (event.data === 0) { // YT.PlayerState.ENDED
-              const { repeatMode, currentTrack } = get();
-              if (repeatMode === 'one' && currentTrack) {
-                if (player && typeof player.seekTo === 'function') {
-                  player.seekTo(0, true);
-                  player.playVideo();
+              const { repeatMode, currentTrack, progress } = get();
+              if (progress > 3 || (currentTrack && currentTrack.duration && progress >= currentTrack.duration - 5)) {
+                if (repeatMode === 'one' && currentTrack) {
+                  if (player && typeof player.seekTo === 'function') {
+                    player.seekTo(0, true);
+                    player.playVideo();
+                  }
+                } else {
+                  get().playNext();
                 }
-              } else {
-                get().playNext();
               }
             }
           }
@@ -753,13 +778,19 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
 
     const videoId = getYoutubeVideoId(track.audio_url);
+    const useYoutubeIframe = videoId && !isMobileDevice();
 
-    if (videoId) {
+    if (useYoutubeIframe) {
       console.log(`[Player] Playing YouTube track via client-side player: ${videoId}`);
 
       const setupPlayerAndPlay = () => {
         const player = get().ytPlayer;
         if (!player) return;
+
+        (window as any).__isChangingYtTrack = true;
+        setTimeout(() => {
+          (window as any).__isChangingYtTrack = false;
+        }, 1500);
 
         try {
           player.loadVideoById({
@@ -794,16 +825,28 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
           }).catch(() => { });
 
           // Setup progress interval
+          let lastYtSync = 0;
           const interval = setInterval(() => {
             const p = get().ytPlayer;
             if (p) {
+              const lastSeek = (window as any).__lastSeekTimestamp || 0;
+              const isRecentSeek = Date.now() - lastSeek < 500;
+
               if (typeof p.getCurrentTime === 'function') {
                 try {
                   const cTime = p.getCurrentTime();
-                  set({ progress: cTime });
-                  const cTrack = get().currentTrack;
-                  if (cTrack) {
-                    updateMediaSession(cTrack, get().isPlaying, cTime);
+                  if (typeof cTime === 'number' && !isNaN(cTime)) {
+                    if (!isRecentSeek) {
+                      set({ progress: cTime });
+                    }
+                    const now = Date.now();
+                    if (now - lastYtSync > 3000) {
+                      lastYtSync = now;
+                      const cTrack = get().currentTrack;
+                      if (cTrack) {
+                        updateMediaSession(cTrack, get().isPlaying, isRecentSeek ? get().progress : cTime);
+                      }
+                    }
                   }
                 } catch (_) { }
               }
@@ -831,7 +874,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
                 } catch (_) { }
               }
             }
-          }, 1000);
+          }, 250);
           set({ progressInterval: interval });
 
         } catch (err) {
@@ -851,7 +894,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     } else {
       if (!activeAudio) return;
       let finalUrl = track.audio_url;
-      if (finalUrl && finalUrl.includes('soundcloud.com')) {
+      if (videoId || (finalUrl && finalUrl.includes('soundcloud.com'))) {
         finalUrl = `${API_BASE}/tracks/${track.id}/stream`;
       }
       console.log(`[Player] Playing standard audio stream: ${finalUrl}`);
@@ -893,7 +936,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
 
     const videoId = getYoutubeVideoId(currentTrack.audio_url);
-    if (videoId) {
+    if (videoId && !isMobileDevice()) {
       const ytPlayer = get().ytPlayer;
       if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
         if (isPlaying) {
@@ -938,10 +981,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   },
 
   setProgress: (time) => {
+    (window as any).__lastSeekTimestamp = Date.now();
     const { audio, currentTrack, isPlaying } = get();
     if (currentTrack) {
       const videoId = getYoutubeVideoId(currentTrack.audio_url);
-      if (videoId) {
+      if (videoId && !isMobileDevice()) {
         const ytPlayer = get().ytPlayer;
         if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
           try {

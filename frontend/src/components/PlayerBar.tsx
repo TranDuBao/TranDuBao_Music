@@ -83,9 +83,10 @@ export default function PlayerBar() {
             max={duration}
             value={activeProgress}
             onChange={handleSeekChange}
-            onMouseUp={() => handleSeekCommit()}
-            onTouchEnd={() => handleSeekCommit()}
-            onKeyUp={() => handleSeekCommit()}
+            onInput={handleSeekChange}
+            onMouseUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
+            onTouchEnd={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
+            onKeyUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
             disabled={!currentTrack}
             style={{
               background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${progressPercent}%, #27272a ${progressPercent}%, #27272a 100%)`
@@ -331,9 +332,10 @@ export default function PlayerBar() {
                   max={duration}
                   value={activeProgress}
                   onChange={handleSeekChange}
-                  onMouseUp={() => handleSeekCommit()}
-                  onTouchEnd={() => handleSeekCommit()}
-                  onKeyUp={() => handleSeekCommit()}
+                  onInput={handleSeekChange}
+                  onMouseUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
+                  onTouchEnd={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
+                  onKeyUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
                   disabled={!currentTrack}
                   style={{
                     background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${progressPercent}%, ${isDark ? '#27272a' : '#cbd5e1'} ${progressPercent}%, ${isDark ? '#27272a' : '#cbd5e1'} 100%)`
@@ -432,9 +434,10 @@ export default function PlayerBar() {
               max={duration}
               value={activeProgress}
               onChange={handleSeekChange}
-              onMouseUp={() => handleSeekCommit()}
-              onTouchEnd={() => handleSeekCommit()}
-              onKeyUp={() => handleSeekCommit()}
+              onInput={handleSeekChange}
+              onMouseUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
+              onTouchEnd={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
+              onKeyUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
               style={{
                 background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${progressPercent}%, #27272a ${progressPercent}%, #27272a 100%)`
               }}
