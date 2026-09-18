@@ -41,9 +41,9 @@ export default function PlayerBar() {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
-  const handleSeekChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsSeeking(true);
-    setSeekValue(Number((e.target as HTMLInputElement).value));
+    setSeekValue(Number(e.target.value));
   };
 
   const handleSeekCommit = (val?: number) => {
@@ -83,7 +83,6 @@ export default function PlayerBar() {
             max={duration}
             value={activeProgress}
             onChange={handleSeekChange}
-            onInput={handleSeekChange}
             onMouseUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
             onTouchEnd={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
             onKeyUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
@@ -332,7 +331,6 @@ export default function PlayerBar() {
                   max={duration}
                   value={activeProgress}
                   onChange={handleSeekChange}
-                  onInput={handleSeekChange}
                   onMouseUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
                   onTouchEnd={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
                   onKeyUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
@@ -434,7 +432,6 @@ export default function PlayerBar() {
               max={duration}
               value={activeProgress}
               onChange={handleSeekChange}
-              onInput={handleSeekChange}
               onMouseUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
               onTouchEnd={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
               onKeyUp={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
