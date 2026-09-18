@@ -41,9 +41,9 @@ export default function PlayerBar() {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSeekChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
     setIsSeeking(true);
-    setSeekValue(Number(e.target.value));
+    setSeekValue(Number((e.target as HTMLInputElement).value));
   };
 
   const handleSeekCommit = (val?: number) => {
